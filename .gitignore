@@ -353,3 +353,6 @@ MigrationBackup/
 
 # OSX Files
 OSX/Lib
+
+# Precompiled headers
+*.h.gch
