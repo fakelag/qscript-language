@@ -39,5 +39,12 @@ namespace Compiler
 		std::string 		m_String;
 	};
 
+	class ASTNode
+	{
+
+	};
+
+	// TODO: format these APIs
 	std::vector< Token_t > Lexer( const std::string& source );
+	ASTNode* GenerateIR( std::vector< Token_t > tokens );
 };
