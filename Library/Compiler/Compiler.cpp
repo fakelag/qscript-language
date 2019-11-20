@@ -1,4 +1,5 @@
 #include "../Includes/QLibPCH.h"
+#include "../Includes/Instructions.h"
 #include "Compiler.h"
 
 namespace QScript
@@ -16,6 +17,9 @@ namespace QScript
 		// Run IR optimizers
 
 		// Compile bytecode
+		chunk.m_Code.push_back( OpCode::OP_RETN );
+		chunk.m_Code.push_back( OpCode::OP_RETN );
+		chunk.m_Code.push_back( OpCode::OP_RETN );
 
 		// Return compiled code
 		return chunk;
