@@ -17,8 +17,10 @@ namespace QScript
 		// Run IR optimizers
 
 		// Compile bytecode
-		chunk.m_Code.push_back( OpCode::OP_RETN );
-		chunk.m_Code.push_back( OpCode::OP_RETN );
+		chunk.m_Constants.push_back( 5.6 );
+
+		chunk.m_Code.push_back( OpCode::OP_CNST );
+		chunk.m_Code.push_back( chunk.m_Constants.size() - 1 );
 		chunk.m_Code.push_back( OpCode::OP_RETN );
 
 		// Return compiled code
