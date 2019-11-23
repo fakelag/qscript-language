@@ -1,0 +1,4 @@
+Exceptions
+
+Part 				Id									Desc
+Compiler			cp_invalid_term_node				Unknown terminating node: %nodeType%
