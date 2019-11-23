@@ -1,4 +1,4 @@
-#include "../Includes/QLibPCH.h"
+#include "QLibPCH.h"
 #include "Compiler.h"
 
 namespace Compiler

@@ -1,6 +1,5 @@
-#include "../Includes/QLibPCH.h"
-#include "../Includes/Instructions.h"
-
+#include "QLibPCH.h"
+#include "Instructions.h"
 #include "../Compiler/Compiler.h"
 
 void QScript::Interpret( const Chunk_t& chunk )
