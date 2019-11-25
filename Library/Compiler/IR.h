@@ -1,3 +1,5 @@
+#pragma once
+
 namespace Compiler
 {
 	struct IrBuilder_t;
