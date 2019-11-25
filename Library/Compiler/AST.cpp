@@ -21,7 +21,20 @@ namespace Compiler
 	{
 		// Call CompileXXX functions from Compiler.cpp for code generation,
 		// but append debugging info to the chunk here
+		int start = chunk->m_Code.size();
+
 		CompileTermNode( m_NodeId, chunk );
+
+		if ( m_LineNr != -1 )
+		{
+			chunk->m_Debug.push_back( QScript::Chunk_t::Debug_t{
+				start,
+				( int ) chunk->m_Code.size(),
+				m_LineNr,
+				m_ColNr,
+				m_Token,
+			} );
+		}
 	}
 
 	ValueNode::ValueNode( int lineNr, int colNr, const std::string token, NodeId id, const QScript::Value& value )
@@ -32,6 +45,18 @@ namespace Compiler
 
 	void ValueNode::Compile( QScript::Chunk_t* chunk )
 	{
+		int start = chunk->m_Code.size();
 		CompileValueNode( m_Value, chunk );
+
+		if ( m_LineNr != -1 )
+		{
+			chunk->m_Debug.push_back( QScript::Chunk_t::Debug_t{
+				start,
+				( int ) chunk->m_Code.size(),
+				m_LineNr,
+				m_ColNr,
+				m_Token,
+			} );
+		}
 	}
 }

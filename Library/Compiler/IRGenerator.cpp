@@ -70,7 +70,7 @@ namespace Compiler
 		}
 
 		// Add a last NODE_RETURN
-		parserState.AddNode( new TermNode( 0, 0, "", NODE_RETURN ) );
+		parserState.AddNode( new TermNode( -1, -1, "", NODE_RETURN ) );
 		return parserState.Product();
 	}
 }
