@@ -20,6 +20,7 @@ namespace Compiler
 
 	enum Token
 	{
+		TOK_SCOLON = 0,
 		TOK_NAME,
 		TOK_INT,
 		TOK_DBL,

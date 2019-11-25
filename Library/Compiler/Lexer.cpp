@@ -13,6 +13,8 @@ namespace Compiler
 
 	const std::map<Token, KeywordInfo_t> LanguageSymbols = {
 		{ TOK_PLUS,			{ TOK_PLUS, "+", 		BP_ARITHMETIC_ADDSUB,		false } },
+
+		{ TOK_SCOLON,		{ TOK_SCOLON, ";", 		BP_NONE,					false } },
 	};
 
 	std::vector< Token_t > Lexer( const std::string& source )
