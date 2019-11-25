@@ -10,11 +10,17 @@ namespace Compiler
 	{
 		ParserState parserState;
 
+		// TDOP expression parsing
 		auto nextExpression = [ &parserState ]( int rbp = 0 ) -> BaseNode*
 		{
+			// Get the current builder, increment counter to the next one
 			auto builder = parserState.NextBuilder();
+
+			// parse null-denoted node
 			auto left = builder->m_Nud( *builder );
 
+			// while the next builder has a larger binding power
+			// deliver it the left hand node instead
 			while ( rbp < parserState.CurrentBuilder()->m_Token.m_LBP )
 			{
 				builder = parserState.NextBuilder();
@@ -53,14 +59,17 @@ namespace Compiler
 			return builder;
 		};
 
+		// Map all tokens to IR builders
 		std::transform( tokens.begin(), tokens.end(), std::back_inserter( parserState.Builders() ), createBuilder );
 
+		// Parse from top-level down
 		while ( !parserState.IsFinished() )
 		{
 			parserState.AddNode( nextExpression() );
 			parserState.NextBuilder();
 		}
 
+		// Add a last NODE_RETURN
 		parserState.AddNode( new TermNode( 0, 0, "", NODE_RETURN ) );
 		return parserState.Product();
 	}
