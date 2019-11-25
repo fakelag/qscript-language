@@ -2,3 +2,4 @@ Exceptions
 
 Part 				Id									Desc
 Compiler			cp_invalid_term_node				Unknown terminating node: %nodeType%
+IRGenerator			ir_unknown_token					Unknown token id: %tokenId% "%tokenString%"
