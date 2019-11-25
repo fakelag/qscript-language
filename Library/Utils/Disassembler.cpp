@@ -2,6 +2,20 @@
 #include "../../Includes/Instructions.h"
 #include "../Compiler/Compiler.h"
 
+bool FindDebugSymbols( const QScript::Chunk_t& chunk, int offset, QScript::Chunk_t::Debug_t* out )
+{
+	for ( auto entry : chunk.m_Debug )
+	{
+		if ( entry.m_To > offset && entry.m_From <= offset )
+		{
+			*out = entry;
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void Compiler::DisassembleChunk( const QScript::Chunk_t& chunk, const std::string& identifier )
 {
 	// Show identifier of the current chunk
@@ -15,7 +29,18 @@ void Compiler::DisassembleChunk( const QScript::Chunk_t& chunk, const std::strin
 int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, int offset )
 {
 	// Print offset with 3 leading zeros
-	std::cout << std::setfill( '0' ) << std::setw( 4 ) << offset << " ";
+	std::cout << std::setfill( '0' ) << std::setw( 4 ) << offset << " "
+		<< std::setw( 0 ) << std::setfill( ' ' );
+
+	QScript::Chunk_t::Debug_t debug;
+	bool hasSymbols = FindDebugSymbols( chunk, offset, &debug );
+
+	std::string debugString = "[" + ( hasSymbols
+		? std::to_string( debug.m_Line ) + ", " + std::to_string( debug.m_Column ) + ", \"" + debug.m_Token + "\""
+		: "-,-,-" ) + "]";
+
+	std::string instString;
+	int instOffset;
 
 	// Decode current instruction
 	switch ( chunk.m_Code[ offset ] )
@@ -25,14 +50,28 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, int offset 
 		// Index of the constant from code
 		uint8_t constant = chunk.m_Code[ offset + 1 ];
 
-		std::cout << "CNST "
-			<< std::to_string( constant )
-			<< " (" << chunk.m_Constants[ chunk.m_Code[ offset + 1 ] ] << ")" << std::endl;
-		return offset + 2;
+		instString = "CNST "
+			+ std::to_string( constant )
+			+ " (" + std::to_string( chunk.m_Constants[ chunk.m_Code[ offset + 1 ] ] ) + ")";
+
+		instOffset = offset + 2;
+		break;
 	}
-	case QScript::OpCode::OP_RETN: std::cout << "RETN" << std::endl; return offset + 1;
+	case QScript::OpCode::OP_RETN:
+	{
+		instString = "RETN";
+		instOffset = offset + 1;
+		break;
+	}
 	default:
 		std::cout << "Unknown opcode: " << chunk.m_Code[ offset ] << std::endl;
-		return offset + 1;
+		instOffset = offset + 1;
+		break;
 	}
+
+	std::cout << std::setfill( ' ' ) << std::left << std::setw( 25 ) << instString
+		<< std::setfill( ' ' ) << std::right << std::setw( 0 ) << debugString
+		<< std::endl;
+
+	return instOffset;
 }
