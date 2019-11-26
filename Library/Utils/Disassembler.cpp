@@ -3,7 +3,7 @@
 #include "../Compiler/Compiler.h"
 #include "../Runtime/QVM.h"
 
-bool FindDebugSymbols( const QScript::Chunk_t& chunk, int offset, QScript::Chunk_t::Debug_t* out )
+bool FindDebugSymbol( const QScript::Chunk_t& chunk, int offset, QScript::Chunk_t::Debug_t* out )
 {
 	for ( auto entry : chunk.m_Debug )
 	{
@@ -29,12 +29,17 @@ void Compiler::DisassembleChunk( const QScript::Chunk_t& chunk, const std::strin
 
 int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, int offset )
 {
+	#define SIMPLE_INST( inst, name ) case QScript::OpCode::inst: {\
+		instString = name; \
+		instOffset = offset + 1; \
+		break; }
+
 	// Print offset with 3 leading zeros
 	std::cout << std::setfill( '0' ) << std::setw( 4 ) << offset << " "
 		<< std::setw( 0 ) << std::setfill( ' ' );
 
 	QScript::Chunk_t::Debug_t debug;
-	bool hasSymbols = FindDebugSymbols( chunk, offset, &debug );
+	bool hasSymbols = FindDebugSymbol( chunk, offset, &debug );
 
 	std::string debugString = "[" + ( hasSymbols
 		? std::to_string( debug.m_Line ) + ", " + std::to_string( debug.m_Column ) + ", \"" + debug.m_Token + "\""
@@ -58,12 +63,9 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, int offset 
 		instOffset = offset + 2;
 		break;
 	}
-	case QScript::OpCode::OP_RETN:
-	{
-		instString = "RETN";
-		instOffset = offset + 1;
-		break;
-	}
+	SIMPLE_INST( OP_ADD, "ADD" );
+	SIMPLE_INST( OP_NEG, "NEG" );
+	SIMPLE_INST( OP_RETN, "RETN" );
 	default:
 		std::cout << "Unknown opcode: " << chunk.m_Code[ offset ] << std::endl;
 		instOffset = offset + 1;
@@ -74,6 +76,7 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, int offset 
 		<< std::setfill( ' ' ) << std::right << std::setw( 0 ) << debugString
 		<< std::endl;
 
+	#undef SIMPLE_INST
 	return instOffset;
 }
 

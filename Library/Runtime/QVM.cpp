@@ -5,6 +5,7 @@
 
 #define READ_BYTE( vm ) (*vm.m_IP++)
 #define READ_CONST( vm ) (vm.m_Chunk->m_Constants[ READ_BYTE( vm ) ])
+#define BINARY_OP( op ) { auto b = vm.Pop(); auto a = vm.Pop(); vm.Push( a op b ); }
 
 bool Run( VM_t& vm )
 {
@@ -51,12 +52,9 @@ bool Run( VM_t& vm )
 		uint8_t inst = READ_BYTE( vm );
 		switch ( inst )
 		{
-		case QScript::OP_CNST:
-		{
-			auto constant = READ_CONST( vm );
-			vm.Push( constant );
-			break;
-		}
+		case QScript::OP_CNST: vm.Push( READ_CONST( vm ) ); break;
+		case QScript::OP_NEG: vm.Push( -vm.Pop() ); break;
+		case QScript::OP_ADD: BINARY_OP( + ); break;
 		case QScript::OP_RETN:
 		{
 			std::cout << "Exit: " << ( vm.Pop() ) << std::endl;
