@@ -5,12 +5,12 @@
 
 namespace QScript
 {
-	Chunk_t Compile( const char* pszSource )
+	Chunk_t Compile( const char* source )
 	{
 		Chunk_t chunk;
 
 		// Lexical analysis (tokenization)
-		std::string source( pszSource );
+		std::string source( source );
 		auto tokens = Compiler::Lexer( source );
 
 		// Generate IR

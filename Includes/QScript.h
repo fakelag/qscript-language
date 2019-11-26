@@ -26,6 +26,6 @@ namespace QScript
 		std::vector< Debug_t >	m_Debug;
 	};
 
-	Chunk_t Compile( const char* pszSource );
+	Chunk_t Compile( const char* source );
 	void Interpret( const Chunk_t& chunk );
 }
