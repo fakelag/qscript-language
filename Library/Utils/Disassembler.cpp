@@ -1,6 +1,7 @@
 #include "QLibPCH.h"
 #include "../../Includes/Instructions.h"
 #include "../Compiler/Compiler.h"
+#include "../Runtime/QVM.h"
 
 bool FindDebugSymbols( const QScript::Chunk_t& chunk, int offset, QScript::Chunk_t::Debug_t* out )
 {
@@ -74,4 +75,14 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, int offset 
 		<< std::endl;
 
 	return instOffset;
+}
+
+void Compiler::DumpStack( const VM_t& vm )
+{
+	std::cout << "STACK (" << ( vm.m_StackTop - vm.m_Stack ) << ")" << std::endl;
+	for ( const QScript::Value* value = vm.m_Stack; value < vm.m_StackTop; ++value )
+	{
+		std::cout << std::setfill( '0' ) << std::setw( 4 ) << ( value - vm.m_Stack ) << std::setfill( ' ' ) << std::left << std::setw( 10 ) << " ";
+		std::cout << ( *value ) << std::setfill( ' ' ) << std::right << std::setw( 0 ) << std::endl;
+	}
 }
