@@ -16,15 +16,13 @@ bool Run( VM_t& vm )
 	for (;;)
 	{
 #ifdef QVM_DEBUG
-		Compiler::DisassembleInstruction( *vm.m_Chunk, ( int )( vm.m_IP - ( uint8_t* ) &vm.m_Chunk->m_Code[ 0 ] ) );
-
 		if ( isStepping )
 		{
 			std::string input;
 
 			for( ;; )
 			{
-				std::cout << "Action (s/r/ds): ";
+				std::cout << "Action (s/r/ds/dc/q): ";
 				std::cin >> input;
 
 				if ( input == "r" )
@@ -37,16 +35,21 @@ bool Run( VM_t& vm )
 					Compiler::DumpStack( vm );
 					continue;
 				}
+				else if ( input == "dc" )
+				{
+					Compiler::DisassembleChunk( *vm.m_Chunk, "current chunk" );
+					continue;
+				}
 				else if ( input == "s" )
-				{
 					break;
-				}
+				else if ( input == "q" )
+					return true;
 				else
-				{
 					std::cout << "Invalid action: " << input << std::endl;
-				}
 			}
 		}
+
+		Compiler::DisassembleInstruction( *vm.m_Chunk, ( int )( vm.m_IP - ( uint8_t* ) &vm.m_Chunk->m_Code[ 0 ] ) );
 #endif
 
 		uint8_t inst = READ_BYTE( vm );

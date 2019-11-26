@@ -10,7 +10,7 @@ struct VM_t
 		m_StackTop = &m_Stack[ 0 ];
 	}
 
-	void Push( QScript::Value& value )
+	void Push( QScript::Value value )
 	{
 		*m_StackTop = value;
 		++m_StackTop;
