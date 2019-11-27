@@ -30,7 +30,7 @@ namespace Compiler
 			return left;
 		};
 
-		auto createBuilder = []( const Token_t& token ) -> IrBuilder_t*
+		auto createBuilder = [ &nextExpression ]( const Token_t& token ) -> IrBuilder_t*
 		{
 			IrBuilder_t* builder = new IrBuilder_t( token );
 
@@ -43,6 +43,17 @@ namespace Compiler
 				{
 					auto node = new ValueNode( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
 						irBuilder.m_Token.m_String, NODE_CONSTANT, std::stod( irBuilder.m_Token.m_String ) );
+
+					return node;
+				};
+				break;
+			}
+			case Compiler::TOK_PLUS:
+			{
+				builder->m_Led = [ &nextExpression ]( const IrBuilder_t& irBuilder, BaseNode* left )
+				{
+					auto node = new ComplexNode( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+						irBuilder.m_Token.m_String, NODE_ADD, left, nextExpression( irBuilder.m_Token.m_LBP ) );
 
 					return node;
 				};
