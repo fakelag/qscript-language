@@ -2,9 +2,12 @@ namespace QScript
 {
 	enum OpCode
 	{
-		OP_CNST,
+		OP_LOAD,
 		OP_NEG,
 		OP_ADD,
+		OP_SUB,
+		OP_MUL,
+		OP_DIV,
 		OP_RETN,
 	};
 }

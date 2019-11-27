@@ -55,9 +55,12 @@ bool Run( VM_t& vm )
 		uint8_t inst = READ_BYTE( vm );
 		switch ( inst )
 		{
-		case QScript::OP_CNST: vm.Push( READ_CONST( vm ) ); break;
+		case QScript::OP_LOAD: vm.Push( READ_CONST( vm ) ); break;
 		case QScript::OP_NEG: vm.Push( -vm.Pop() ); break;
 		case QScript::OP_ADD: BINARY_OP( + ); break;
+		case QScript::OP_SUB: BINARY_OP( - ); break;
+		case QScript::OP_MUL: BINARY_OP( * ); break;
+		case QScript::OP_DIV: BINARY_OP( / ); break;
 		case QScript::OP_RETN:
 		{
 			std::cout << "Exit: " << ( vm.Pop() ) << std::endl;

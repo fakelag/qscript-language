@@ -10,8 +10,7 @@ namespace QScript
 		Chunk_t chunk;
 
 		// Lexical analysis (tokenization)
-		std::string source( source );
-		auto tokens = Compiler::Lexer( source );
+		auto tokens = Compiler::Lexer( std::string( source ) );
 
 		// Generate IR
 		auto entryNodes = Compiler::GenerateIR( tokens );
@@ -23,18 +22,43 @@ namespace QScript
 		for ( auto node : entryNodes )
 			node->Compile( &chunk );
 #else
-		// CNST 0 (5.5)
+		// LOAD 0 (5.5)
 		chunk.m_Constants.push_back( 5.5 );
-		chunk.m_Code.push_back( QScript::OpCode::OP_CNST );
+		chunk.m_Code.push_back( QScript::OpCode::OP_LOAD );
 		chunk.m_Code.push_back( ( uint8_t ) chunk.m_Constants.size() - 1 );
 
-		// CNST 1 (2.7)
+		// LOAD 1 (2.7)
 		chunk.m_Constants.push_back( 2.7 );
-		chunk.m_Code.push_back( QScript::OpCode::OP_CNST );
+		chunk.m_Code.push_back( QScript::OpCode::OP_LOAD );
 		chunk.m_Code.push_back( ( uint8_t ) chunk.m_Constants.size() - 1 );
 
 		// ADD
 		chunk.m_Code.push_back( QScript::OpCode::OP_ADD );
+
+		// LOAD 2 (2.0)
+		chunk.m_Constants.push_back( 2.0 );
+		chunk.m_Code.push_back( QScript::OpCode::OP_LOAD );
+		chunk.m_Code.push_back( ( uint8_t ) chunk.m_Constants.size() - 1 );
+
+		// SUB
+		chunk.m_Code.push_back( QScript::OpCode::OP_ADD );
+
+		// LOAD 2 (5.0)
+		chunk.m_Constants.push_back( 5.0 );
+		chunk.m_Code.push_back( QScript::OpCode::OP_LOAD );
+		chunk.m_Code.push_back( ( uint8_t ) chunk.m_Constants.size() - 1 );
+
+		// MUL
+		chunk.m_Code.push_back( QScript::OpCode::OP_MUL );
+
+
+		// LOAD 1.5 (5.0)
+		chunk.m_Constants.push_back( 1.5 );
+		chunk.m_Code.push_back( QScript::OpCode::OP_LOAD );
+		chunk.m_Code.push_back( ( uint8_t ) chunk.m_Constants.size() - 1 );
+
+		// DIV
+		chunk.m_Code.push_back( QScript::OpCode::OP_DIV );
 
 		// NEG
 		chunk.m_Code.push_back( QScript::OpCode::OP_NEG );
@@ -53,7 +77,7 @@ namespace Compiler
 	void CompileValueNode( const QScript::Value& value, QScript::Chunk_t* chunk )
 	{
 		chunk->m_Constants.push_back( value );
-		chunk->m_Code.push_back( QScript::OpCode::OP_CNST );
+		chunk->m_Code.push_back( QScript::OpCode::OP_LOAD );
 		chunk->m_Code.push_back( ( uint8_t ) chunk->m_Constants.size() - 1 );
 	}
 

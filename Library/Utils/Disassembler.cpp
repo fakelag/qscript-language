@@ -51,12 +51,12 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, int offset 
 	// Decode current instruction
 	switch ( chunk.m_Code[ offset ] )
 	{
-	case QScript::OpCode::OP_CNST:
+	case QScript::OpCode::OP_LOAD:
 	{
 		// Index of the constant from code
 		uint8_t constant = chunk.m_Code[ offset + 1 ];
 
-		instString = "CNST "
+		instString = "LOAD "
 			+ std::to_string( constant )
 			+ " (" + std::to_string( chunk.m_Constants[ chunk.m_Code[ offset + 1 ] ] ) + ")";
 
@@ -64,6 +64,9 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, int offset 
 		break;
 	}
 	SIMPLE_INST( OP_ADD, "ADD" );
+	SIMPLE_INST( OP_SUB, "SUB" );
+	SIMPLE_INST( OP_DIV, "DIV" );
+	SIMPLE_INST( OP_MUL, "MUL" );
 	SIMPLE_INST( OP_NEG, "NEG" );
 	SIMPLE_INST( OP_RETN, "RETN" );
 	default:
