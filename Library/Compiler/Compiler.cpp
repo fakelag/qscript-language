@@ -18,7 +18,7 @@ namespace QScript
 		// Run IR optimizers
 
 		// Compile bytecode
-#if 0
+#if 1
 		for ( auto node : entryNodes )
 			node->Compile( &chunk );
 #else
@@ -74,22 +74,14 @@ namespace QScript
 
 namespace Compiler
 {
-	void CompileValueNode( const QScript::Value& value, QScript::Chunk_t* chunk )
+	uint8_t AddConstant( const QScript::Value& value, QScript::Chunk_t* chunk )
 	{
 		chunk->m_Constants.push_back( value );
-		chunk->m_Code.push_back( QScript::OpCode::OP_LOAD );
-		chunk->m_Code.push_back( ( uint8_t ) chunk->m_Constants.size() - 1 );
+		return ( uint8_t ) chunk->m_Constants.size() - 1;
 	}
 
-	void CompileTermNode( NodeId nodeId, QScript::Chunk_t* chunk )
+	void EmitByte( uint8_t byte, QScript::Chunk_t* chunk )
 	{
-		switch ( nodeId )
-		{
-		case NODE_RETURN:
-			chunk->m_Code.push_back( QScript::OpCode::OP_RETN );
-			break;
-		default:
-			throw Exception( "cp_invalid_term_node", "Unknown terminating node: " + std::to_string( nodeId ) );
-		}
+		chunk->m_Code.push_back( byte );
 	}
 }

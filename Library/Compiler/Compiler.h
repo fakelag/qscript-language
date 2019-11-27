@@ -12,8 +12,8 @@ namespace Compiler
 	// std::vector< BaseNode* > OptimizeIR( std::vector< BaseNode* > nodes );
 
 	// Compilers
-	void CompileValueNode( const QScript::Value& value, QScript::Chunk_t* chunk );
-	void CompileTermNode( NodeId nodeId, QScript::Chunk_t* chunk );
+	uint8_t AddConstant( const QScript::Value& value, QScript::Chunk_t* chunk );
+	void EmitByte( uint8_t byte, QScript::Chunk_t* chunk );
 
 	// Disassembler
 	void DisassembleChunk( const QScript::Chunk_t& chunk, const std::string& identifier );

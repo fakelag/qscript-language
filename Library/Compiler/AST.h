@@ -14,6 +14,7 @@ namespace Compiler
 	{
 		NODE_INVALID = -1,
 		NODE_CONSTANT,
+		NODE_ADD,
 		NODE_RETURN,
 	};
 
@@ -51,5 +52,16 @@ namespace Compiler
 
 	private:
 		QScript::Value		m_Value;
+	};
+
+	class ComplexNode : public BaseNode
+	{
+	public:
+		ComplexNode( int lineNr, int colNr, const std::string token, NodeId id, BaseNode* left, BaseNode* right );
+		void Compile( QScript::Chunk_t* chunk );
+
+	private:
+		BaseNode*			m_Left;
+		BaseNode*			m_Right;
 	};
 }
