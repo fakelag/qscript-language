@@ -83,7 +83,15 @@ namespace Compiler
 
 		int start = chunk->m_Code.size();
 
-		EmitByte( QScript::OpCode::OP_ADD, chunk );
+		switch ( m_NodeId )
+		{
+		case NODE_ADD: EmitByte( QScript::OpCode::OP_ADD, chunk ); break;
+		case NODE_SUB: EmitByte( QScript::OpCode::OP_SUB, chunk ); break;
+		case NODE_MUL: EmitByte( QScript::OpCode::OP_MUL, chunk ); break;
+		case NODE_DIV: EmitByte( QScript::OpCode::OP_DIV, chunk ); break;
+		default:
+			throw Exception( "cp_invalid_complex_node", "Unknown complex node: " + std::to_string( m_NodeId ) );
+		}
 
 		AddDebugSymbol( chunk, start, m_LineNr, m_ColNr, m_Token );
 	}

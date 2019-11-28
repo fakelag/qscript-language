@@ -29,6 +29,10 @@ namespace Compiler
 		TOK_STR,
 		TOK_PLUS,
 		TOK_MINUS,
+		TOK_STAR,
+		TOK_SLASH,
+		TOK_LPAREN,
+		TOK_RPAREN,
 	};
 
 	struct Token_t

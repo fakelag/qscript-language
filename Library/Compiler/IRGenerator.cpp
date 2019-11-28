@@ -30,7 +30,7 @@ namespace Compiler
 			return left;
 		};
 
-		auto createBuilder = [ &nextExpression ]( const Token_t& token ) -> IrBuilder_t*
+		auto createBuilder = [ &parserState, &nextExpression ]( const Token_t& token ) -> IrBuilder_t*
 		{
 			IrBuilder_t* builder = new IrBuilder_t( token );
 
@@ -48,19 +48,59 @@ namespace Compiler
 				};
 				break;
 			}
+			case Compiler::TOK_MINUS:
+			{
+				// builder->m_Nud = [ &nextExpression ]( const IrBuilder_t& irBuilder )
+				// {
+				// 	TODO: SimpleNode(NODE_SUB)->ValueNode()
+				// 	return node;
+				// };
+			}
 			case Compiler::TOK_PLUS:
+			case Compiler::TOK_SLASH:
+			case Compiler::TOK_STAR:
 			{
 				builder->m_Led = [ &nextExpression ]( const IrBuilder_t& irBuilder, BaseNode* left )
 				{
+					NodeId nodeId = NODE_ADD;
+					switch ( irBuilder.m_Token.m_Token )
+					{
+						case Compiler::TOK_MINUS: nodeId = NODE_SUB; break;
+						case Compiler::TOK_STAR: nodeId = NODE_MUL; break;
+						case Compiler::TOK_SLASH: nodeId = NODE_DIV; break;
+						default: break;
+					}
+
 					auto node = new ComplexNode( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-						irBuilder.m_Token.m_String, NODE_ADD, left, nextExpression( irBuilder.m_Token.m_LBP ) );
+						irBuilder.m_Token.m_String, nodeId, left, nextExpression( irBuilder.m_Token.m_LBP ) );
 
 					return node;
 				};
 				break;
 			}
+			case Compiler::TOK_RPAREN:
 			case Compiler::TOK_SCOLON:
 				break;
+			case Compiler::TOK_LPAREN:
+			{
+				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder )
+				{
+					// TODO: check for instant closing rparen
+
+					auto expression = nextExpression();
+
+					if ( parserState.NextBuilder()->m_Token.m_Token != Compiler::TOK_RPAREN )
+					{
+						auto curBuilder = parserState.CurrentBuilder();
+						throw Exception( "ir_missing_rparen",
+							std::string( "Expected an end of expression, got: \"" + curBuilder->m_Token.m_String + "\"" ) );
+					}
+
+					return expression;
+				};
+
+				break;
+			}
 			default:
 				throw Exception( "ir_unknown_token", std::string( "Unknown token id: " )
 					+ std::to_string( token.m_Token )

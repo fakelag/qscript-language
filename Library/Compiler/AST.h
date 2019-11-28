@@ -15,6 +15,9 @@ namespace Compiler
 		NODE_INVALID = -1,
 		NODE_CONSTANT,
 		NODE_ADD,
+		NODE_SUB,
+		NODE_MUL,
+		NODE_DIV,
 		NODE_RETURN,
 	};
 
