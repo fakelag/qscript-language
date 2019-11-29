@@ -70,7 +70,7 @@ namespace Compiler
 	}
 
 	ComplexNode::ComplexNode( int lineNr, int colNr, const std::string token, NodeId id, BaseNode* left, BaseNode* right )
-		: BaseNode( lineNr, colNr, token, NT_VALUE, id )
+		: BaseNode( lineNr, colNr, token, NT_COMPLEX, id )
 	{
 		m_Left = left;
 		m_Right = right;
@@ -91,6 +91,28 @@ namespace Compiler
 		case NODE_DIV: EmitByte( QScript::OpCode::OP_DIV, chunk ); break;
 		default:
 			throw Exception( "cp_invalid_complex_node", "Unknown complex node: " + std::to_string( m_NodeId ) );
+		}
+
+		AddDebugSymbol( chunk, start, m_LineNr, m_ColNr, m_Token );
+	}
+
+	SimpleNode::SimpleNode( int lineNr, int colNr, const std::string token, NodeId id, BaseNode* node )
+		: BaseNode( lineNr, colNr, token, NT_SIMPLE, id )
+	{
+		m_Node = node;
+	}
+
+	void SimpleNode::Compile( QScript::Chunk_t* chunk )
+	{
+		m_Node->Compile( chunk );
+
+		int start = chunk->m_Code.size();
+
+		switch ( m_NodeId )
+		{
+		case NODE_NEG: EmitByte( QScript::OpCode::OP_NEG, chunk ); break;
+		default:
+			throw Exception( "cp_invalid_simple_node", "Unknown simple node: " + std::to_string( m_NodeId ) );
 		}
 
 		AddDebugSymbol( chunk, start, m_LineNr, m_ColNr, m_Token );

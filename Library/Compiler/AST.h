@@ -7,7 +7,8 @@ namespace Compiler
 		NT_INVALID = -1,
 		NT_TERM,			// Terminating node, links to no further nodes
 		NT_VALUE,			// Value node. Contains a value, links to no further nodes
-		// NT_SIMPLE,			// Simple node, links to a single subtree (of 1...n items)
+		NT_SIMPLE,			// Simple node, links to a single subtree (of 1...n items)
+		NT_COMPLEX,			// Complex node, links to two (left & right) nodes
 	};
 
 	enum NodeId
@@ -18,6 +19,7 @@ namespace Compiler
 		NODE_SUB,
 		NODE_MUL,
 		NODE_DIV,
+		NODE_NEG,
 		NODE_RETURN,
 	};
 
@@ -66,5 +68,15 @@ namespace Compiler
 	private:
 		BaseNode*			m_Left;
 		BaseNode*			m_Right;
+	};
+
+	class SimpleNode : public BaseNode
+	{
+	public:
+		SimpleNode( int lineNr, int colNr, const std::string token, NodeId id, BaseNode* node );
+		void Compile( QScript::Chunk_t* chunk );
+
+	private:
+		BaseNode*			m_Node;
 	};
 }
