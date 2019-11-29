@@ -29,6 +29,14 @@ namespace Compiler
 			m_CurrentObject = 0;
 		}
 
+		~ParserState()
+		{
+			for ( auto builder : m_Builders )
+				delete builder;
+
+			m_Builders.clear();
+		}
+
 		std::vector< BaseNode* >& 		Product() { return m_Ast; }
 		std::vector< IrBuilder_t* >& 	Builders() { return m_Builders; }
 

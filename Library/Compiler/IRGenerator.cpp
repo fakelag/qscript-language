@@ -126,8 +126,10 @@ namespace Compiler
 			parserState.NextBuilder();
 		}
 
-		// Add a last NODE_RETURN
+		// Add a last NODE_RETURN to exit the program
 		parserState.AddNode( new TermNode( -1, -1, "", NODE_RETURN ) );
+
+		// Builders are freed once parserState gets destructed
 		return parserState.Product();
 	}
 }
