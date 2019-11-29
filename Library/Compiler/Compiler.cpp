@@ -21,6 +21,11 @@ namespace QScript
 #if 1
 		for ( auto node : entryNodes )
 			node->Compile( &chunk );
+
+		for ( auto node : entryNodes )
+			delete node;
+
+		entryNodes.clear();
 #else
 		// LOAD 0 (5.5)
 		chunk.m_Constants.push_back( 5.5 );

@@ -76,6 +76,12 @@ namespace Compiler
 		m_Right = right;
 	}
 
+	ComplexNode::~ComplexNode()
+	{
+		delete m_Left;
+		delete m_Right;
+	}
+
 	void ComplexNode::Compile( QScript::Chunk_t* chunk )
 	{
 		m_Left->Compile( chunk );
@@ -100,6 +106,11 @@ namespace Compiler
 		: BaseNode( lineNr, colNr, token, NT_SIMPLE, id )
 	{
 		m_Node = node;
+	}
+
+	SimpleNode::~SimpleNode()
+	{
+		delete m_Node;
 	}
 
 	void SimpleNode::Compile( QScript::Chunk_t* chunk )

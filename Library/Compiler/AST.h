@@ -63,6 +63,8 @@ namespace Compiler
 	{
 	public:
 		ComplexNode( int lineNr, int colNr, const std::string token, NodeId id, BaseNode* left, BaseNode* right );
+		~ComplexNode();
+
 		void Compile( QScript::Chunk_t* chunk );
 
 	private:
@@ -74,6 +76,8 @@ namespace Compiler
 	{
 	public:
 		SimpleNode( int lineNr, int colNr, const std::string token, NodeId id, BaseNode* node );
+		~SimpleNode();
+
 		void Compile( QScript::Chunk_t* chunk );
 
 	private:
