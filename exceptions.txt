@@ -3,5 +3,6 @@ Exceptions
 Part 				Id									Desc
 Compiler			cp_invalid_term_node				Unknown terminating node: %nodeType%
 Compiler 			cp_invalid_complex_node				Unknown complex node: %nodeType%
+Compiler 			cp_invalid_simple_node				Unknown simple node: %nodeType%
 IRGenerator			ir_unknown_token					Unknown token id: %tokenId% "%tokenString%"
 IRGenerator			ir_missing_rparen					Expected an end of expression, got: "%currToken%"
