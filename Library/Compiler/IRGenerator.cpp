@@ -19,6 +19,9 @@ namespace Compiler
 			// parse null-denoted node
 			auto left = builder->m_Nud( *builder );
 
+			if ( rbp == -1 )
+				return left;
+
 			// while the next builder has a larger binding power
 			// deliver it the left hand node instead
 			while ( rbp < parserState.CurrentBuilder()->m_Token.m_LBP )
@@ -50,11 +53,14 @@ namespace Compiler
 			}
 			case Compiler::TOK_MINUS:
 			{
-				// builder->m_Nud = [ &nextExpression ]( const IrBuilder_t& irBuilder )
-				// {
-				// 	TODO: SimpleNode(NODE_SUB)->ValueNode()
-				// 	return node;
-				// };
+				builder->m_Nud = [ &nextExpression ]( const IrBuilder_t& irBuilder )
+				{
+					auto node = new SimpleNode( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+						irBuilder.m_Token.m_String, NODE_NEG, nextExpression( -1 ) );
+
+					return node;
+				};
+				/* Fall Through */
 			}
 			case Compiler::TOK_PLUS:
 			case Compiler::TOK_SLASH:
