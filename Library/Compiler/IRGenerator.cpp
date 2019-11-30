@@ -3,6 +3,7 @@
 #include "Instructions.h"
 #include "Exception.h"
 #include "IR.h"
+#include "../Utils/Value.h"
 
 namespace Compiler
 {
@@ -39,13 +40,39 @@ namespace Compiler
 
 			switch ( token.m_Token )
 			{
+			case Compiler::TOK_NULL:
+			case Compiler::TOK_FALSE:
+			case Compiler::TOK_TRUE:
 			case Compiler::TOK_DBL:
 			case Compiler::TOK_INT:
 			{
 				builder->m_Nud = []( const IrBuilder_t& irBuilder )
 				{
+					QScript::Value value;
+
+					switch ( irBuilder.m_Token.m_Token )
+					{
+						case Compiler::TOK_INT:
+							value = MAKE_NUMBER( ( double ) std::stoi( irBuilder.m_Token.m_String ) );
+							break;
+						case Compiler::TOK_DBL:
+							value = MAKE_NUMBER( std::stod( irBuilder.m_Token.m_String ) );
+							break;
+						case Compiler::TOK_NULL:
+							value = MAKE_NULL;
+							break;
+						case Compiler::TOK_FALSE:
+							value = MAKE_BOOL( false );
+							break;
+						case Compiler::TOK_TRUE:
+							value = MAKE_BOOL( true );
+							break;
+						default:
+							throw Exception( "ir_invalid_value_token", "Invalid value token: \"" + irBuilder.m_Token.m_String + "\"" );
+					};
+
 					auto node = new ValueNode( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-						irBuilder.m_Token.m_String, NODE_CONSTANT, std::stod( irBuilder.m_Token.m_String ) );
+						irBuilder.m_Token.m_String, NODE_CONSTANT, value );
 
 					return node;
 				};

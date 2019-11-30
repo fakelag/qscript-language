@@ -33,6 +33,9 @@ namespace Compiler
 		TOK_SLASH,
 		TOK_LPAREN,
 		TOK_RPAREN,
+		TOK_TRUE,
+		TOK_FALSE,
+		TOK_NULL,
 	};
 
 	struct Token_t
