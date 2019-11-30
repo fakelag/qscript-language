@@ -1,4 +1,6 @@
 #include "QLibPCH.h"
+#include "Value.h"
+#include "Exception.h"
 #include "../../Includes/Instructions.h"
 #include "../Compiler/Compiler.h"
 #include "../Runtime/QVM.h"
@@ -15,6 +17,25 @@ bool FindDebugSymbol( const QScript::Chunk_t& chunk, int offset, QScript::Chunk_
 	}
 
 	return false;
+}
+
+std::string Compiler::ValueToString( const QScript::Value& value )
+{
+	switch ( value.m_Type )
+	{
+		case QScript::VT_NUMBER:
+		{
+			char result[ 4 ];
+			snprintf( result, sizeof( result ), "%.2f", AS_NUMBER( value ) );
+			return std::string( "(number, " ) + result + ")";
+		}
+		case QScript::VT_BOOL:
+			return std::string( "(bool, " ) + ( AS_BOOL( value ) ? "true" : "false" ) + ")";
+		case QScript::VT_NULL:
+			return "(null)";
+		default:
+			throw Exception( "disasm_invalid_value", "Invalid value type: " + std::to_string( value.m_Type ) );
+	}
 }
 
 void Compiler::DisassembleChunk( const QScript::Chunk_t& chunk, const std::string& identifier )
@@ -55,10 +76,11 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, int offset 
 	{
 		// Index of the constant from code
 		uint8_t constant = chunk.m_Code[ offset + 1 ];
+		const QScript::Value& value = chunk.m_Constants[ chunk.m_Code[ offset + 1 ] ];
 
 		instString = "LOAD "
 			+ std::to_string( constant )
-			+ " (" + std::to_string( chunk.m_Constants[ chunk.m_Code[ offset + 1 ] ] ) + ")";
+			+ " " + Compiler::ValueToString( value );
 
 		instOffset = offset + 2;
 		break;
@@ -89,6 +111,6 @@ void Compiler::DumpStack( const VM_t& vm )
 	for ( const QScript::Value* value = vm.m_Stack; value < vm.m_StackTop; ++value )
 	{
 		std::cout << std::setfill( '0' ) << std::setw( 4 ) << ( value - vm.m_Stack ) << std::setfill( ' ' ) << std::left << std::setw( 10 ) << " ";
-		std::cout << ( *value ) << std::setfill( ' ' ) << std::right << std::setw( 0 ) << std::endl;
+		std::cout << Compiler:: ValueToString( *value ) << std::setfill( ' ' ) << std::right << std::setw( 0 ) << std::endl;
 	}
 }

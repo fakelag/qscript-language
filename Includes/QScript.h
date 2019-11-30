@@ -8,7 +8,21 @@
 
 namespace QScript
 {
-	typedef double Value;
+	enum ValueType
+	{
+		VT_BOOL = 0,
+		VT_NUMBER,
+		VT_NULL,
+	};
+
+	struct Value
+	{
+		ValueType 	m_Type;
+		union {
+			bool	m_Bool;
+			double	m_Number;
+		} m_Data;
+	};
 
 	struct Chunk_t
 	{

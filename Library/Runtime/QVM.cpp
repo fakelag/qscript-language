@@ -1,11 +1,18 @@
 #include "QLibPCH.h"
 #include "Instructions.h"
+#include "Exception.h"
 #include "QVM.h"
+#include "../Utils/Value.h"
 #include "../Compiler/Compiler.h"
 
 #define READ_BYTE( vm ) (*vm.m_IP++)
 #define READ_CONST( vm ) (vm.m_Chunk->m_Constants[ READ_BYTE( vm ) ])
-#define BINARY_OP( op ) { auto b = vm.Pop(); auto a = vm.Pop(); vm.Push( a op b ); }
+#define BINARY_OP( op ) { \
+	auto b = vm.Pop(); auto a = vm.Pop(); \
+	if ( !IS_NUMBER(a) || !IS_NUMBER(b) ) \
+		throw RuntimeException( "rt_invalid_operand_type", std::string( "Both operands of \"" ) + #op + "\" operation must be numbers", -1, -1, "" ); \
+	vm.Push( MAKE_NUMBER( AS_NUMBER( a ) op AS_NUMBER( b ) ) ); \
+}
 
 bool Run( VM_t& vm )
 {
@@ -56,14 +63,22 @@ bool Run( VM_t& vm )
 		switch ( inst )
 		{
 		case QScript::OP_LOAD: vm.Push( READ_CONST( vm ) ); break;
-		case QScript::OP_NEG: vm.Push( -vm.Pop() ); break;
+		case QScript::OP_NEG:
+		{
+			auto value = vm.Pop();
+			if ( !IS_NUMBER( value ) )
+				throw RuntimeException( "rt_invalid_operand_type", "Negation operand must be of number type", -1, -1, "" );
+
+			vm.Push( MAKE_NUMBER( -AS_NUMBER( value ) ) );
+			break;
+		}
 		case QScript::OP_ADD: BINARY_OP( + ); break;
 		case QScript::OP_SUB: BINARY_OP( - ); break;
 		case QScript::OP_MUL: BINARY_OP( * ); break;
 		case QScript::OP_DIV: BINARY_OP( / ); break;
 		case QScript::OP_RETN:
 		{
-			std::cout << "Exit: " << ( vm.Pop() ) << std::endl;
+			std::cout << "Exit: " << Compiler::ValueToString( vm.Pop() ) << std::endl;
 			return true;
 		}
 		}
