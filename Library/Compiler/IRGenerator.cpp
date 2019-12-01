@@ -1,9 +1,10 @@
 #include "QLibPCH.h"
+#include "../Common/Chunk.h"
+
 #include "Compiler.h"
 #include "Instructions.h"
 #include "Exception.h"
 #include "IR.h"
-#include "../Utils/Value.h"
 
 namespace Compiler
 {

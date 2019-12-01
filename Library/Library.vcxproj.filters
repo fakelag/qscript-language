@@ -7,7 +7,7 @@
     <Filter Include="Runtime">
       <UniqueIdentifier>{7ad9a481-d47a-41e1-9e1e-8abaf8d8d9d1}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Utils">
+    <Filter Include="Common">
       <UniqueIdentifier>{e26f0114-8c6a-4f0b-bc75-58e39ac3c8d2}</UniqueIdentifier>
     </Filter>
     <Filter Include="Includes">
@@ -15,8 +15,8 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Utils\Disassembler.cpp">
-      <Filter>Utils</Filter>
+    <ClCompile Include="Common\Disassembler.cpp">
+      <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="Compiler\Compiler.cpp">
       <Filter>Compiler</Filter>

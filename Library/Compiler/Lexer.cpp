@@ -1,4 +1,6 @@
 #include "QLibPCH.h"
+#include "../Common/Chunk.h"
+
 #include "Compiler.h"
 
 namespace Compiler

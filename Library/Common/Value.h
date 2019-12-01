@@ -9,3 +9,22 @@
 #define IS_NULL( value ) ((value).m_Type == QScript::VT_NULL)
 #define IS_BOOL( value ) ((value).m_Type == QScript::VT_BOOL)
 #define IS_NUMBER( value ) ((value).m_Type == QScript::VT_NUMBER)
+
+namespace QScript
+{
+	enum ValueType
+	{
+		VT_BOOL = 0,
+		VT_NUMBER,
+		VT_NULL,
+	};
+
+	struct Value
+	{
+		ValueType 	m_Type;
+		union {
+			bool	m_Bool;
+			double	m_Number;
+		} m_Data;
+	};
+}

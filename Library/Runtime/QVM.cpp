@@ -1,8 +1,9 @@
 #include "QLibPCH.h"
+#include "../Common/Chunk.h"
+
 #include "Instructions.h"
 #include "Exception.h"
 #include "QVM.h"
-#include "../Utils/Value.h"
 #include "../Compiler/Compiler.h"
 
 #define READ_BYTE( vm ) (*vm.m_IP++)

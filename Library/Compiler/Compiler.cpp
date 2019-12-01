@@ -1,13 +1,15 @@
 #include "QLibPCH.h"
+#include "../Common/Chunk.h"
+
 #include "Instructions.h"
 #include "Compiler.h"
 #include "Exception.h"
 
 namespace QScript
 {
-	Chunk_t Compile( const char* source )
+	Chunk_t* Compile( const char* source )
 	{
-		Chunk_t chunk;
+		Chunk_t* chunk = AllocChunk();
 
 		// Lexical analysis (tokenization)
 		auto tokens = Compiler::Lexer( std::string( source ) );
@@ -20,7 +22,7 @@ namespace QScript
 		// Compile bytecode
 #if 1
 		for ( auto node : entryNodes )
-			node->Compile( &chunk );
+			node->Compile( chunk );
 
 		for ( auto node : entryNodes )
 			delete node;
