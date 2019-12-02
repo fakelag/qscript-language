@@ -64,6 +64,7 @@ bool Run( VM_t& vm )
 		switch ( inst )
 		{
 		case QScript::OP_LOAD: vm.Push( READ_CONST( vm ) ); break;
+		case QScript::OP_NOT: vm.Push( MAKE_BOOL( !( bool )( vm.Pop() ) ) ); break;
 		case QScript::OP_NEG:
 		{
 			auto value = vm.Pop();
@@ -82,6 +83,8 @@ bool Run( VM_t& vm )
 			std::cout << "Exit: " << Compiler::ValueToString( vm.Pop() ) << std::endl;
 			return true;
 		}
+		default:
+			throw RuntimeException( "rt_unknown_opcode", "Unknown opcode: " + std::to_string( inst ), -1, -1, "" );
 		}
 	}
 }

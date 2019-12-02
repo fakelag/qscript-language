@@ -91,6 +91,7 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, int offset 
 	SIMPLE_INST( OP_DIV, "DIV" );
 	SIMPLE_INST( OP_MUL, "MUL" );
 	SIMPLE_INST( OP_NEG, "NEG" );
+	SIMPLE_INST( OP_NOT, "NOT" );
 	SIMPLE_INST( OP_RETN, "RETN" );
 	default:
 		std::cout << "Unknown opcode: " << chunk.m_Code[ offset ] << std::endl;

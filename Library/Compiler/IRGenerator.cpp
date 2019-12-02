@@ -79,6 +79,18 @@ namespace Compiler
 				};
 				break;
 			}
+			case Compiler::TOK_BANG:
+			{
+				builder->m_Nud = [ &nextExpression ]( const IrBuilder_t& irBuilder )
+				{
+					auto node = new SimpleNode( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+						irBuilder.m_Token.m_String, NODE_NOT, nextExpression( irBuilder.m_Token.m_LBP ) );
+
+					return node;
+				};
+
+				break;
+			}
 			case Compiler::TOK_MINUS:
 			{
 				builder->m_Nud = [ &nextExpression ]( const IrBuilder_t& irBuilder )

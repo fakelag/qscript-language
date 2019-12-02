@@ -20,6 +20,7 @@ namespace Compiler
 		NODE_MUL,
 		NODE_DIV,
 		NODE_NEG,
+		NODE_NOT,
 		NODE_RETURN,
 	};
 

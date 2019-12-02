@@ -23,6 +23,7 @@ namespace Compiler
 		{ TOK_RPAREN,		{ TOK_RPAREN, 	")", 		BP_NONE,					false } },
 
 		{ TOK_SCOLON,		{ TOK_SCOLON, 	";", 		BP_NONE,					false } },
+		{ TOK_BANG, 		{ TOK_BANG, 	"!", 		BP_LOGIC_NOT,				false } },
 
 		{ TOK_TRUE,			{ TOK_TRUE, 	"true", 	BP_NONE,					true } },
 		{ TOK_FALSE,		{ TOK_FALSE, 	"false", 	BP_NONE,					true } },

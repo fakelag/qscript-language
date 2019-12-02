@@ -35,6 +35,7 @@ namespace Compiler
 		TOK_RPAREN,
 		TOK_TRUE,
 		TOK_FALSE,
+		TOK_BANG,
 		TOK_NULL,
 	};
 

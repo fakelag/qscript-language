@@ -123,6 +123,7 @@ namespace Compiler
 
 		switch ( m_NodeId )
 		{
+		case NODE_NOT: EmitByte( QScript::OpCode::OP_NOT, chunk ); break;
 		case NODE_NEG: EmitByte( QScript::OpCode::OP_NEG, chunk ); break;
 		default:
 			throw Exception( "cp_invalid_simple_node", "Unknown simple node: " + std::to_string( m_NodeId ) );
