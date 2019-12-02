@@ -26,5 +26,33 @@ namespace QScript
 			bool	m_Bool;
 			double	m_Number;
 		} m_Data;
+
+		FORCEINLINE operator bool()
+		{
+			if ( IS_NULL( *this ) )
+				return false;
+
+			if ( IS_BOOL( *this ) )
+				return AS_BOOL( *this );
+
+			if ( IS_NUMBER( *this ) )
+				return AS_NUMBER( *this ) != 0;
+
+			return false;
+		}
+
+		FORCEINLINE bool operator==( const Value& other )
+		{
+			if ( m_Type != other.m_Type )
+				return false;
+
+			switch ( m_Type )
+			{
+				case VT_NULL: return true;
+				case VT_BOOL: return AS_BOOL( *this ) == AS_BOOL( other );
+				case VT_NUMBER: return AS_NUMBER( *this ) == AS_NUMBER( other );
+				default: return false;
+			}
+		}
 	};
 }
