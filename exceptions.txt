@@ -9,3 +9,4 @@ IRGenerator			ir_missing_rparen					Expected an end of expression, got: "%currTo
 IRGenerator 		ir_invalid_value_token 				Invalid value token: "%tokenString%"
 Disassembler		disasm_invalid_value				Invalid value type: %valueType%
 Runtime				rt_invalid_operand_type				Both operands of "%op%" operation must be numbers | Negation operand must be of number type
+Runtime 			rt_unknown_opcode					Unknown opcode: %opcode%
