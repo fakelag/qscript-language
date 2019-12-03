@@ -5,6 +5,10 @@
 #include "Compiler.h"
 #include "Exception.h"
 
+#if 1
+#include "../Common/Value.h"
+#endif
+
 namespace QScript
 {
 	Chunk_t* Compile( const char* source )
@@ -20,7 +24,7 @@ namespace QScript
 		// Run IR optimizers
 
 		// Compile bytecode
-#if 1
+#if 0
 		for ( auto node : entryNodes )
 			node->Compile( chunk );
 
@@ -29,49 +33,58 @@ namespace QScript
 
 		entryNodes.clear();
 #else
-		// LOAD 0 (5.5)
-		chunk.m_Constants.push_back( 5.5 );
-		chunk.m_Code.push_back( QScript::OpCode::OP_LOAD );
-		chunk.m_Code.push_back( ( uint8_t ) chunk.m_Constants.size() - 1 );
+		/*chunk->m_Constants.push_back( MAKE_NUMBER( 5.5 ) );
+		chunk->m_Code.push_back( QScript::OpCode::OP_LOAD );
+		chunk->m_Code.push_back( ( uint8_t ) chunk->m_Constants.size() - 1 );
 
-		// LOAD 1 (2.7)
-		chunk.m_Constants.push_back( 2.7 );
-		chunk.m_Code.push_back( QScript::OpCode::OP_LOAD );
-		chunk.m_Code.push_back( ( uint8_t ) chunk.m_Constants.size() - 1 );
+		chunk->m_Constants.push_back( MAKE_NUMBER( 2.7 ) );
+		chunk->m_Code.push_back( QScript::OpCode::OP_LOAD );
+		chunk->m_Code.push_back( ( uint8_t ) chunk->m_Constants.size() - 1 );
 
-		// ADD
-		chunk.m_Code.push_back( QScript::OpCode::OP_ADD );
+		chunk->m_Code.push_back( QScript::OpCode::OP_EQ );
 
-		// LOAD 2 (2.0)
-		chunk.m_Constants.push_back( 2.0 );
-		chunk.m_Code.push_back( QScript::OpCode::OP_LOAD );
-		chunk.m_Code.push_back( ( uint8_t ) chunk.m_Constants.size() - 1 );
+		chunk->m_Constants.push_back( MAKE_NUMBER( 5.5 ) );
+		chunk->m_Code.push_back( QScript::OpCode::OP_LOAD );
+		chunk->m_Code.push_back( ( uint8_t ) chunk->m_Constants.size() - 1 );
 
-		// SUB
-		chunk.m_Code.push_back( QScript::OpCode::OP_ADD );
+		chunk->m_Constants.push_back( MAKE_NUMBER( 2.7 ) );
+		chunk->m_Code.push_back( QScript::OpCode::OP_LOAD );
+		chunk->m_Code.push_back( ( uint8_t ) chunk->m_Constants.size() - 1 );
 
-		// LOAD 2 (5.0)
-		chunk.m_Constants.push_back( 5.0 );
-		chunk.m_Code.push_back( QScript::OpCode::OP_LOAD );
-		chunk.m_Code.push_back( ( uint8_t ) chunk.m_Constants.size() - 1 );
+		chunk->m_Code.push_back( QScript::OpCode::OP_NEQ );
 
-		// MUL
-		chunk.m_Code.push_back( QScript::OpCode::OP_MUL );
+		chunk->m_Constants.push_back( MAKE_NUMBER( 5.5 ) );
+		chunk->m_Code.push_back( QScript::OpCode::OP_LOAD );
+		chunk->m_Code.push_back( ( uint8_t ) chunk->m_Constants.size() - 1 );
 
+		chunk->m_Constants.push_back( MAKE_NUMBER( 5.5 ) );
+		chunk->m_Code.push_back( QScript::OpCode::OP_LOAD );
+		chunk->m_Code.push_back( ( uint8_t ) chunk->m_Constants.size() - 1 );
 
-		// LOAD 1.5 (5.0)
-		chunk.m_Constants.push_back( 1.5 );
-		chunk.m_Code.push_back( QScript::OpCode::OP_LOAD );
-		chunk.m_Code.push_back( ( uint8_t ) chunk.m_Constants.size() - 1 );
+		chunk->m_Code.push_back( QScript::OpCode::OP_EQ );*/
 
-		// DIV
-		chunk.m_Code.push_back( QScript::OpCode::OP_DIV );
+		chunk->m_Constants.push_back( MAKE_BOOL( true ) );
+		chunk->m_Code.push_back( QScript::OpCode::OP_LOAD );
+		chunk->m_Code.push_back( ( uint8_t ) chunk->m_Constants.size() - 1 );
 
-		// NEG
-		chunk.m_Code.push_back( QScript::OpCode::OP_NEG );
+		chunk->m_Constants.push_back( MAKE_BOOL( true ) );
+		chunk->m_Code.push_back( QScript::OpCode::OP_LOAD );
+		chunk->m_Code.push_back( ( uint8_t ) chunk->m_Constants.size() - 1 );
+
+		chunk->m_Code.push_back( QScript::OpCode::OP_EQ );
+
+		/*chunk->m_Constants.push_back( MAKE_BOOL( false ) );
+		chunk->m_Code.push_back( QScript::OpCode::OP_LOAD );
+		chunk->m_Code.push_back( ( uint8_t ) chunk->m_Constants.size() - 1 );
+
+		chunk->m_Constants.push_back( MAKE_BOOL( true ) );
+		chunk->m_Code.push_back( QScript::OpCode::OP_LOAD );
+		chunk->m_Code.push_back( ( uint8_t ) chunk->m_Constants.size() - 1 );
+
+		chunk->m_Code.push_back( QScript::OpCode::OP_EQ );*/
 
 		// RET
-		chunk.m_Code.push_back( QScript::OpCode::OP_RETN );
+		chunk->m_Code.push_back( QScript::OpCode::OP_RETN );
 #endif
 
 		// Return compiled code

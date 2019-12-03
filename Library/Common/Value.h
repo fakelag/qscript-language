@@ -9,6 +9,39 @@
 #define IS_NULL( value ) ((value).m_Type == QScript::VT_NULL)
 #define IS_BOOL( value ) ((value).m_Type == QScript::VT_BOOL)
 #define IS_NUMBER( value ) ((value).m_Type == QScript::VT_NUMBER)
+#define IS_ANY( value ) (true)
+
+#define VALUE_CMP_OP( op, typeCase, nullCase ) \
+FORCEINLINE bool operator op ( const Value& other ) { \
+	if ( m_Type != other.m_Type ) \
+		return typeCase; \
+	switch ( m_Type ) { \
+		case VT_NULL: return nullCase; \
+		case VT_BOOL: return AS_BOOL( *this ) op AS_BOOL( other ); \
+		case VT_NUMBER: return AS_NUMBER( *this ) op AS_NUMBER( other ); \
+		default: return false; \
+	} \
+}
+
+#define VALUE_CMP_OP_BOOLNUM( op, typeCase, nullCase ) \
+FORCEINLINE bool operator op ( const Value& other ) { \
+	if ( m_Type != other.m_Type ) \
+		return typeCase; \
+	switch ( m_Type ) { \
+		case VT_NULL: return nullCase; \
+		case VT_BOOL: return (AS_BOOL( *this )?1:0) op (AS_BOOL( other )?1:0); \
+		case VT_NUMBER: return AS_NUMBER( *this ) op AS_NUMBER( other ); \
+		default: return false; \
+	} \
+}
+
+#define VALUE_ARIT_OP( op ) \
+FORCEINLINE Value operator op ( const Value& other ) { \
+	switch ( m_Type ) { \
+		case VT_NUMBER: return MAKE_NUMBER( AS_NUMBER( *this ) op AS_NUMBER( other ) ); \
+		default: return MAKE_NULL; \
+	} \
+}
 
 namespace QScript
 {
@@ -41,18 +74,20 @@ namespace QScript
 			return false;
 		}
 
-		FORCEINLINE bool operator==( const Value& other )
-		{
-			if ( m_Type != other.m_Type )
-				return false;
+		VALUE_ARIT_OP( + );
+		VALUE_ARIT_OP( - );
+		VALUE_ARIT_OP( / );
+		VALUE_ARIT_OP( * );
 
-			switch ( m_Type )
-			{
-				case VT_NULL: return true;
-				case VT_BOOL: return AS_BOOL( *this ) == AS_BOOL( other );
-				case VT_NUMBER: return AS_NUMBER( *this ) == AS_NUMBER( other );
-				default: return false;
-			}
-		}
+		VALUE_CMP_OP( ==, false, true );
+		VALUE_CMP_OP( !=, true, false );
+		VALUE_CMP_OP_BOOLNUM( >, false, false );
+		VALUE_CMP_OP_BOOLNUM( <, false, false );
+		VALUE_CMP_OP_BOOLNUM( <=, false, false );
+		VALUE_CMP_OP_BOOLNUM( >=, false, false );
 	};
 }
+
+#undef VALUE_CMP_OP
+#undef VALUE_CMP_OP_BOOLNUM
+#undef VALUE_ARIT_OP
