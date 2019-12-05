@@ -124,6 +124,19 @@ namespace Compiler
 				};
 				break;
 			}
+			case Compiler::TOK_NOTEQUALS:
+			case Compiler::TOK_2EQUALS:
+			{
+				builder->m_Led = [ &nextExpression ]( const IrBuilder_t& irBuilder, BaseNode* left )
+				{
+					auto node = new ComplexNode( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+						irBuilder.m_Token.m_String, irBuilder.m_Token.m_Token == Compiler::TOK_2EQUALS
+						? NODE_EQUALS : NODE_NOTEQUALS, left, nextExpression( irBuilder.m_Token.m_LBP ) );
+
+					return node;
+				};
+				break;
+			}
 			case Compiler::TOK_RPAREN:
 			case Compiler::TOK_SCOLON:
 				break;

@@ -21,6 +21,8 @@ namespace Compiler
 		NODE_DIV,
 		NODE_NEG,
 		NODE_NOT,
+		NODE_EQUALS,
+		NODE_NOTEQUALS,
 		NODE_RETURN,
 	};
 

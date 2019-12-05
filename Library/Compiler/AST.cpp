@@ -97,6 +97,8 @@ namespace Compiler
 		case NODE_SUB: EmitByte( QScript::OpCode::OP_SUB, chunk ); break;
 		case NODE_MUL: EmitByte( QScript::OpCode::OP_MUL, chunk ); break;
 		case NODE_DIV: EmitByte( QScript::OpCode::OP_DIV, chunk ); break;
+		case NODE_EQUALS: EmitByte( QScript::OpCode::OP_EQ, chunk ); break;
+		case NODE_NOTEQUALS: EmitByte( QScript::OpCode::OP_NEQ, chunk ); break;
 		default:
 			throw Exception( "cp_invalid_complex_node", "Unknown complex node: " + std::to_string( m_NodeId ) );
 		}

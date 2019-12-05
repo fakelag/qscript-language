@@ -36,6 +36,8 @@ namespace Compiler
 		TOK_TRUE,
 		TOK_FALSE,
 		TOK_BANG,
+		TOK_2EQUALS,
+		TOK_NOTEQUALS,
 		TOK_NULL,
 	};
 

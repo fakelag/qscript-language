@@ -24,7 +24,7 @@ namespace QScript
 		// Run IR optimizers
 
 		// Compile bytecode
-#if 0
+#if 1
 		for ( auto node : entryNodes )
 			node->Compile( chunk );
 
@@ -33,56 +33,6 @@ namespace QScript
 
 		entryNodes.clear();
 #else
-		/*chunk->m_Constants.push_back( MAKE_NUMBER( 5.5 ) );
-		chunk->m_Code.push_back( QScript::OpCode::OP_LOAD );
-		chunk->m_Code.push_back( ( uint8_t ) chunk->m_Constants.size() - 1 );
-
-		chunk->m_Constants.push_back( MAKE_NUMBER( 2.7 ) );
-		chunk->m_Code.push_back( QScript::OpCode::OP_LOAD );
-		chunk->m_Code.push_back( ( uint8_t ) chunk->m_Constants.size() - 1 );
-
-		chunk->m_Code.push_back( QScript::OpCode::OP_EQ );
-
-		chunk->m_Constants.push_back( MAKE_NUMBER( 5.5 ) );
-		chunk->m_Code.push_back( QScript::OpCode::OP_LOAD );
-		chunk->m_Code.push_back( ( uint8_t ) chunk->m_Constants.size() - 1 );
-
-		chunk->m_Constants.push_back( MAKE_NUMBER( 2.7 ) );
-		chunk->m_Code.push_back( QScript::OpCode::OP_LOAD );
-		chunk->m_Code.push_back( ( uint8_t ) chunk->m_Constants.size() - 1 );
-
-		chunk->m_Code.push_back( QScript::OpCode::OP_NEQ );
-
-		chunk->m_Constants.push_back( MAKE_NUMBER( 5.5 ) );
-		chunk->m_Code.push_back( QScript::OpCode::OP_LOAD );
-		chunk->m_Code.push_back( ( uint8_t ) chunk->m_Constants.size() - 1 );
-
-		chunk->m_Constants.push_back( MAKE_NUMBER( 5.5 ) );
-		chunk->m_Code.push_back( QScript::OpCode::OP_LOAD );
-		chunk->m_Code.push_back( ( uint8_t ) chunk->m_Constants.size() - 1 );
-
-		chunk->m_Code.push_back( QScript::OpCode::OP_EQ );*/
-
-		chunk->m_Constants.push_back( MAKE_BOOL( true ) );
-		chunk->m_Code.push_back( QScript::OpCode::OP_LOAD );
-		chunk->m_Code.push_back( ( uint8_t ) chunk->m_Constants.size() - 1 );
-
-		chunk->m_Constants.push_back( MAKE_BOOL( true ) );
-		chunk->m_Code.push_back( QScript::OpCode::OP_LOAD );
-		chunk->m_Code.push_back( ( uint8_t ) chunk->m_Constants.size() - 1 );
-
-		chunk->m_Code.push_back( QScript::OpCode::OP_EQ );
-
-		/*chunk->m_Constants.push_back( MAKE_BOOL( false ) );
-		chunk->m_Code.push_back( QScript::OpCode::OP_LOAD );
-		chunk->m_Code.push_back( ( uint8_t ) chunk->m_Constants.size() - 1 );
-
-		chunk->m_Constants.push_back( MAKE_BOOL( true ) );
-		chunk->m_Code.push_back( QScript::OpCode::OP_LOAD );
-		chunk->m_Code.push_back( ( uint8_t ) chunk->m_Constants.size() - 1 );
-
-		chunk->m_Code.push_back( QScript::OpCode::OP_EQ );*/
-
 		// RET
 		chunk->m_Code.push_back( QScript::OpCode::OP_RETN );
 #endif

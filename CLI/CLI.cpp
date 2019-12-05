@@ -6,7 +6,7 @@ int main()
 {
 	try
 	{
-		QScript::Chunk_t* chunk = QScript::Compile( "!null;!false;!!true;" );
+		QScript::Chunk_t* chunk = QScript::Compile( "40 == 30; 40 != 40;" );
 		QScript::Interpret( *chunk );
 	}
 	catch ( const RuntimeException& exception )
