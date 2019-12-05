@@ -8,11 +8,11 @@
 
 #define READ_BYTE( vm ) (*vm.m_IP++)
 #define READ_CONST( vm ) (vm.m_Chunk->m_Constants[ READ_BYTE( vm ) ])
-#define BINARY_OP( op ) { \
+#define BINARY_OP( op, require ) { \
 	auto b = vm.Pop(); auto a = vm.Pop(); \
-	if ( !IS_NUMBER(a) || !IS_NUMBER(b) ) \
+	if ( !require(a) || !require(b) ) \
 		throw RuntimeException( "rt_invalid_operand_type", std::string( "Both operands of \"" ) + #op + "\" operation must be numbers", -1, -1, "" ); \
-	vm.Push( MAKE_NUMBER( AS_NUMBER( a ) op AS_NUMBER( b ) ) ); \
+	vm.Push( a op b ); \
 }
 
 bool Run( VM_t& vm )
@@ -64,7 +64,15 @@ bool Run( VM_t& vm )
 		switch ( inst )
 		{
 		case QScript::OP_LOAD: vm.Push( READ_CONST( vm ) ); break;
-		case QScript::OP_NOT: vm.Push( MAKE_BOOL( !( bool )( vm.Pop() ) ) ); break;
+		case QScript::OP_NOT:
+		{
+			auto value = vm.Pop();
+			if ( !IS_BOOL( value ) )
+				throw RuntimeException( "rt_invalid_operand_type", "Not operand must be of boolean type", -1, -1, "" );
+
+			vm.Push( MAKE_BOOL( !( bool )( value ) ) ); break;
+			break;
+		}
 		case QScript::OP_NEG:
 		{
 			auto value = vm.Pop();
@@ -74,12 +82,21 @@ bool Run( VM_t& vm )
 			vm.Push( MAKE_NUMBER( -AS_NUMBER( value ) ) );
 			break;
 		}
-		case QScript::OP_ADD: BINARY_OP( + ); break;
-		case QScript::OP_SUB: BINARY_OP( - ); break;
-		case QScript::OP_MUL: BINARY_OP( * ); break;
-		case QScript::OP_DIV: BINARY_OP( / ); break;
+		case QScript::OP_ADD: BINARY_OP( +, IS_NUMBER ); break;
+		case QScript::OP_SUB: BINARY_OP( -, IS_NUMBER ); break;
+		case QScript::OP_MUL: BINARY_OP( *, IS_NUMBER ); break;
+		case QScript::OP_DIV: BINARY_OP( /, IS_NUMBER ); break;
+		case QScript::OP_EQ: BINARY_OP( ==, IS_ANY ); break;
+		case QScript::OP_NEQ: BINARY_OP( !=, IS_ANY ); break;
+		case QScript::OP_GT: BINARY_OP( >, IS_ANY ); break;
+		case QScript::OP_LT: BINARY_OP( <, IS_ANY ); break;
+		case QScript::OP_LTE: BINARY_OP( <=, IS_ANY );break;
+		case QScript::OP_GTE: BINARY_OP( >=, IS_ANY );break;
 		case QScript::OP_RETN:
 		{
+#ifdef QVM_DEBUG
+			Compiler::DumpStack( vm );
+#endif
 			std::cout << "Exit: " << Compiler::ValueToString( vm.Pop() ) << std::endl;
 			return true;
 		}

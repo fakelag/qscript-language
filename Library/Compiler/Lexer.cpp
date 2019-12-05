@@ -14,20 +14,27 @@ namespace Compiler
 	};
 
 	const std::map<Token, KeywordInfo_t> LanguageSymbols = {
-		{ TOK_PLUS,			{ TOK_PLUS, 	"+", 		BP_ARITHMETIC_ADDSUB,		false } },
-		{ TOK_MINUS,		{ TOK_MINUS, 	"-", 		BP_ARITHMETIC_ADDSUB,		false } },
-		{ TOK_STAR,			{ TOK_STAR, 	"*", 		BP_ARITHMETIC_MULDIV,		false } },
-		{ TOK_SLASH,		{ TOK_SLASH, 	"/", 		BP_ARITHMETIC_MULDIV,		false } },
+		{ TOK_PLUS,			{ TOK_PLUS, 		"+", 		BP_ARITHMETIC_ADDSUB,		false } },
+		{ TOK_MINUS,		{ TOK_MINUS, 		"-", 		BP_ARITHMETIC_ADDSUB,		false } },
+		{ TOK_STAR,			{ TOK_STAR, 		"*", 		BP_ARITHMETIC_MULDIV,		false } },
+		{ TOK_SLASH,		{ TOK_SLASH, 		"/", 		BP_ARITHMETIC_MULDIV,		false } },
 
-		{ TOK_LPAREN,		{ TOK_LPAREN, 	"(", 		BP_OPENBRACKET,				false } },
-		{ TOK_RPAREN,		{ TOK_RPAREN, 	")", 		BP_NONE,					false } },
+		{ TOK_2EQUALS, 		{ TOK_2EQUALS, 		"==", 		BP_EQUALITY, 				false } },
+		{ TOK_NOTEQUALS, 	{ TOK_NOTEQUALS, 	"!=", 		BP_EQUALITY, 				false } },
+		{ TOK_GREATERTHAN, 	{ TOK_GREATERTHAN, 	">", 		BP_EQUALITY, 				false } },
+		{ TOK_GREATEREQUAL,	{ TOK_GREATEREQUAL, ">=", 		BP_EQUALITY, 				false } },
+		{ TOK_LESSTHAN, 	{ TOK_LESSTHAN, 	"<", 		BP_EQUALITY, 				false } },
+		{ TOK_LESSEQUAL,	{ TOK_LESSEQUAL, 	"<=", 		BP_EQUALITY, 				false } },
 
-		{ TOK_SCOLON,		{ TOK_SCOLON, 	";", 		BP_NONE,					false } },
-		{ TOK_BANG, 		{ TOK_BANG, 	"!", 		BP_LOGIC_NOT,				false } },
+		{ TOK_LPAREN,		{ TOK_LPAREN, 		"(", 		BP_OPENBRACKET,				false } },
+		{ TOK_RPAREN,		{ TOK_RPAREN, 		")", 		BP_NONE,					false } },
 
-		{ TOK_TRUE,			{ TOK_TRUE, 	"true", 	BP_NONE,					true } },
-		{ TOK_FALSE,		{ TOK_FALSE, 	"false", 	BP_NONE,					true } },
-		{ TOK_NULL,			{ TOK_NULL, 	"null", 	BP_NONE,					true } },
+		{ TOK_SCOLON,		{ TOK_SCOLON, 		";", 		BP_NONE,					false } },
+		{ TOK_BANG, 		{ TOK_BANG, 		"!", 		BP_LOGIC_NOT,				false } },
+
+		{ TOK_TRUE,			{ TOK_TRUE, 		"true", 	BP_NONE,					true } },
+		{ TOK_FALSE,		{ TOK_FALSE, 		"false", 	BP_NONE,					true } },
+		{ TOK_NULL,			{ TOK_NULL, 		"null", 	BP_NONE,					true } },
 	};
 
 	std::vector< Token_t > Lexer( const std::string& source )
