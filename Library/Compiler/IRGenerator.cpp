@@ -72,10 +72,8 @@ namespace Compiler
 							throw Exception( "ir_invalid_value_token", "Invalid value token: \"" + irBuilder.m_Token.m_String + "\"" );
 					};
 
-					auto node = new ValueNode( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+					return new ValueNode( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
 						irBuilder.m_Token.m_String, NODE_CONSTANT, value );
-
-					return node;
 				};
 				break;
 			}
@@ -83,10 +81,8 @@ namespace Compiler
 			{
 				builder->m_Nud = [ &nextExpression ]( const IrBuilder_t& irBuilder )
 				{
-					auto node = new SimpleNode( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+					return new SimpleNode( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
 						irBuilder.m_Token.m_String, NODE_NOT, nextExpression( irBuilder.m_Token.m_LBP ) );
-
-					return node;
 				};
 
 				break;
@@ -95,10 +91,8 @@ namespace Compiler
 			{
 				builder->m_Nud = [ &nextExpression ]( const IrBuilder_t& irBuilder )
 				{
-					auto node = new SimpleNode( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+					return new SimpleNode( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
 						irBuilder.m_Token.m_String, NODE_NEG, nextExpression( -1 ) );
-
-					return node;
 				};
 				/* Fall Through */
 			}
@@ -108,19 +102,15 @@ namespace Compiler
 			{
 				builder->m_Led = [ &nextExpression ]( const IrBuilder_t& irBuilder, BaseNode* left )
 				{
-					NodeId nodeId = NODE_ADD;
-					switch ( irBuilder.m_Token.m_Token )
-					{
-						case Compiler::TOK_MINUS: nodeId = NODE_SUB; break;
-						case Compiler::TOK_STAR: nodeId = NODE_MUL; break;
-						case Compiler::TOK_SLASH: nodeId = NODE_DIV; break;
-						default: break;
-					}
+					std::map<Compiler::Token, Compiler::NodeId> map = {
+						{ Compiler::TOK_MINUS, 	Compiler::NODE_SUB },
+						{ Compiler::TOK_STAR, 	Compiler::NODE_MUL },
+						{ Compiler::TOK_SLASH, 	Compiler::NODE_DIV },
+						{ Compiler::TOK_PLUS, 	Compiler::NODE_ADD },
+					};
 
-					auto node = new ComplexNode( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-						irBuilder.m_Token.m_String, nodeId, left, nextExpression( irBuilder.m_Token.m_LBP ) );
-
-					return node;
+					return new ComplexNode( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+						irBuilder.m_Token.m_String, map[ irBuilder.m_Token.m_Token ], left, nextExpression( irBuilder.m_Token.m_LBP ) );
 				};
 				break;
 			}
