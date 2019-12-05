@@ -12,26 +12,26 @@
 #define IS_ANY( value ) (true)
 
 #define VALUE_CMP_OP( op, typeCase, nullCase ) \
-FORCEINLINE bool operator op ( const Value& other ) { \
+FORCEINLINE Value operator op ( const Value& other ) { \
 	if ( m_Type != other.m_Type ) \
 		return typeCase; \
 	switch ( m_Type ) { \
 		case VT_NULL: return nullCase; \
-		case VT_BOOL: return AS_BOOL( *this ) op AS_BOOL( other ); \
-		case VT_NUMBER: return AS_NUMBER( *this ) op AS_NUMBER( other ); \
-		default: return false; \
+		case VT_BOOL: return MAKE_BOOL( AS_BOOL( *this ) op AS_BOOL( other ) ); \
+		case VT_NUMBER: return MAKE_BOOL( AS_NUMBER( *this ) op AS_NUMBER( other ) ); \
+		default: return MAKE_NULL; \
 	} \
 }
 
 #define VALUE_CMP_OP_BOOLNUM( op, typeCase, nullCase ) \
-FORCEINLINE bool operator op ( const Value& other ) { \
+FORCEINLINE Value operator op ( const Value& other ) { \
 	if ( m_Type != other.m_Type ) \
 		return typeCase; \
 	switch ( m_Type ) { \
 		case VT_NULL: return nullCase; \
-		case VT_BOOL: return (AS_BOOL( *this )?1:0) op (AS_BOOL( other )?1:0); \
-		case VT_NUMBER: return AS_NUMBER( *this ) op AS_NUMBER( other ); \
-		default: return false; \
+		case VT_BOOL: return MAKE_BOOL( (AS_BOOL( *this )?1:0) op (AS_BOOL( other )?1:0) ); \
+		case VT_NUMBER: return MAKE_BOOL( AS_NUMBER( *this ) op AS_NUMBER( other ) ); \
+		default: return MAKE_NULL; \
 	} \
 }
 
@@ -79,12 +79,12 @@ namespace QScript
 		VALUE_ARIT_OP( / );
 		VALUE_ARIT_OP( * );
 
-		VALUE_CMP_OP( ==, false, true );
-		VALUE_CMP_OP( !=, true, false );
-		VALUE_CMP_OP_BOOLNUM( >, false, false );
-		VALUE_CMP_OP_BOOLNUM( <, false, false );
-		VALUE_CMP_OP_BOOLNUM( <=, false, false );
-		VALUE_CMP_OP_BOOLNUM( >=, false, false );
+		VALUE_CMP_OP( ==, MAKE_NULL, MAKE_NULL );
+		VALUE_CMP_OP( !=, MAKE_NULL, MAKE_NULL );
+		VALUE_CMP_OP_BOOLNUM( >, MAKE_NULL, MAKE_NULL );
+		VALUE_CMP_OP_BOOLNUM( <, MAKE_NULL, MAKE_NULL );
+		VALUE_CMP_OP_BOOLNUM( <=, MAKE_NULL, MAKE_NULL );
+		VALUE_CMP_OP_BOOLNUM( >=, MAKE_NULL, MAKE_NULL );
 	};
 }
 
