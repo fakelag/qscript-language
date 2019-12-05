@@ -126,14 +126,24 @@ namespace Compiler
 			}
 			case Compiler::TOK_NOTEQUALS:
 			case Compiler::TOK_2EQUALS:
+			case Compiler::TOK_GREATERTHAN:
+			case Compiler::TOK_GREATEREQUAL:
+			case Compiler::TOK_LESSTHAN:
+			case Compiler::TOK_LESSEQUAL:
 			{
 				builder->m_Led = [ &nextExpression ]( const IrBuilder_t& irBuilder, BaseNode* left )
 				{
-					auto node = new ComplexNode( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-						irBuilder.m_Token.m_String, irBuilder.m_Token.m_Token == Compiler::TOK_2EQUALS
-						? NODE_EQUALS : NODE_NOTEQUALS, left, nextExpression( irBuilder.m_Token.m_LBP ) );
+					std::map<Compiler::Token, Compiler::NodeId> map = {
+						{ Compiler::TOK_2EQUALS, 		Compiler::NODE_EQUALS },
+						{ Compiler::TOK_NOTEQUALS, 		Compiler::NODE_NOTEQUALS },
+						{ Compiler::TOK_GREATERTHAN, 	Compiler::NODE_GREATERTHAN },
+						{ Compiler::TOK_GREATEREQUAL, 	Compiler::NODE_GREATEREQUAL },
+						{ Compiler::TOK_LESSTHAN, 		Compiler::NODE_LESSTHAN },
+						{ Compiler::TOK_LESSEQUAL, 		Compiler::NODE_LESSEQUAL },
+					};
 
-					return node;
+					return new ComplexNode( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+						irBuilder.m_Token.m_String, map[ irBuilder.m_Token.m_Token ], left, nextExpression( irBuilder.m_Token.m_LBP ) );
 				};
 				break;
 			}

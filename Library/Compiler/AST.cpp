@@ -91,17 +91,24 @@ namespace Compiler
 
 		int start = chunk->m_Code.size();
 
-		switch ( m_NodeId )
-		{
-		case NODE_ADD: EmitByte( QScript::OpCode::OP_ADD, chunk ); break;
-		case NODE_SUB: EmitByte( QScript::OpCode::OP_SUB, chunk ); break;
-		case NODE_MUL: EmitByte( QScript::OpCode::OP_MUL, chunk ); break;
-		case NODE_DIV: EmitByte( QScript::OpCode::OP_DIV, chunk ); break;
-		case NODE_EQUALS: EmitByte( QScript::OpCode::OP_EQ, chunk ); break;
-		case NODE_NOTEQUALS: EmitByte( QScript::OpCode::OP_NEQ, chunk ); break;
-		default:
+		std::map< Compiler::NodeId, QScript::OpCode > singleByte = {
+			{ NODE_ADD, 			QScript::OpCode::OP_ADD },
+			{ NODE_SUB, 			QScript::OpCode::OP_SUB },
+			{ NODE_MUL, 			QScript::OpCode::OP_MUL },
+			{ NODE_DIV, 			QScript::OpCode::OP_DIV },
+			{ NODE_EQUALS,			QScript::OpCode::OP_EQ },
+			{ NODE_NOTEQUALS,		QScript::OpCode::OP_NEQ },
+			{ NODE_GREATERTHAN,		QScript::OpCode::OP_GT },
+			{ NODE_GREATEREQUAL,	QScript::OpCode::OP_GTE },
+			{ NODE_LESSTHAN,		QScript::OpCode::OP_LT },
+			{ NODE_LESSEQUAL,		QScript::OpCode::OP_LTE },
+		};
+
+		auto opCode = singleByte.find( m_NodeId );
+		if (opCode != singleByte.end())
+			EmitByte( opCode->second, chunk );
+		else
 			throw Exception( "cp_invalid_complex_node", "Unknown complex node: " + std::to_string( m_NodeId ) );
-		}
 
 		AddDebugSymbol( chunk, start, m_LineNr, m_ColNr, m_Token );
 	}

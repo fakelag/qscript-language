@@ -21,6 +21,10 @@ namespace Compiler
 
 		{ TOK_2EQUALS, 		{ TOK_2EQUALS, 		"==", 		BP_EQUALITY, 				false } },
 		{ TOK_NOTEQUALS, 	{ TOK_NOTEQUALS, 	"!=", 		BP_EQUALITY, 				false } },
+		{ TOK_GREATERTHAN, 	{ TOK_GREATERTHAN, 	">", 		BP_EQUALITY, 				false } },
+		{ TOK_GREATEREQUAL,	{ TOK_GREATEREQUAL, ">=", 		BP_EQUALITY, 				false } },
+		{ TOK_LESSTHAN, 	{ TOK_LESSTHAN, 	"<", 		BP_EQUALITY, 				false } },
+		{ TOK_LESSEQUAL,	{ TOK_LESSEQUAL, 	"<=", 		BP_EQUALITY, 				false } },
 
 		{ TOK_LPAREN,		{ TOK_LPAREN, 		"(", 		BP_OPENBRACKET,				false } },
 		{ TOK_RPAREN,		{ TOK_RPAREN, 		")", 		BP_NONE,					false } },
