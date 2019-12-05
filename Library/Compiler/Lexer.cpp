@@ -19,8 +19,8 @@ namespace Compiler
 		{ TOK_STAR,			{ TOK_STAR, 		"*", 		BP_ARITHMETIC_MULDIV,		false } },
 		{ TOK_SLASH,		{ TOK_SLASH, 		"/", 		BP_ARITHMETIC_MULDIV,		false } },
 
-		{ TOK_2EQUALS, 		{ TOK_2EQUALS, 		"==", 		BP_ASSIGN, 					false } },
-		{ TOK_NOTEQUALS, 	{ TOK_NOTEQUALS, 	"!=", 		BP_ASSIGN, 					false } },
+		{ TOK_2EQUALS, 		{ TOK_2EQUALS, 		"==", 		BP_EQUALITY, 				false } },
+		{ TOK_NOTEQUALS, 	{ TOK_NOTEQUALS, 	"!=", 		BP_EQUALITY, 				false } },
 
 		{ TOK_LPAREN,		{ TOK_LPAREN, 		"(", 		BP_OPENBRACKET,				false } },
 		{ TOK_RPAREN,		{ TOK_RPAREN, 		")", 		BP_NONE,					false } },
