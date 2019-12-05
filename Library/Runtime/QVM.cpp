@@ -64,7 +64,15 @@ bool Run( VM_t& vm )
 		switch ( inst )
 		{
 		case QScript::OP_LOAD: vm.Push( READ_CONST( vm ) ); break;
-		case QScript::OP_NOT: vm.Push( MAKE_BOOL( !( bool )( vm.Pop() ) ) ); break;
+		case QScript::OP_NOT:
+		{
+			auto value = vm.Pop();
+			if ( !IS_BOOL( value ) )
+				throw RuntimeException( "rt_invalid_operand_type", "Not operand must be of boolean type", -1, -1, "" );
+
+			vm.Push( MAKE_BOOL( !( bool )( value ) ) ); break;
+			break;
+		}
 		case QScript::OP_NEG:
 		{
 			auto value = vm.Pop();
