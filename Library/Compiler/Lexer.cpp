@@ -39,12 +39,20 @@ namespace Compiler
 
 	std::vector< Token_t > Lexer( const std::string& source )
 	{
+		enum LexerState
+		{
+			LS_CODE,
+			LS_STRING,
+			LS_COMMENT,
+			LS_COMMENT_MULTILINE,
+		};
+
 		std::vector< Token_t > results;
 		std::vector<KeywordInfo_t> languageSymbols;
 
 		std::string stringBuffer = "";
 
-		bool parsingString = false;
+		LexerState lexerState = LS_CODE;
 		int currentLineNr = 0;
 		int currentColNr = 0;
 
@@ -81,8 +89,6 @@ namespace Compiler
 
 			if ( isStrCnst )
 			{
-				// It is a string constant, strip the quotation marks
-				stringBuffer = stringBuffer.substr( 1, stringBuffer.length() - 1 );
 				token = Token::TOK_STR;
 			}
 			else
@@ -138,21 +144,32 @@ namespace Compiler
 		// Iterate through source and look for tokens
 		for ( auto srcIt = source.cbegin(); srcIt != source.cend(); ++srcIt )
 		{
-			if ( *srcIt == '"' )
+			switch ( lexerState )
 			{
-				// Switch string parsing state
-				parsingString = !parsingString;
+			case LS_CODE:
+			{
+				auto cursor = std::distance( source.cbegin(), srcIt );
+				auto nextTwo = source.substr( cursor, 2 );
 
-				if ( !parsingString )
+				if ( nextTwo == "//" )
 				{
-					// Push the new string constant to the stack
-					pushToken( true );
-					continue;
+					// Making a comment
+					lexerState = LS_COMMENT;
+					break;
 				}
-			}
+				else if ( nextTwo == "/*" )
+				{
+					// Making a comment
+					lexerState = LS_COMMENT_MULTILINE;
+					break;
+				}
+				else if ( *srcIt == '"' )
+				{
+					// Switch to string parsing
+					lexerState = LS_STRING;
+					break;
+				}
 
-			if ( !parsingString )
-			{
 				int keywordLength = pushKeyword( source.substr( std::distance( source.cbegin(), srcIt - stringBuffer.length() ),
 					longestToken + stringBuffer.length() ) );
 
@@ -189,11 +206,50 @@ namespace Compiler
 					break;
 				}
 				}
+
+				break;
 			}
-			else
+			case LS_STRING:
 			{
+				if ( *srcIt == '"' )
+				{
+					// Switch back to code
+					lexerState = LS_CODE;
+
+					// Append string constant
+					pushToken( true );
+					break;
+				}
+
 				// Append the character to the string
 				stringBuffer += *srcIt;
+				break;
+			}
+			case LS_COMMENT:
+			{
+				if ( *srcIt == '\n' )
+					lexerState = LS_CODE;
+
+				// During a normal comment, just ignore everything
+				stringBuffer = "";
+				break;
+			}
+			case LS_COMMENT_MULTILINE:
+			{
+				if ( stringBuffer.length() > 0 )
+				{
+					// Look for comment terminating sequence
+					if ( ( stringBuffer.substr( stringBuffer.length() - 1, 1 ) + *srcIt ) == "*/" )
+					{
+						lexerState = LS_CODE;
+						stringBuffer = "";
+						break;
+					}
+				}
+
+				stringBuffer += *srcIt;
+				break;
+			}
 			}
 		}
 
