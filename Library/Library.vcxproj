@@ -86,6 +86,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)Includes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>
       </LanguageStandard>
+      <PreprocessorDefinitions>QVM_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -107,8 +108,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>QLibPCH.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)Includes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <LanguageStandard>
-      </LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -136,6 +136,8 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">QLibPCH.h</PrecompiledHeaderFile>
     </ClCompile>
+    <ClCompile Include="Common\Chunk.cpp" />
+    <ClCompile Include="Compiler\AST.cpp" />
     <ClCompile Include="Compiler\Compiler.cpp" />
     <ClCompile Include="Compiler\IRGenerator.cpp" />
     <ClCompile Include="Compiler\Lexer.cpp" />
@@ -147,9 +149,13 @@
     <ClInclude Include="..\Includes\Instructions.h" />
     <ClInclude Include="..\Includes\QLibPCH.h" />
     <ClInclude Include="..\Includes\QScript.h" />
+    <ClInclude Include="Common\Chunk.h" />
+    <ClInclude Include="Common\Value.h" />
     <ClInclude Include="Compiler\AST.h" />
     <ClInclude Include="Compiler\Compiler.h" />
+    <ClInclude Include="Compiler\IR.h" />
     <ClInclude Include="Compiler\Tokens.h" />
+    <ClInclude Include="Runtime\QVM.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

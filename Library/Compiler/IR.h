@@ -40,7 +40,7 @@ namespace Compiler
 		std::vector< BaseNode* >& 		Product() { return m_Ast; }
 		std::vector< IrBuilder_t* >& 	Builders() { return m_Builders; }
 
-		bool 							IsFinished() const { return m_CurrentObject >= m_Builders.size(); }
+		bool 							IsFinished() const { return ( size_t ) m_CurrentObject >= m_Builders.size(); }
 		IrBuilder_t*					CurrentBuilder() const { return m_Builders[ m_CurrentObject ]; }
 		IrBuilder_t*					NextBuilder() { return m_Builders[ m_CurrentObject++ ]; }
 

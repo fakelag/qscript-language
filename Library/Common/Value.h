@@ -2,9 +2,9 @@
 #define AS_BOOL( value ) ((value).m_Data.m_Bool)
 #define AS_NUMBER( value ) ((value).m_Data.m_Number)
 
-#define MAKE_NULL ((QScript::Value){ QScript::VT_NULL, { .m_Number = 0 } })
-#define MAKE_BOOL( value ) ((QScript::Value){ QScript::VT_BOOL, { .m_Bool = value } })
-#define MAKE_NUMBER( value ) ((QScript::Value){ QScript::VT_NUMBER, { .m_Number = value } })
+#define MAKE_NULL (QScript::Value())
+#define MAKE_BOOL( value ) (QScript::Value( ((bool)(value) )))
+#define MAKE_NUMBER( value ) (QScript::Value( ((double)(value) )))
 
 #define IS_NULL( value ) ((value).m_Type == QScript::VT_NULL)
 #define IS_BOOL( value ) ((value).m_Type == QScript::VT_BOOL)
@@ -59,6 +59,21 @@ namespace QScript
 			bool	m_Bool;
 			double	m_Number;
 		} m_Data;
+
+		FORCEINLINE Value() : m_Type( VT_NULL )
+		{
+			m_Data.m_Number = 0;
+		}
+
+		FORCEINLINE Value( bool boolean ) : m_Type( VT_BOOL )
+		{
+			m_Data.m_Bool = boolean;
+		}
+
+		FORCEINLINE Value( double number ) : m_Type( VT_NUMBER )
+		{
+			m_Data.m_Number = number;
+		}
 
 		FORCEINLINE operator bool()
 		{

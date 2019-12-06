@@ -33,6 +33,12 @@
     <ClCompile Include="..\Includes\QLibPCH.cpp">
       <Filter>Includes</Filter>
     </ClCompile>
+    <ClCompile Include="Compiler\AST.cpp">
+      <Filter>Compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Chunk.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Compiler\AST.h">
@@ -55,6 +61,18 @@
     </ClInclude>
     <ClInclude Include="..\Includes\Exception.h">
       <Filter>Includes</Filter>
+    </ClInclude>
+    <ClInclude Include="Runtime\QVM.h">
+      <Filter>Runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\IR.h">
+      <Filter>Compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Chunk.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Value.h">
+      <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
