@@ -2,7 +2,6 @@
 #include "../Common/Chunk.h"
 
 #include "Instructions.h"
-#include "Exception.h"
 #include "QVM.h"
 #include "../Compiler/Compiler.h"
 

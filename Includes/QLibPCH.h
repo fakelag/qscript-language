@@ -14,3 +14,4 @@
 #include <stdint.h>
 
 #include "QScript.h"
+#include "Exception.h"

@@ -3,7 +3,6 @@
 
 #include "Compiler.h"
 #include "Instructions.h"
-#include "Exception.h"
 
 namespace Compiler
 {

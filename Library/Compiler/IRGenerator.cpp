@@ -3,7 +3,6 @@
 
 #include "Compiler.h"
 #include "Instructions.h"
-#include "Exception.h"
 #include "IR.h"
 
 namespace Compiler
@@ -11,7 +10,7 @@ namespace Compiler
 	std::vector< BaseNode* > GenerateIR( const std::vector< Token_t >& tokens )
 	{
 		ParserState parserState;
-
+		
 		// TDOP expression parsing
 		auto nextExpression = [ &parserState ]( int rbp = 0 ) -> BaseNode*
 		{

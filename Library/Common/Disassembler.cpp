@@ -1,7 +1,6 @@
 #include "QLibPCH.h"
 #include "Chunk.h"
 
-#include "Exception.h"
 #include "../../Includes/Instructions.h"
 #include "../Compiler/Compiler.h"
 #include "../Runtime/QVM.h"

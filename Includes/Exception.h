@@ -13,8 +13,9 @@ public:
 		m_What = description;
 	}
 
-	const char* id() const _NOEXCEPT { return m_Id.c_str(); }
-	const char* what() const _NOEXCEPT { return m_What.c_str(); }
+	const char* id()			const _NOEXCEPT { return m_Id.c_str(); }
+	const char* what()			const _NOEXCEPT { return m_What.c_str(); }
+	const char* describe()		const _NOEXCEPT { return ( "Generic Exception (" + m_Id + "): " + m_What ).c_str(); }
 protected:
 	std::string m_Id;
 	std::string m_What;
@@ -31,6 +32,14 @@ public:
 		m_ColNr 	= colNr;
 		m_Token 	= token;
 	}
+
+	const char* describe() const _NOEXCEPT
+	{
+		return ( "Runtime Exception (" + m_Id + "): " + m_What + "\non line "
+			+ std::to_string( m_LineNr ) + " character " + std::to_string( m_ColNr )
+			+ " (\"" + m_Token + "\")" ).c_str();
+	}
+
 protected:
 	int 			m_LineNr;
 	int 			m_ColNr;

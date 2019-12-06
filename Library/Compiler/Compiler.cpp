@@ -3,7 +3,6 @@
 
 #include "Instructions.h"
 #include "Compiler.h"
-#include "Exception.h"
 
 #if 1
 #include "../Common/Value.h"
