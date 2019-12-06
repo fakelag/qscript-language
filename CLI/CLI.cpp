@@ -1,4 +1,6 @@
 #include <iostream>
+#include <string>
+
 #include "../Includes/QScript.h"
 #include "../Includes/Exception.h"
 
