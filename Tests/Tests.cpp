@@ -20,6 +20,7 @@ int main( int argc, const char** argv )
 	std::vector< bool > testResults;
 
 	testResults.push_back( Tests::TestLexer() );
+	testResults.push_back( Tests::TestCompiler() );
 
 	for ( auto result : testResults )
 		if ( !result ) allPassed = false;

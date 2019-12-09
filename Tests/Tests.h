@@ -101,6 +101,7 @@ if ( !(condition) ) { \
 namespace Tests
 {
 	bool TestLexer();
+	bool TestCompiler();
 
 	struct TestResult_t
 	{
