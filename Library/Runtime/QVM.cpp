@@ -14,7 +14,7 @@
 	vm.Push( a op b ); \
 }
 
-bool Run( VM_t& vm )
+QScript::Value Run( VM_t& vm )
 {
 #ifdef QVM_DEBUG
 	bool isStepping = true;
@@ -95,9 +95,12 @@ bool Run( VM_t& vm )
 		{
 #ifdef QVM_DEBUG
 			Compiler::DumpStack( vm );
+			auto exitCode = vm.Pop();
+			std::cout << "Exit: " << Compiler::ValueToString( exitCode ) << std::endl;
+			return exitCode;
+#else
+			return vm.Pop();
 #endif
-			std::cout << "Exit: " << Compiler::ValueToString( vm.Pop() ) << std::endl;
-			return true;
 		}
 		default:
 			throw RuntimeException( "rt_unknown_opcode", "Unknown opcode: " + std::to_string( inst ), -1, -1, "" );
@@ -105,10 +108,13 @@ bool Run( VM_t& vm )
 	}
 }
 
-void QScript::Interpret( const Chunk_t& chunk )
+void QScript::Interpret( const Chunk_t& chunk, Value* out )
 {
 	// Compiler::DisassembleChunk( chunk, "main" );
 
 	VM_t vm( &chunk );
-	Run( vm );
+	auto exitCode = Run( vm );
+
+	if (out)
+		*out = exitCode;
 }

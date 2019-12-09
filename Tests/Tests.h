@@ -102,6 +102,7 @@ namespace Tests
 {
 	bool TestLexer();
 	bool TestCompiler();
+	bool TestInterpreter();
 
 	struct TestResult_t
 	{

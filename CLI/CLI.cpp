@@ -9,7 +9,7 @@ int main()
 	try
 	{
 		QScript::Chunk_t* chunk = QScript::Compile( "4 + -5 * (80/40) / 2.0 + 5;" );
-		QScript::Interpret( *chunk );
+		QScript::Interpret( *chunk, NULL );
 	}
 	catch ( const RuntimeException& exception )
 	{

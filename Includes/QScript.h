@@ -19,5 +19,5 @@ namespace QScript
 	void FreeChunk( Chunk_t* chunk );
 
 	Chunk_t* Compile( const char* source );
-	void Interpret( const Chunk_t& chunk );
+	void Interpret( const Chunk_t& chunk, Value* exitCode );
 }
