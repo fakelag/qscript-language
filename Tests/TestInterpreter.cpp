@@ -18,6 +18,7 @@ bool Tests::TestInterpreter()
 		QScript::Value exitCode;
 		QScript::Interpret( *chunk, &exitCode );
 
+		UTEST_ASSERT( IS_NUMBER( exitCode ) == true );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 4.0 );
 
 		UTEST_CASE_CLOSED();
