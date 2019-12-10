@@ -12,7 +12,8 @@ struct VM_t
 
 	void Push( QScript::Value value )
 	{
-		*m_StackTop = value;
+		// TODO: This is a copy operation for now
+		m_StackTop->From( value );
 		++m_StackTop;
 	}
 
@@ -24,6 +25,9 @@ struct VM_t
 
 	const QScript::Chunk_t* 			m_Chunk;
 	const uint8_t*						m_IP;
+
+	// Keep track of allocated objects in the VM
+	std::vector< QScript::Object* >		m_Objects;
 
 	QScript::Value*						m_StackTop;
 	QScript::Value 						m_Stack[ 256 ];

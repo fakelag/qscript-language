@@ -116,5 +116,5 @@ void QScript::Interpret( const Chunk_t& chunk, Value* out )
 	auto exitCode = Run( vm );
 
 	if (out)
-		*out = exitCode;
+		out->From( exitCode );
 }

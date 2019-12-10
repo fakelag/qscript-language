@@ -10,7 +10,7 @@ namespace Compiler
 	std::vector< BaseNode* > GenerateIR( const std::vector< Token_t >& tokens )
 	{
 		ParserState parserState;
-		
+
 		// TDOP expression parsing
 		auto nextExpression = [ &parserState ]( int rbp = 0 ) -> BaseNode*
 		{
@@ -45,6 +45,7 @@ namespace Compiler
 			case Compiler::TOK_TRUE:
 			case Compiler::TOK_DBL:
 			case Compiler::TOK_INT:
+			case Compiler::TOK_STR:
 			{
 				builder->m_Nud = []( const IrBuilder_t& irBuilder )
 				{
@@ -52,20 +53,23 @@ namespace Compiler
 
 					switch ( irBuilder.m_Token.m_Token )
 					{
+						case Compiler::TOK_STR:
+							value.From( MAKE_STRING( irBuilder.m_Token.m_String ) );
+							break;
 						case Compiler::TOK_INT:
-							value = MAKE_NUMBER( ( double ) std::stoi( irBuilder.m_Token.m_String ) );
+							value.From( MAKE_NUMBER( ( double ) std::stoi( irBuilder.m_Token.m_String ) ) );
 							break;
 						case Compiler::TOK_DBL:
-							value = MAKE_NUMBER( std::stod( irBuilder.m_Token.m_String ) );
+							value.From( MAKE_NUMBER( std::stod( irBuilder.m_Token.m_String ) ) );
 							break;
 						case Compiler::TOK_NULL:
-							value = MAKE_NULL;
+							value.From( MAKE_NULL );
 							break;
 						case Compiler::TOK_FALSE:
-							value = MAKE_BOOL( false );
+							value.From( MAKE_BOOL( false ) );
 							break;
 						case Compiler::TOK_TRUE:
-							value = MAKE_BOOL( true );
+							value.From( MAKE_BOOL( true ) );
 							break;
 						default:
 							throw Exception( "ir_invalid_value_token", "Invalid value token: \"" + irBuilder.m_Token.m_String + "\"" );

@@ -33,6 +33,17 @@ std::string Compiler::ValueToString( const QScript::Value& value )
 			return std::string( "(bool, " ) + ( AS_BOOL( value ) ? "true" : "false" ) + ")";
 		case QScript::VT_NULL:
 			return "(null)";
+		case QScript::VT_OBJECT:
+		{
+			auto object = AS_OBJECT( value );
+			switch ( object->m_Type )
+			{
+				case QScript::OT_STRING:
+					return "(string, \"" + static_cast< QScript::StringObject* >( object )->GetString() + "\")";
+				default:
+					throw Exception( "disasm_invalid_value_object", "Invalid object type: " + std::to_string( object->m_Type ) );
+			}
+		}
 		default:
 			throw Exception( "disasm_invalid_value", "Invalid value type: " + std::to_string( value.m_Type ) );
 	}

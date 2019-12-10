@@ -1,14 +1,21 @@
 #pragma once
+#include "Object.h"
+
 #define AS_BOOL( value ) ((value).m_Data.m_Bool)
 #define AS_NUMBER( value ) ((value).m_Data.m_Number)
+#define AS_OBJECT( value ) ((value).m_Data.m_Object)
+#define AS_STRING( value ) ((QScript::StringObject*)((value).m_Data.m_Object))
 
 #define MAKE_NULL (QScript::Value())
 #define MAKE_BOOL( value ) (QScript::Value( ((bool)(value) )))
 #define MAKE_NUMBER( value ) (QScript::Value( ((double)(value) )))
+#define MAKE_STRING( value ) ((QScript::Value( ((QScript::Object*)(new QScript::StringObject( value ))) )))
 
 #define IS_NULL( value ) ((value).m_Type == QScript::VT_NULL)
 #define IS_BOOL( value ) ((value).m_Type == QScript::VT_BOOL)
 #define IS_NUMBER( value ) ((value).m_Type == QScript::VT_NUMBER)
+#define IS_OBJECT( value ) ((value).m_Type == QScript::VT_OBJECT)
+#define IS_STRING( value ) ((value).IsString())
 #define IS_ANY( value ) (true)
 
 #define VALUE_CMP_OP( op, typeCase, nullCase ) \
@@ -50,14 +57,16 @@ namespace QScript
 		VT_BOOL = 0,
 		VT_NUMBER,
 		VT_NULL,
+		VT_OBJECT,
 	};
 
 	struct Value
 	{
 		ValueType 	m_Type;
 		union {
-			bool	m_Bool;
-			double	m_Number;
+			bool		m_Bool;
+			double		m_Number;
+			Object*		m_Object;
 		} m_Data;
 
 		FORCEINLINE Value() : m_Type( VT_NULL )
@@ -73,6 +82,56 @@ namespace QScript
 		FORCEINLINE Value( double number ) : m_Type( VT_NUMBER )
 		{
 			m_Data.m_Number = number;
+		}
+
+		FORCEINLINE Value( Object* object ) : m_Type( VT_OBJECT )
+		{
+			m_Data.m_Object = object;
+		}
+
+		FORCEINLINE Value( const Value& other )
+		{
+			From( other );
+		}
+
+		FORCEINLINE ~Value()
+		{
+			// NOTE: Delete the object here and now
+			// this is a bit of a hack before proper garbage collection is in place.
+			// This will probably work just OK for all the compiler code as is.
+			if ( m_Type == VT_OBJECT )
+				delete m_Data.m_Object;
+
+			m_Type = VT_NULL;
+		}
+
+		FORCEINLINE void From( const Value& other )
+		{
+			m_Type = other.m_Type;
+
+			if ( m_Type == VT_OBJECT )
+			{
+				// Create a new object
+				auto otherObject = AS_OBJECT( other );
+				switch ( otherObject->m_Type )
+				{
+					case OT_STRING:
+						m_Data.m_Object = new StringObject( static_cast< StringObject* >( otherObject )->GetString() );
+						break;
+					default:
+						break;
+				}
+			}
+			else
+			{
+				// Copy data directly
+				m_Data = other.m_Data;
+			}
+		}
+
+		FORCEINLINE bool IsString()
+		{
+			return IS_OBJECT( *this ) && m_Data.m_Object->m_Type == OT_STRING;
 		}
 
 		FORCEINLINE operator bool()
@@ -100,6 +159,9 @@ namespace QScript
 		VALUE_CMP_OP_BOOLNUM( <, MAKE_NULL, MAKE_NULL );
 		VALUE_CMP_OP_BOOLNUM( <=, MAKE_NULL, MAKE_NULL );
 		VALUE_CMP_OP_BOOLNUM( >=, MAKE_NULL, MAKE_NULL );
+	private:
+		// Don't allow copying!
+		Value operator=( const Value& other );
 	};
 }
 

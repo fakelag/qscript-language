@@ -55,7 +55,7 @@ namespace Compiler
 	ValueNode::ValueNode( int lineNr, int colNr, const std::string token, NodeId id, const QScript::Value& value )
 		: BaseNode( lineNr, colNr, token, NT_VALUE, id )
 	{
-		m_Value = value;
+		m_Value.From( value );
 	}
 
 	void ValueNode::Compile( QScript::Chunk_t* chunk )
