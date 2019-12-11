@@ -9,7 +9,7 @@
 #define MAKE_NULL (QScript::Value())
 #define MAKE_BOOL( value ) (QScript::Value( ((bool)(value) )))
 #define MAKE_NUMBER( value ) (QScript::Value( ((double)(value) )))
-#define MAKE_STRING( value ) ((QScript::Value( ((QScript::Object*)(new QScript::StringObject( value ))) )))
+#define MAKE_STRING( value ) ((QScript::Value( QScript::Object::AllocateString( value ) )))
 
 #define IS_NULL( value ) ((value).m_Type == QScript::VT_NULL)
 #define IS_BOOL( value ) ((value).m_Type == QScript::VT_BOOL)
@@ -54,9 +54,9 @@ namespace QScript
 {
 	enum ValueType
 	{
-		VT_BOOL = 0,
+		VT_NULL = 0,
 		VT_NUMBER,
-		VT_NULL,
+		VT_BOOL,
 		VT_OBJECT,
 	};
 
@@ -94,39 +94,10 @@ namespace QScript
 			From( other );
 		}
 
-		FORCEINLINE ~Value()
-		{
-			// NOTE: Delete the object here and now
-			// this is a bit of a hack before proper garbage collection is in place.
-			// This will probably work just OK for all the compiler code as is.
-			if ( m_Type == VT_OBJECT )
-				delete m_Data.m_Object;
-
-			m_Type = VT_NULL;
-		}
-
 		FORCEINLINE void From( const Value& other )
 		{
 			m_Type = other.m_Type;
-
-			if ( m_Type == VT_OBJECT )
-			{
-				// Create a new object
-				auto otherObject = AS_OBJECT( other );
-				switch ( otherObject->m_Type )
-				{
-					case OT_STRING:
-						m_Data.m_Object = new StringObject( static_cast< StringObject* >( otherObject )->GetString() );
-						break;
-					default:
-						break;
-				}
-			}
-			else
-			{
-				// Copy data directly
-				m_Data = other.m_Data;
-			}
+			m_Data = other.m_Data;
 		}
 
 		FORCEINLINE bool IsString()

@@ -4,6 +4,7 @@
 #include "AST.h"
 
 struct VM_t;
+class Object;
 
 namespace Compiler
 {
@@ -20,4 +21,8 @@ namespace Compiler
 	int DisassembleInstruction( const QScript::Chunk_t& chunk, int offset );
 	void DumpStack( const VM_t& vm );
 	std::string ValueToString( const QScript::Value& value );
+
+	// Object allocation
+	QScript::StringObject* AllocateString( const std::string& string );
+	void GarbageCollect( const QScript::Chunk_t* chunk );
 };
