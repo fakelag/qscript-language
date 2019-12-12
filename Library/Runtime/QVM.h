@@ -10,17 +10,25 @@ struct VM_t
 		m_StackTop = &m_Stack[ 0 ];
 	}
 
-	void Push( QScript::Value value )
+	FORCEINLINE void Push( QScript::Value value )
 	{
 		// TODO: This is a copy operation for now
 		m_StackTop->From( value );
 		++m_StackTop;
 	}
 
-	QScript::Value Pop()
+	FORCEINLINE QScript::Value Pop()
 	{
 		--m_StackTop;
 		return *m_StackTop;
+	}
+
+	void Release()
+	{
+		for ( auto object : m_Objects )
+			delete object;
+
+		m_Objects.clear();
 	}
 
 	const QScript::Chunk_t* 			m_Chunk;

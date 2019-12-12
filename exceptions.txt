@@ -9,5 +9,5 @@ IRGenerator			ir_missing_rparen					Expected an end of expression, got: "%currTo
 IRGenerator 		ir_invalid_value_token 				Invalid value token: "%tokenString%"
 Disassembler		disasm_invalid_value				Invalid value type: %valueType%
 Disassembler 		disasm_invalid_value_object			Invalid object type: %objectType%
-Runtime				rt_invalid_operand_type				Both operands of "%op%" operation must be numbers | Negation operand must be of number type | Not operand must be of boolean type
+Runtime				rt_invalid_operand_type				Both operands of "%op%" operation must be numbers | Negation operand must be of number type | Not operand must be of boolean type | Operands of + operation must be numbers or strings
 Runtime 			rt_unknown_opcode					Unknown opcode: %opcode%

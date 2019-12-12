@@ -8,7 +8,7 @@ int main()
 {
 	try
 	{
-		QScript::Chunk_t* chunk = QScript::Compile( "\"hello world\";" );
+		QScript::Chunk_t* chunk = QScript::Compile( "\"hello \" + \"world!\";" );
 		QScript::Interpret( *chunk, NULL );
 		QScript::FreeChunk( chunk );
 	}
