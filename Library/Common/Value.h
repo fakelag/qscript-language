@@ -105,6 +105,20 @@ namespace QScript
 			return IS_OBJECT( *this ) && m_Data.m_Object->m_Type == OT_STRING;
 		}
 
+		FORCEINLINE std::string ToString()
+		{
+			if ( IS_STRING( *this ) )
+				return AS_STRING( *this )->GetString();
+
+			switch ( m_Type )
+			{
+				case VT_NUMBER: return std::to_string( AS_NUMBER( *this ) );
+				case VT_BOOL: return AS_BOOL( *this ) ? "True" : "False";
+				case VT_NULL: return "[[null]]";
+				default: return "[[object]]";
+			}
+		}
+
 		FORCEINLINE operator bool()
 		{
 			if ( IS_NULL( *this ) )

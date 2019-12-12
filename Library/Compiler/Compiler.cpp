@@ -63,6 +63,8 @@ namespace Compiler
 
 	QScript::StringObject* AllocateString( const std::string& string )
 	{
+		// Compiler object allocation must use pure 'new'
+		// keyword, since FreeChunk() is also responsible for releasing these objects
 		auto stringObject = new QScript::StringObject( string );
 		ObjectList.push_back( ( QScript::Object* ) stringObject );
 		return stringObject;
@@ -79,7 +81,7 @@ namespace Compiler
 					isReferenced = true;
 			}
 
-			if (!isReferenced)
+			if ( !isReferenced )
 				delete object;
 		}
 

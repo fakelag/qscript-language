@@ -10,5 +10,13 @@ QScript::Chunk_t* QScript::AllocChunk()
 
 void QScript::FreeChunk( QScript::Chunk_t* chunk )
 {
+	for ( auto constant : chunk->m_Constants )
+	{
+		if ( !IS_OBJECT( constant ) )
+			continue;
+
+		delete AS_OBJECT( constant );
+	}
+
 	delete chunk;
 }
