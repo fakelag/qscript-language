@@ -27,12 +27,12 @@ namespace QScript
 		{
 			m_Type = OT_STRING;
 			m_String = string;
-			std::cout << "StringObject created: " + string << std::endl;
+			// std::cout << "StringObject created: " + string << std::endl;
 		}
 
 		~StringObject()
 		{
-			std::cout << "StringObject destroyed: " + m_String << std::endl;
+			// std::cout << "StringObject destroyed: " + m_String << std::endl;
 		}
 
 		FORCEINLINE std::string& GetString() { return m_String; }
