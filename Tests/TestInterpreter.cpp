@@ -11,7 +11,7 @@ bool Tests::TestInterpreter()
 {
 	UTEST_BEGIN( "Interpreter Tests" );
 
-	UTEST_CASE( "Running addition" )
+	UTEST_CASE( "Simple number addition" )
 	{
 		auto chunk = QScript::Compile( "2 + 2;" );
 
@@ -21,6 +21,39 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_NUMBER( exitCode ) == true );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 4.0 );
 
+		QScript::FreeChunk( chunk );
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "String concatenation" )
+	{
+		auto chunk = QScript::Compile( "\"lo\" + \"ng\"+ \" \" + \"str\" + \"ing\";" );
+
+		QScript::Value exitCode;
+		QScript::Interpret( *chunk, &exitCode );
+
+		UTEST_ASSERT( IS_STRING( exitCode ) == true );
+		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "long string" );
+
+		QScript::FreeChunk( chunk );
+		chunk = QScript::Compile( "\"string\" + 1;" );
+
+		QScript::Interpret( *chunk, &exitCode );
+
+		std::cout << AS_STRING( exitCode )->GetString() << std::endl;
+
+		UTEST_ASSERT( IS_STRING( exitCode ) == true );
+		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "string1.0" );
+
+		QScript::FreeChunk( chunk );
+		chunk = QScript::Compile( "2.5 + \"string\";" );
+
+		QScript::Interpret( *chunk, &exitCode );
+
+		UTEST_ASSERT( IS_STRING( exitCode ) == true );
+		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "2.5string" );
+
+		QScript::FreeChunk( chunk );
 		UTEST_CASE_CLOSED();
 	}( );
 
