@@ -40,8 +40,6 @@ bool Tests::TestInterpreter()
 
 		QScript::Interpret( *chunk, &exitCode );
 
-		std::cout << AS_STRING( exitCode )->GetString() << std::endl;
-
 		UTEST_ASSERT( IS_STRING( exitCode ) == true );
 		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "string1.0" );
 
