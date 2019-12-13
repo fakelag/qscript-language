@@ -23,10 +23,15 @@ struct VM_t
 		return *m_StackTop;
 	}
 
-	void Release()
+	void Release( QScript::Value* exitCode )
 	{
 		for ( auto object : m_Objects )
+		{
+			if ( exitCode && IS_OBJECT( *exitCode ) && AS_OBJECT( *exitCode ) == object )
+				continue;
+
 			delete object;
+		}
 
 		m_Objects.clear();
 	}

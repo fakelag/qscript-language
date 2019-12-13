@@ -157,7 +157,7 @@ void QScript::Interpret( const Chunk_t& chunk, Value* out )
 		out->From( exitCode );
 
 	// Clear allocated objects
-	vm.Release();
+	vm.Release( out );
 
 	// Clear allocators
 	QScript::Object::AllocateString = NULL;
