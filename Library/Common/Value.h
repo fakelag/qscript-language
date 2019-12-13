@@ -112,7 +112,12 @@ namespace QScript
 
 			switch ( m_Type )
 			{
-				case VT_NUMBER: return std::to_string( AS_NUMBER( *this ) );
+				case VT_NUMBER:
+				{
+					char result[ 4 ];
+					snprintf( result, sizeof( result ), "%.2f", AS_NUMBER( *this ) );
+					return std::string( result );
+				}
 				case VT_BOOL: return AS_BOOL( *this ) ? "True" : "False";
 				case VT_NULL: return "[[null]]";
 				default: return "[[object]]";
