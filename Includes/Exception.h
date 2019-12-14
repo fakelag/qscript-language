@@ -21,6 +21,31 @@ protected:
 	std::string m_What;
 };
 
+class CompilerException : public Exception
+{
+public:
+	CompilerException( const std::string& id, const std::string& description,
+		int lineNr, int colNr, const std::string& token )
+		: Exception( id, description )
+	{
+		m_LineNr 	= lineNr;
+		m_ColNr 	= colNr;
+		m_Token 	= token;
+	}
+
+	const char* describe() const _NOEXCEPT
+	{
+		return ( "Compiler Exception (" + m_Id + "): " + m_What + " on line "
+			+ std::to_string( m_LineNr ) + " character " + std::to_string( m_ColNr )
+			+ " (\"" + m_Token + "\")" ).c_str();
+	}
+
+protected:
+	int 			m_LineNr;
+	int 			m_ColNr;
+	std::string 	m_Token;
+};
+
 class RuntimeException : public Exception
 {
 public:
@@ -35,7 +60,7 @@ public:
 
 	const char* describe() const _NOEXCEPT
 	{
-		return ( "Runtime Exception (" + m_Id + "): " + m_What + "\non line "
+		return ( "Runtime Exception (" + m_Id + "): " + m_What + " on line "
 			+ std::to_string( m_LineNr ) + " character " + std::to_string( m_ColNr )
 			+ " (\"" + m_Token + "\")" ).c_str();
 	}
