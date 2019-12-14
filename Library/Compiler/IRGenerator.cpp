@@ -17,6 +17,12 @@ namespace Compiler
 			// Get the current builder, increment counter to the next one
 			auto builder = parserState.NextBuilder();
 
+			if ( builder->m_Nud == NULL )
+			{
+				throw CompilerException( "cp_expect_lvalue_or_statement", "Expected a left-value or statement",
+					builder->m_Token.m_LineNr, builder->m_Token.m_ColNr, builder->m_Token.m_String );
+			}
+
 			// parse null-denoted node
 			auto left = builder->m_Nud( *builder );
 
@@ -28,6 +34,13 @@ namespace Compiler
 			while ( rbp < parserState.CurrentBuilder()->m_Token.m_LBP )
 			{
 				builder = parserState.NextBuilder();
+
+				if ( builder->m_Led == NULL )
+				{
+					throw CompilerException( "cp_expect_rvalue", "Expected a right-value",
+						builder->m_Token.m_LineNr, builder->m_Token.m_ColNr, builder->m_Token.m_String );
+				}
+
 				left = builder->m_Led( *builder, left );
 			}
 
@@ -47,7 +60,7 @@ namespace Compiler
 			case Compiler::TOK_INT:
 			case Compiler::TOK_STR:
 			{
-				builder->m_Nud = []( const IrBuilder_t& irBuilder )
+				builder->m_Nud = [ &parserState ]( const IrBuilder_t& irBuilder )
 				{
 					QScript::Value value;
 
@@ -72,19 +85,22 @@ namespace Compiler
 							value.From( MAKE_BOOL( true ) );
 							break;
 						default:
-							throw Exception( "ir_invalid_value_token", "Invalid value token: \"" + irBuilder.m_Token.m_String + "\"" );
+						{
+							throw CompilerException( "ir_invalid_value_token", "Invalid value token: \"" + irBuilder.m_Token.m_String + "\"",
+								irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr, irBuilder.m_Token.m_String );
+						}
 					};
 
-					return new ValueNode( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+					return parserState.AllocateNode< ValueNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
 						irBuilder.m_Token.m_String, NODE_CONSTANT, value );
 				};
 				break;
 			}
 			case Compiler::TOK_BANG:
 			{
-				builder->m_Nud = [ &nextExpression ]( const IrBuilder_t& irBuilder )
+				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder )
 				{
-					return new SimpleNode( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+					return parserState.AllocateNode< SimpleNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
 						irBuilder.m_Token.m_String, NODE_NOT, nextExpression( irBuilder.m_Token.m_LBP ) );
 				};
 
@@ -92,9 +108,9 @@ namespace Compiler
 			}
 			case Compiler::TOK_MINUS:
 			{
-				builder->m_Nud = [ &nextExpression ]( const IrBuilder_t& irBuilder )
+				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder )
 				{
-					return new SimpleNode( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+					return parserState.AllocateNode< ValueNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
 						irBuilder.m_Token.m_String, NODE_NEG, nextExpression( -1 ) );
 				};
 				/* Fall Through */
@@ -103,7 +119,7 @@ namespace Compiler
 			case Compiler::TOK_SLASH:
 			case Compiler::TOK_STAR:
 			{
-				builder->m_Led = [ &nextExpression ]( const IrBuilder_t& irBuilder, BaseNode* left )
+				builder->m_Led = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder, BaseNode* left )
 				{
 					std::map<Compiler::Token, Compiler::NodeId> map = {
 						{ Compiler::TOK_MINUS, 	Compiler::NODE_SUB },
@@ -112,7 +128,7 @@ namespace Compiler
 						{ Compiler::TOK_PLUS, 	Compiler::NODE_ADD },
 					};
 
-					return new ComplexNode( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+					return parserState.AllocateNode< ComplexNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
 						irBuilder.m_Token.m_String, map[ irBuilder.m_Token.m_Token ], left, nextExpression( irBuilder.m_Token.m_LBP ) );
 				};
 				break;
@@ -124,7 +140,7 @@ namespace Compiler
 			case Compiler::TOK_LESSTHAN:
 			case Compiler::TOK_LESSEQUAL:
 			{
-				builder->m_Led = [ &nextExpression ]( const IrBuilder_t& irBuilder, BaseNode* left )
+				builder->m_Led = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder, BaseNode* left )
 				{
 					std::map<Compiler::Token, Compiler::NodeId> map = {
 						{ Compiler::TOK_2EQUALS, 		Compiler::NODE_EQUALS },
@@ -135,7 +151,7 @@ namespace Compiler
 						{ Compiler::TOK_LESSEQUAL, 		Compiler::NODE_LESSEQUAL },
 					};
 
-					return new ComplexNode( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+					return parserState.AllocateNode< ComplexNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
 						irBuilder.m_Token.m_String, map[ irBuilder.m_Token.m_Token ], left, nextExpression( irBuilder.m_Token.m_LBP ) );
 				};
 				break;
@@ -178,9 +194,20 @@ namespace Compiler
 		// Parse from top-level down
 		while ( !parserState.IsFinished() )
 		{
-			parserState.AddNode( nextExpression() );
-			parserState.NextBuilder();
+			try
+			{
+				parserState.AddNode( nextExpression() );
+				parserState.NextBuilder();
+			}
+			catch ( const CompilerException& exception )
+			{
+				parserState.AddErrorAndResync( exception );
+			}
 		}
+
+		// If there were errors, throw them to the caller now
+		if ( parserState.IsError() )
+			throw parserState.Errors();
 
 		// Add a last NODE_RETURN to exit the program
 		parserState.AddNode( new TermNode( -1, -1, "", NODE_RETURN ) );

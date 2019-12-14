@@ -12,6 +12,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <type_traits>
 
 #include "QScript.h"
 #include "Exception.h"
