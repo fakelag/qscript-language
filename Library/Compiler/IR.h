@@ -40,7 +40,6 @@ namespace Compiler
 				for ( auto node : m_AllocatedNodes )
 					delete node;
 
-				std::cout << "Freed " << m_AllocatedNodes.size() << " nodes " << std::endl;
 				m_AllocatedNodes.clear();
 			}
 

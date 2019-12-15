@@ -32,5 +32,16 @@ bool Tests::TestCompiler()
 		UTEST_CASE_CLOSED();
 	}( );
 
+	UTEST_CASE( "Handle multiple exceptions" )
+	{
+		UTEST_THROW_EXCEPTION( QScript::Compile( "2 / / ; 2 / /; 2 / /;" ),
+			const std::vector< CompilerException >& e,
+			e.size() == 3 && e[ 0 ].id() == std::string( "cp_expect_lvalue_or_statement" )
+				&& e[ 1 ].id() == std::string( "cp_expect_lvalue_or_statement" )
+				&& e[ 2 ].id() == std::string( "cp_expect_lvalue_or_statement" ) );
+
+		UTEST_CASE_CLOSED();
+	}( );
+
 	UTEST_END();
 }
