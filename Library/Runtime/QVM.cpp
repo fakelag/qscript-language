@@ -118,15 +118,19 @@ namespace QVM
 			case QScript::OP_LT: BINARY_OP( <, IS_ANY ); break;
 			case QScript::OP_LTE: BINARY_OP( <=, IS_ANY );break;
 			case QScript::OP_GTE: BINARY_OP( >=, IS_ANY );break;
+			case QScript::OP_PRINT: std::cout << (vm.Pop().ToString()) << std::endl; break;
 			case QScript::OP_RETN:
 			{
 	#ifdef QVM_DEBUG
 				Compiler::DumpStack( vm );
-				auto exitCode = vm.Pop();
+
+				QScript::Value exitCode;
+				exitCode.From( vm.m_StackTop - vm.m_Stack > 0 ? vm.Pop() : MAKE_NULL );
+
 				std::cout << "Exit: " << Compiler::ValueToString( exitCode ) << std::endl;
 				return exitCode;
 	#else
-				return vm.Pop();
+				return vm.m_StackTop - vm.m_Stack > 0 ? vm.Pop() : MAKE_NUL;
 	#endif
 			}
 			default:

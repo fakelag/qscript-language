@@ -131,6 +131,7 @@ namespace Compiler
 
 		switch ( m_NodeId )
 		{
+		case NODE_PRINT: EmitByte( QScript::OpCode::OP_PRINT, chunk ); break;
 		case NODE_NOT: EmitByte( QScript::OpCode::OP_NOT, chunk ); break;
 		case NODE_NEG: EmitByte( QScript::OpCode::OP_NEG, chunk ); break;
 		default:

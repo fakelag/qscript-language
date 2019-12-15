@@ -28,6 +28,7 @@ namespace Compiler
 		NODE_LESSTHAN,
 		NODE_LESSEQUAL,
 		NODE_RETURN,
+		NODE_PRINT,
 	};
 
 	class BaseNode

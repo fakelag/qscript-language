@@ -96,6 +96,22 @@ namespace Compiler
 				};
 				break;
 			}
+			case Compiler::TOK_NAME:
+			{
+				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder )
+				{
+					if ( irBuilder.m_Token.m_String == "print" )
+					{
+						return parserState.AllocateNode< SimpleNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+							irBuilder.m_Token.m_String, NODE_PRINT, nextExpression( irBuilder.m_Token.m_LBP ) );
+					}
+					else
+					{
+						throw Exception( "error_not_implemented", "TOK_NAME IR generation is not yet implemented" );
+					}
+				};
+				break;
+			}
 			case Compiler::TOK_BANG:
 			{
 				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder )
