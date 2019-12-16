@@ -56,6 +56,18 @@ namespace Compiler
 		IrBuilder_t*					CurrentBuilder() const { return m_Builders[ m_CurrentObject ]; }
 		IrBuilder_t*					NextBuilder() { return m_Builders[ m_CurrentObject++ ]; }
 
+		void 							Expect( Token token, const std::string desc )
+		{
+			auto builder = CurrentBuilder();
+			if ( builder->m_Token.m_Token != token )
+			{
+				throw CompilerException( "ir_expect", desc, builder->m_Token.m_LineNr,
+					builder->m_Token.m_ColNr, builder->m_Token.m_String );
+			}
+
+			NextBuilder();
+		}
+
 		void							AddErrorAndResync( const CompilerException& exception )
 		{
 			m_Errors.push_back( exception );

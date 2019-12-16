@@ -14,12 +14,15 @@ namespace Compiler
 		// TDOP expression parsing
 		auto nextExpression = [ &parserState ]( int rbp = 0 ) -> BaseNode*
 		{
+			if ( parserState.IsFinished() )
+				throw CompilerException( "ir_parsing_past_eof", "Parsing past end of file", -1, -1, "" );
+
 			// Get the current builder, increment counter to the next one
 			auto builder = parserState.NextBuilder();
 
 			if ( builder->m_Nud == NULL )
 			{
-				throw CompilerException( "cp_expect_lvalue_or_statement", "Expected a left-value or statement",
+				throw CompilerException( "ir_expect_lvalue_or_statement", "Expected a left-value or statement",
 					builder->m_Token.m_LineNr, builder->m_Token.m_ColNr, builder->m_Token.m_String );
 			}
 
@@ -29,6 +32,9 @@ namespace Compiler
 			if ( rbp == -1 )
 				return left;
 
+			if ( parserState.IsFinished() )
+				throw CompilerException( "ir_parsing_past_eof", "Parsing past end of file", -1, -1, "" );
+
 			// while the next builder has a larger binding power
 			// deliver it the left hand node instead
 			while ( rbp < parserState.CurrentBuilder()->m_Token.m_LBP )
@@ -37,7 +43,7 @@ namespace Compiler
 
 				if ( builder->m_Led == NULL )
 				{
-					throw CompilerException( "cp_expect_rvalue", "Expected a right-value",
+					throw CompilerException( "ir_expect_rvalue", "Expected a right-value",
 						builder->m_Token.m_LineNr, builder->m_Token.m_ColNr, builder->m_Token.m_String );
 				}
 
@@ -119,7 +125,6 @@ namespace Compiler
 					return parserState.AllocateNode< SimpleNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
 						irBuilder.m_Token.m_String, NODE_NOT, nextExpression( irBuilder.m_Token.m_LBP ) );
 				};
-
 				break;
 			}
 			case Compiler::TOK_MINUS:
@@ -195,6 +200,15 @@ namespace Compiler
 
 				break;
 			}
+			case Compiler::TOK_RETURN:
+			{
+				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder )
+				{
+					return parserState.AllocateNode< SimpleNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+						irBuilder.m_Token.m_String, NODE_RETURN, nextExpression( irBuilder.m_Token.m_LBP ) );
+				};
+				break;
+			}
 			default:
 				throw Exception( "ir_unknown_token", std::string( "Unknown token id: " )
 					+ std::to_string( token.m_Token )
@@ -213,20 +227,35 @@ namespace Compiler
 			try
 			{
 				parserState.AddNode( nextExpression() );
-				parserState.NextBuilder();
+
+				auto builder = parserState.CurrentBuilder();
+
+				if ( builder )
+				{
+					auto& token = builder->m_Token;
+
+					// Pop the intermediate value off stack
+					parserState.AddNode( parserState.AllocateNode< TermNode >( token.m_LineNr,
+						token.m_ColNr, token.m_String, NODE_POP ) );
+				}
+
+				// A statement expression must end in a semicolon
+				parserState.Expect( TOK_SCOLON, "Expected end of expression" );
 			}
 			catch ( const CompilerException& exception )
 			{
+				// A compilation error occurred, resync and continue parsing
+				// to catch as many errors with a single pass as possible
 				parserState.AddErrorAndResync( exception );
 			}
 		}
 
+		// Exit interpreter loop on REPL mode
+		parserState.AddNode( parserState.AllocateNode< TermNode >( -1, -1, "", NODE_RETURN ) );
+
 		// If there were errors, throw them to the caller now
 		if ( parserState.IsError() )
 			throw parserState.Errors();
-
-		// Add a last NODE_RETURN to exit the program
-		parserState.AddNode( new TermNode( -1, -1, "", NODE_RETURN ) );
 
 		// Builders are freed once parserState gets destructed
 		return parserState.Product();
