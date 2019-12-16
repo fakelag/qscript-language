@@ -43,6 +43,7 @@ namespace Compiler
 		TOK_LESSTHAN,
 		TOK_LESSEQUAL,
 		TOK_NULL,
+		TOK_RETURN,
 	};
 
 	struct Token_t

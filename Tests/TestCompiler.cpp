@@ -14,7 +14,7 @@ bool Tests::TestCompiler()
 
 	UTEST_CASE( "Generate simple bytecode" )
 	{
-		auto chunk = QScript::Compile( "2 + 2;" );
+		auto chunk = QScript::Compile( "return 2 + 2;" );
 
 		/*
 			LOAD 2.0
@@ -23,7 +23,7 @@ bool Tests::TestCompiler()
 			RETN
 		*/
 
-		UTEST_ASSERT( chunk->m_Code.size() == 6 );
+		UTEST_ASSERT( chunk->m_Code.size() >= 6 );
 		UTEST_ASSERT( chunk->m_Code[ 0 ] == QScript::OpCode::OP_LOAD );
 		UTEST_ASSERT( chunk->m_Code[ 2 ] == QScript::OpCode::OP_LOAD );
 		UTEST_ASSERT( chunk->m_Code[ 4 ] == QScript::OpCode::OP_ADD );
@@ -36,9 +36,9 @@ bool Tests::TestCompiler()
 	{
 		UTEST_THROW_EXCEPTION( QScript::Compile( "2 / / ; 2 / /; 2 / /;" ),
 			const std::vector< CompilerException >& e,
-			e.size() == 3 && e[ 0 ].id() == std::string( "cp_expect_lvalue_or_statement" )
-				&& e[ 1 ].id() == std::string( "cp_expect_lvalue_or_statement" )
-				&& e[ 2 ].id() == std::string( "cp_expect_lvalue_or_statement" ) );
+			e.size() == 3 && e[ 0 ].id() == std::string( "ir_expect_lvalue_or_statement" )
+				&& e[ 1 ].id() == std::string( "ir_expect_lvalue_or_statement" )
+				&& e[ 2 ].id() == std::string( "ir_expect_lvalue_or_statement" ) );
 
 		UTEST_CASE_CLOSED();
 	}( );
