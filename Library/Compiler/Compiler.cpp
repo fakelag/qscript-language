@@ -26,7 +26,10 @@ namespace QScript
 			node->Compile( chunk );
 
 		for ( auto node : entryNodes )
+		{
+			node->Release();
 			delete node;
+		}
 
 		entryNodes.clear();
 #else
