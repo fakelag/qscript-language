@@ -16,6 +16,7 @@ namespace QScript
 		OP_LTE,
 		OP_GTE,
 		OP_PRINT,
+		OP_POP,
 		OP_RETN,
 	};
 }

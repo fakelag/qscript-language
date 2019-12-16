@@ -28,6 +28,7 @@ namespace Compiler
 		NODE_LESSTHAN,
 		NODE_LESSEQUAL,
 		NODE_RETURN,
+		NODE_POP,
 		NODE_PRINT,
 	};
 
@@ -40,6 +41,7 @@ namespace Compiler
 		NodeId Id()			const { return m_NodeId; }
 
 		virtual ~BaseNode() {}
+		virtual void Release() {};
 		virtual void Compile( QScript::Chunk_t* chunk ) = 0;
 
 	protected:
@@ -54,14 +56,14 @@ namespace Compiler
 	{
 	public:
 		TermNode( int lineNr, int colNr, const std::string token, NodeId id );
-		void Compile( QScript::Chunk_t* chunk );
+		void Compile( QScript::Chunk_t* chunk ) override;
 	};
 
 	class ValueNode : public BaseNode
 	{
 	public:
 		ValueNode( int lineNr, int colNr, const std::string token, NodeId id, const QScript::Value& value );
-		void Compile( QScript::Chunk_t* chunk );
+		void Compile( QScript::Chunk_t* chunk ) override;
 
 	private:
 		QScript::Value		m_Value;
@@ -71,9 +73,9 @@ namespace Compiler
 	{
 	public:
 		ComplexNode( int lineNr, int colNr, const std::string token, NodeId id, BaseNode* left, BaseNode* right );
-		~ComplexNode();
 
-		void Compile( QScript::Chunk_t* chunk );
+		void Release() override;
+		void Compile( QScript::Chunk_t* chunk ) override;
 
 	private:
 		BaseNode*			m_Left;
@@ -84,9 +86,9 @@ namespace Compiler
 	{
 	public:
 		SimpleNode( int lineNr, int colNr, const std::string token, NodeId id, BaseNode* node );
-		~SimpleNode();
 
-		void Compile( QScript::Chunk_t* chunk );
+		void Release() override;
+		void Compile( QScript::Chunk_t* chunk ) override;
 
 	private:
 		BaseNode*			m_Node;

@@ -42,9 +42,8 @@ namespace Compiler
 
 		switch( m_NodeId )
 		{
-		case NODE_RETURN:
-			EmitByte( QScript::OpCode::OP_RETN, chunk );
-			break;
+		case NODE_POP: EmitByte( QScript::OpCode::OP_POP, chunk ); break;
+		case NODE_RETURN: EmitByte( QScript::OpCode::OP_RETN, chunk ); break;
 		default:
 			throw Exception( "cp_invalid_term_node", "Unknown terminating node: " + std::to_string( m_NodeId ) );
 		}
@@ -77,7 +76,7 @@ namespace Compiler
 		m_Right = right;
 	}
 
-	ComplexNode::~ComplexNode()
+	void ComplexNode::Release()
 	{
 		delete m_Left;
 		delete m_Right;
@@ -118,7 +117,7 @@ namespace Compiler
 		m_Node = node;
 	}
 
-	SimpleNode::~SimpleNode()
+	void SimpleNode::Release()
 	{
 		delete m_Node;
 	}
@@ -132,6 +131,7 @@ namespace Compiler
 		switch ( m_NodeId )
 		{
 		case NODE_PRINT: EmitByte( QScript::OpCode::OP_PRINT, chunk ); break;
+		case NODE_RETURN: EmitByte( QScript::OpCode::OP_RETN, chunk ); break;
 		case NODE_NOT: EmitByte( QScript::OpCode::OP_NOT, chunk ); break;
 		case NODE_NEG: EmitByte( QScript::OpCode::OP_NEG, chunk ); break;
 		default:

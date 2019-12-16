@@ -110,6 +110,7 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, int offset 
 	SIMPLE_INST( OP_LTE, "LTE" );
 	SIMPLE_INST( OP_RETN, "RETN" );
 	SIMPLE_INST( OP_PRINT, "PRINT" );
+	SIMPLE_INST( OP_POP, "POP" );
 	default:
 		std::cout << "Unknown opcode: " << chunk.m_Code[ offset ] << std::endl;
 		instOffset = offset + 1;

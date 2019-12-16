@@ -61,7 +61,7 @@ namespace QVM
 				}
 			}
 
-			Compiler::DisassembleInstruction( *vm.m_Chunk, ( int )( vm.m_IP - ( uint8_t* ) &vm.m_Chunk->m_Code[ 0 ] ) );
+			// Compiler::DisassembleInstruction( *vm.m_Chunk, ( int )( vm.m_IP - ( uint8_t* ) &vm.m_Chunk->m_Code[ 0 ] ) );
 #endif
 
 			uint8_t inst = READ_BYTE( vm );
@@ -116,12 +116,13 @@ namespace QVM
 			case QScript::OP_NEQ: BINARY_OP( !=, IS_ANY ); break;
 			case QScript::OP_GT: BINARY_OP( >, IS_ANY ); break;
 			case QScript::OP_LT: BINARY_OP( <, IS_ANY ); break;
-			case QScript::OP_LTE: BINARY_OP( <=, IS_ANY );break;
-			case QScript::OP_GTE: BINARY_OP( >=, IS_ANY );break;
+			case QScript::OP_LTE: BINARY_OP( <=, IS_ANY ); break;
+			case QScript::OP_GTE: BINARY_OP( >=, IS_ANY ); break;
+			case QScript::OP_POP: vm.Pop(); break;
 			case QScript::OP_PRINT: std::cout << (vm.Pop().ToString()) << std::endl; break;
 			case QScript::OP_RETN:
 			{
-	#ifdef QVM_DEBUG
+#ifdef QVM_DEBUG
 				Compiler::DumpStack( vm );
 
 				QScript::Value exitCode;
@@ -129,9 +130,9 @@ namespace QVM
 
 				std::cout << "Exit: " << Compiler::ValueToString( exitCode ) << std::endl;
 				return exitCode;
-	#else
-				return vm.m_StackTop - vm.m_Stack > 0 ? vm.Pop() : MAKE_NUL;
-	#endif
+#else
+				return vm.m_StackTop - vm.m_Stack > 0 ? vm.Pop() : MAKE_NULL;
+#endif
 			}
 			default:
 				throw RuntimeException( "rt_unknown_opcode", "Unknown opcode: " + std::to_string( inst ), -1, -1, "" );
