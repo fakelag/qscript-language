@@ -1,8 +1,9 @@
 namespace QScript
 {
-	enum OpCode
+	enum OpCode : uint8_t
 	{
-		OP_LOAD,
+		OP_LOAD_SHORT,
+		OP_LOAD_LONG,
 		OP_NOT,
 		OP_NEG,
 		OP_ADD,

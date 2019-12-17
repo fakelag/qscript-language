@@ -6,7 +6,7 @@
 #include "../Compiler/Compiler.h"
 
 #define READ_BYTE( vm ) (*vm.m_IP++)
-#define READ_CONST( vm ) (vm.m_Chunk->m_Constants[ READ_BYTE( vm ) ])
+#define READ_CONST_SHORT( vm ) (vm.m_Chunk->m_Constants[ READ_BYTE( vm ) ])
 #define BINARY_OP( op, require ) { \
 	auto b = vm.Pop(); auto a = vm.Pop(); \
 	if ( !require(a) || !require(b) ) \
@@ -67,7 +67,17 @@ namespace QVM
 			uint8_t inst = READ_BYTE( vm );
 			switch ( inst )
 			{
-			case QScript::OP_LOAD: vm.Push( READ_CONST( vm ) ); break;
+			case QScript::OP_LOAD_SHORT: vm.Push( READ_CONST_SHORT( vm ) ); break;
+			case QScript::OP_LOAD_LONG:
+			{
+				auto a = READ_BYTE( vm );
+				auto b = READ_BYTE( vm );
+				auto c = READ_BYTE( vm );
+				auto d = READ_BYTE( vm );
+
+				vm.Push( vm.m_Chunk->m_Constants[ DECODE_LONG( a, b, c, d ) ] );
+				break;
+			}
 			case QScript::OP_NOT:
 			{
 				auto value = vm.Pop();

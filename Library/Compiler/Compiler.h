@@ -13,7 +13,7 @@ namespace Compiler
 	// std::vector< BaseNode* > OptimizeIR( std::vector< BaseNode* > nodes );
 
 	// Compilers
-	uint8_t AddConstant( const QScript::Value& value, QScript::Chunk_t* chunk );
+	uint32_t AddConstant( const QScript::Value& value, QScript::Chunk_t* chunk );
 	void EmitByte( uint8_t byte, QScript::Chunk_t* chunk );
 
 	// Disassembler

@@ -83,7 +83,7 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, int offset 
 	// Decode current instruction
 	switch ( chunk.m_Code[ offset ] )
 	{
-	case QScript::OpCode::OP_LOAD:
+	case QScript::OpCode::OP_LOAD_SHORT:
 	{
 		// Index of the constant from code
 		uint8_t constant = chunk.m_Code[ offset + 1 ];
@@ -91,9 +91,31 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, int offset 
 
 		instString = "LOAD "
 			+ std::to_string( constant )
-			+ " " + Compiler::ValueToString( value );
+			+ " " + Compiler::ValueToString( value )
+			+ " (SHORT)";
 
 		instOffset = offset + 2;
+		break;
+	}
+	case QScript::OpCode::OP_LOAD_LONG:
+	{
+		// Decode index
+		// uint32_t constant = ( uint32_t ) ( chunk.m_Code[ offset + 1 ] )
+		// 	| ( uint32_t ) ( chunk.m_Code[ offset + 2 ] ) << 8
+		// 	| ( uint32_t ) ( chunk.m_Code[ offset + 3 ] ) << 16
+		// 	| ( uint32_t ) ( chunk.m_Code[ offset + 4 ] ) << 24;
+
+		uint32_t constant = DECODE_LONG( chunk.m_Code[ offset + 1 ], chunk.m_Code[ offset + 2 ],
+			chunk.m_Code[ offset + 3 ], chunk.m_Code[ offset + 4 ] );
+
+		const QScript::Value& value = chunk.m_Constants[ constant ];
+
+		instString = "LOAD "
+			+ std::to_string( constant )
+			+ " " + Compiler::ValueToString( value )
+			+ " (LONG)";
+
+		instOffset = offset + 5;
 		break;
 	}
 	SIMPLE_INST( OP_ADD, "ADD" );

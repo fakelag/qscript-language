@@ -61,10 +61,23 @@ namespace Compiler
 	{
 		int start = chunk->m_Code.size();
 
-		int constantId = AddConstant( m_Value, chunk );
+		if ( chunk->m_Constants.size() >= 255 )
+		{
+			auto longIndex = ( uint32_t ) AddConstant( m_Value, chunk );
 
-		EmitByte( QScript::OpCode::OP_LOAD, chunk );
-		EmitByte( constantId, chunk );
+			EmitByte( QScript::OpCode::OP_LOAD_LONG, chunk );
+			EmitByte( ENCODE_LONG( longIndex, 0 ), chunk );
+			EmitByte( ENCODE_LONG( longIndex, 1 ), chunk );
+			EmitByte( ENCODE_LONG( longIndex, 2 ), chunk );
+			EmitByte( ENCODE_LONG( longIndex, 3 ), chunk );
+		}
+		else
+		{
+			auto shortIndex = ( uint8_t ) AddConstant( m_Value, chunk );
+
+			EmitByte( QScript::OpCode::OP_LOAD_SHORT, chunk );
+			EmitByte( shortIndex, chunk );
+		}
 
 		AddDebugSymbol( chunk, start, m_LineNr, m_ColNr, m_Token );
 	}
@@ -103,7 +116,7 @@ namespace Compiler
 		};
 
 		auto opCode = singleByte.find( m_NodeId );
-		if (opCode != singleByte.end())
+		if ( opCode != singleByte.end() )
 			EmitByte( opCode->second, chunk );
 		else
 			throw Exception( "cp_invalid_complex_node", "Unknown complex node: " + std::to_string( m_NodeId ) );

@@ -53,10 +53,10 @@ namespace Compiler
 	// List of allocated objects for garbage collection
 	std::vector< QScript::Object* > ObjectList;
 
-	uint8_t AddConstant( const QScript::Value& value, QScript::Chunk_t* chunk )
+	uint32_t AddConstant( const QScript::Value& value, QScript::Chunk_t* chunk )
 	{
 		chunk->m_Constants.push_back( value );
-		return ( uint8_t ) chunk->m_Constants.size() - 1;
+		return ( uint32_t ) chunk->m_Constants.size() - 1;
 	}
 
 	void EmitByte( uint8_t byte, QScript::Chunk_t* chunk )

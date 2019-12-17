@@ -18,6 +18,9 @@
 #define IS_STRING( value ) ((value).IsString())
 #define IS_ANY( value ) (true)
 
+#define ENCODE_LONG( a, index ) (( uint8_t )( ( a >> ( 8 * index ) ) & 0xFF ))
+#define DECODE_LONG( a, b, c, d ) (( uint32_t ) ( a + 0x100UL * b + 0x10000UL * c + 0x1000000UL * d ))
+
 #define VALUE_CMP_OP( op, typeCase, nullCase ) \
 FORCEINLINE Value operator op ( const Value& other ) { \
 	if ( m_Type != other.m_Type ) \
