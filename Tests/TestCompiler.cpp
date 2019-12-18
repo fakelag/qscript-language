@@ -100,11 +100,28 @@ bool Tests::TestCompiler()
 			511.00;" );
 
 			UTEST_ASSERT( chunk->m_Constants.size() == 512 );
+
+			/*
+				Sequences of
+				0000 OP_LOAD_SHORT
+				0001 index
+				0002 OP_POP
+				...
+				0000 OP_LOAD_LONG
+				0001 index
+				0002 index
+				0003 index
+				0004 index
+				0005 OP_POP
+			*/
+
 			UTEST_ASSERT( chunk->m_Code[ 0 ] == QScript::OpCode::OP_LOAD_SHORT );
-			UTEST_ASSERT( chunk->m_Code[ 510 ] == QScript::OpCode::OP_LOAD_SHORT );
-			// std::cout << "thing: " << ((int)chunk->m_Code[ 510 ]) << std::endl;
-			UTEST_ASSERT( chunk->m_Code[ 512 ] == QScript::OpCode::OP_LOAD_LONG );
-			UTEST_ASSERT( chunk->m_Code[ 512 + 4 ] == QScript::OpCode::OP_LOAD_LONG );
+			UTEST_ASSERT( chunk->m_Code[ 1 ] == 0 );
+			UTEST_ASSERT( chunk->m_Code[ 2 ] == QScript::OpCode::OP_POP );
+
+			int firstLong = 255 * 3;
+			UTEST_ASSERT( chunk->m_Code[ firstLong ] == QScript::OpCode::OP_LOAD_LONG );
+			UTEST_ASSERT( chunk->m_Code[ firstLong + 5 ] == QScript::OpCode::OP_POP );
 
 		UTEST_CASE_CLOSED();
 	}( );
