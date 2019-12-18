@@ -29,6 +29,7 @@ bool Tests::TestCompiler()
 		UTEST_ASSERT( chunk->m_Code[ 4 ] == QScript::OpCode::OP_ADD );
 		UTEST_ASSERT( chunk->m_Code[ 5 ] == QScript::OpCode::OP_RETN );
 
+		QScript::FreeChunk( chunk );
 		UTEST_CASE_CLOSED();
 	}( );
 
@@ -99,30 +100,31 @@ bool Tests::TestCompiler()
 			501.00;502.00;503.00;504.00;505.00;506.00;507.00;508.00;509.00;510.00;		\
 			511.00;" );
 
-			UTEST_ASSERT( chunk->m_Constants.size() == 512 );
+		UTEST_ASSERT( chunk->m_Constants.size() == 512 );
 
-			/*
-				Sequences of
-				0000 OP_LOAD_SHORT
-				0001 index
-				0002 OP_POP
-				...
-				0000 OP_LOAD_LONG
-				0001 index
-				0002 index
-				0003 index
-				0004 index
-				0005 OP_POP
-			*/
+		/*
+			Sequences of
+			0000 OP_LOAD_SHORT
+			0001 index
+			0002 OP_POP
+			...
+			0000 OP_LOAD_LONG
+			0001 index
+			0002 index
+			0003 index
+			0004 index
+			0005 OP_POP
+		*/
 
-			UTEST_ASSERT( chunk->m_Code[ 0 ] == QScript::OpCode::OP_LOAD_SHORT );
-			UTEST_ASSERT( chunk->m_Code[ 1 ] == 0 );
-			UTEST_ASSERT( chunk->m_Code[ 2 ] == QScript::OpCode::OP_POP );
+		UTEST_ASSERT( chunk->m_Code[ 0 ] == QScript::OpCode::OP_LOAD_SHORT );
+		UTEST_ASSERT( chunk->m_Code[ 1 ] == 0 );
+		UTEST_ASSERT( chunk->m_Code[ 2 ] == QScript::OpCode::OP_POP );
 
-			int firstLong = 255 * 3;
-			UTEST_ASSERT( chunk->m_Code[ firstLong ] == QScript::OpCode::OP_LOAD_LONG );
-			UTEST_ASSERT( chunk->m_Code[ firstLong + 5 ] == QScript::OpCode::OP_POP );
+		int firstLong = 255 * 3;
+		UTEST_ASSERT( chunk->m_Code[ firstLong ] == QScript::OpCode::OP_LOAD_LONG );
+		UTEST_ASSERT( chunk->m_Code[ firstLong + 5 ] == QScript::OpCode::OP_POP );
 
+		QScript::FreeChunk( chunk );
 		UTEST_CASE_CLOSED();
 	}( );
 
