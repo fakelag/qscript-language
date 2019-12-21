@@ -41,7 +41,7 @@ int main()
 
 		// Flush stdin
 		int ch;
-		while ( (ch = std::cin.get()) != '\n' && ch != EOF );
+		while ( ( ch = std::cin.get() ) != '\n' && ch != EOF );
 	}
 
 	return 0;

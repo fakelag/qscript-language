@@ -48,6 +48,12 @@
     <ClCompile Include="..\Library\Runtime\QVM.cpp">
       <Filter>Code</Filter>
     </ClCompile>
+    <ClCompile Include="TestCompiler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TestInterpreter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Tests.h">

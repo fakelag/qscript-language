@@ -46,15 +46,15 @@ namespace Compiler
 			m_Builders.clear();
 		}
 
-		void 								AddNode( BaseNode* node ) { m_Ast.push_back( node ); }
-		std::vector< BaseNode* >& 			Product() { return m_Ast; }
-		std::vector< IrBuilder_t* >& 		Builders() { return m_Builders; }
-		std::vector< CompilerException >&	Errors() { return m_Errors; }
+		void 								AddNode( BaseNode* node )	{ m_Ast.push_back( node ); }
+		std::vector< BaseNode* >& 			Product()					{ return m_Ast; }
+		std::vector< IrBuilder_t* >& 		Builders()					{ return m_Builders; }
+		std::vector< CompilerException >&	Errors()					{ return m_Errors; }
 
-		bool 							IsFinished() const { return ( size_t ) m_CurrentObject >= m_Builders.size(); }
-		bool 							IsError() const { return m_Errors.size() > 0; }
-		IrBuilder_t*					CurrentBuilder() const { return m_Builders[ m_CurrentObject ]; }
-		IrBuilder_t*					NextBuilder() { return m_Builders[ m_CurrentObject++ ]; }
+		bool 							IsFinished()					const { return ( size_t ) m_CurrentObject >= m_Builders.size(); }
+		bool 							IsError()						const { return m_Errors.size() > 0; }
+		IrBuilder_t*					CurrentBuilder()				const { return m_Builders[ m_CurrentObject ]; }
+		IrBuilder_t*					NextBuilder() 					{ return m_Builders[ m_CurrentObject++ ]; }
 
 		void 							Expect( Token token, const std::string desc )
 		{

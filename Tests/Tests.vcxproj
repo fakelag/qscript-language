@@ -140,6 +140,8 @@
     <ClCompile Include="..\Library\Compiler\IRGenerator.cpp" />
     <ClCompile Include="..\Library\Compiler\Lexer.cpp" />
     <ClCompile Include="..\Library\Runtime\QVM.cpp" />
+    <ClCompile Include="TestCompiler.cpp" />
+    <ClCompile Include="TestInterpreter.cpp" />
     <ClCompile Include="TestLexer.cpp" />
     <ClCompile Include="Tests.cpp" />
   </ItemGroup>

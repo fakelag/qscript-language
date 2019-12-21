@@ -13,9 +13,8 @@ public:
 		m_What = description;
 	}
 
-	const char* id()			const _NOEXCEPT { return m_Id.c_str(); }
-	const char* what()			const _NOEXCEPT { return m_What.c_str(); }
-	const char* describe()		const _NOEXCEPT { return ( "Generic Exception (" + m_Id + "): " + m_What ).c_str(); }
+	std::string id()			const _NOEXCEPT { return m_Id; }
+	std::string describe()		const _NOEXCEPT { return ( "Generic Exception (" + m_Id + "): " + m_What ); }
 protected:
 	std::string m_Id;
 	std::string m_What;
@@ -33,11 +32,11 @@ public:
 		m_Token 	= token;
 	}
 
-	const char* describe() const _NOEXCEPT
+	std::string describe() const _NOEXCEPT
 	{
 		return ( "Compiler Exception (" + m_Id + "): " + m_What + " on line "
 			+ std::to_string( m_LineNr ) + " character " + std::to_string( m_ColNr )
-			+ " (\"" + m_Token + "\")" ).c_str();
+			+ " (\"" + m_Token + "\")" );
 	}
 
 protected:
@@ -58,11 +57,11 @@ public:
 		m_Token 	= token;
 	}
 
-	const char* describe() const _NOEXCEPT
+	std::string describe() const _NOEXCEPT
 	{
 		return ( "Runtime Exception (" + m_Id + "): " + m_What + " on line "
 			+ std::to_string( m_LineNr ) + " character " + std::to_string( m_ColNr )
-			+ " (\"" + m_Token + "\")" ).c_str();
+			+ " (\"" + m_Token + "\")" );
 	}
 
 protected:

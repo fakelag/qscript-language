@@ -103,7 +103,7 @@ namespace QScript
 			m_Data = other.m_Data;
 		}
 
-		FORCEINLINE bool IsString()
+		FORCEINLINE bool IsString() const
 		{
 			return IS_OBJECT( *this ) && m_Data.m_Object->m_Type == OT_STRING;
 		}
