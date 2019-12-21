@@ -56,7 +56,7 @@ namespace QVM
 					}
 					else if ( input == "dc" )
 					{
-						Compiler::DisassembleChunk( *vm.m_Chunk, "current chunk" );
+						Compiler::DisassembleChunk( *vm.m_Chunk, "current chunk", ( unsigned int )( vm.m_IP - ( uint8_t* ) &vm.m_Chunk->m_Code[ 0 ] ) );
 						continue;
 					}
 					else if ( input == "dcnst" )

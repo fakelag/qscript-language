@@ -49,17 +49,17 @@ std::string Compiler::ValueToString( const QScript::Value& value )
 	}
 }
 
-void Compiler::DisassembleChunk( const QScript::Chunk_t& chunk, const std::string& identifier )
+void Compiler::DisassembleChunk( const QScript::Chunk_t& chunk, const std::string& identifier, unsigned int ip )
 {
 	// Show identifier of the current chunk
 	std::cout << "=== " + identifier + " ===" << std::endl;
 
 	// Print each instruction and their operands
-	for ( size_t offset = 0; offset < chunk.m_Code.size();)
-		offset = DisassembleInstruction( chunk, offset );
+	for ( size_t offset = 0; offset < chunk.m_Code.size(); )
+		offset = DisassembleInstruction( chunk, offset, offset == ip );
 }
 
-int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, int offset )
+int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, int offset, bool isIp )
 {
 #define SIMPLE_INST( inst, name ) case QScript::OpCode::inst: {\
 	instString = name; \
@@ -133,7 +133,8 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, int offset 
 		break;
 	}
 
-	std::cout << std::setfill( ' ' ) << std::left << std::setw( 45 ) << instString
+	std::cout << std::setfill( ' ' ) << std::left << std::setw( 2 ) << ( isIp ? "> " : " " )
+		<< std::setw( 45 ) << instString
 		<< std::setfill( ' ' ) << std::right << std::setw( 0 ) << debugString
 		<< std::endl;
 
