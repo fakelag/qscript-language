@@ -144,9 +144,11 @@
     <ClCompile Include="TestInterpreter.cpp" />
     <ClCompile Include="TestLexer.cpp" />
     <ClCompile Include="Tests.cpp" />
+    <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Tests.h" />
+    <ClInclude Include="Utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

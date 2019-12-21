@@ -6,14 +6,14 @@
 
 namespace QScript
 {
-	Chunk_t* Compile( const char* source )
+	Chunk_t* Compile( const std::string& source )
 	{
 		Object::AllocateString = &Compiler::AllocateString;
 
 		Chunk_t* chunk = AllocChunk();
 
 		// Lexical analysis (tokenization)
-		auto tokens = Compiler::Lexer( std::string( source ) );
+		auto tokens = Compiler::Lexer( source );
 
 #if 1
 		// Generate IR

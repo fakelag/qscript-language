@@ -13,7 +13,7 @@ int main()
 
 		try
 		{
-			QScript::Chunk_t* chunk = QScript::Compile( command.c_str() );
+			QScript::Chunk_t* chunk = QScript::Compile( command );
 			QScript::Interpret( *chunk, NULL );
 			QScript::FreeChunk( chunk );
 		}

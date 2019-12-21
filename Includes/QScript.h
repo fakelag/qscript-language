@@ -18,6 +18,6 @@ namespace QScript
 	Chunk_t* AllocChunk();
 	void FreeChunk( Chunk_t* chunk );
 
-	Chunk_t* Compile( const char* source );
+	Chunk_t* Compile( const std::string& source );
 	void Interpret( const Chunk_t& chunk, Value* exitCode );
 }
