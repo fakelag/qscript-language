@@ -7,6 +7,13 @@
 
 #define READ_BYTE( vm ) (*vm.m_IP++)
 #define READ_CONST_SHORT( vm ) (vm.m_Chunk->m_Constants[ READ_BYTE( vm ) ])
+#define READ_CONST_LONG( vm, constant ) QScript::Value constant; { \
+	auto a = READ_BYTE( vm ); \
+	auto b = READ_BYTE( vm ); \
+	auto c = READ_BYTE( vm ); \
+	auto d = READ_BYTE( vm ); \
+	constant.From( vm.m_Chunk->m_Constants[ DECODE_LONG( a, b, c, d ) ] ); \
+}
 #define BINARY_OP( op, require ) { \
 	auto b = vm.Pop(); auto a = vm.Pop(); \
 	if ( !require(a) || !require(b) ) \
@@ -34,7 +41,7 @@ namespace QVM
 
 				for( ;; )
 				{
-					std::cout << "Action (s/r/ds/dc/q): ";
+					std::cout << "Action (s/r/ds/dc/dcnst/dg/q): ";
 					std::cin >> input;
 
 					if ( input == "r" )
@@ -52,6 +59,16 @@ namespace QVM
 						Compiler::DisassembleChunk( *vm.m_Chunk, "current chunk" );
 						continue;
 					}
+					else if ( input == "dcnst" )
+					{
+						Compiler::DumpConstants( *vm.m_Chunk );
+						continue;
+					}
+					else if ( input == "dg" )
+					{
+						Compiler::DumpGlobals( vm );
+						continue;
+					}
 					else if ( input == "s" )
 						break;
 					else if ( input == "q" )
@@ -67,15 +84,51 @@ namespace QVM
 			uint8_t inst = READ_BYTE( vm );
 			switch ( inst )
 			{
-			case QScript::OP_LOAD_SHORT: vm.Push( READ_CONST_SHORT( vm ) ); break;
-			case QScript::OP_LOAD_LONG:
+			case QScript::OP_LD_SHORT: vm.Push( READ_CONST_SHORT( vm ) ); break;
+			case QScript::OP_LD_LONG:
 			{
-				auto a = READ_BYTE( vm );
-				auto b = READ_BYTE( vm );
-				auto c = READ_BYTE( vm );
-				auto d = READ_BYTE( vm );
+				READ_CONST_LONG( vm, constant );
+				vm.Push( constant );
+				break;
+			}
+			case QScript::OP_LG_LONG:
+			{
+				READ_CONST_LONG( vm, constant );
+				auto global = vm.m_Globals.find( AS_STRING( constant )->GetString() );
 
-				vm.Push( vm.m_Chunk->m_Constants[ DECODE_LONG( a, b, c, d ) ] );
+				if ( global == vm.m_Globals.end() )
+				{
+					throw RuntimeException( "rt_unknown_global",
+						"Referring to an unknown global: \"" + AS_STRING( constant )->GetString() + "\"", -1, -1, "" );
+				}
+
+				vm.Push( global->second );
+				break;
+			}
+			case QScript::OP_LG_SHORT:
+			{
+				auto constant = READ_CONST_SHORT( vm );
+				auto global = vm.m_Globals.find( AS_STRING( constant )->GetString() );
+
+				if ( global == vm.m_Globals.end() )
+				{
+					throw RuntimeException( "rt_unknown_global",
+						"Referring to an unknown global: \"" + AS_STRING( constant )->GetString() + "\"", -1, -1, "" );
+				}
+
+				vm.Push( global->second );
+				break;
+			}
+			case QScript::OP_SG_SHORT:
+			{
+				auto constant = READ_CONST_SHORT( vm );
+				vm.m_Globals[ AS_STRING( constant )->GetString() ].From( vm.Pop() );
+				break;
+			}
+			case QScript::OP_SG_LONG:
+			{
+				READ_CONST_LONG( vm, constant );
+				vm.m_Globals[ AS_STRING( constant )->GetString() ].From( vm.Pop() );
 				break;
 			}
 			case QScript::OP_NOT:
@@ -96,6 +149,7 @@ namespace QVM
 				vm.Push( MAKE_NUMBER( -AS_NUMBER( value ) ) );
 				break;
 			}
+			case QScript::OP_PNULL: vm.Push( MAKE_NULL ); break;
 			case QScript::OP_ADD:
 			{
 				auto b = vm.Pop();

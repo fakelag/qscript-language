@@ -20,6 +20,27 @@ namespace Compiler
 		} );
 	}
 
+	void EmitConstant( QScript::Chunk_t* chunk, const QScript::Value& value, QScript::OpCode shortOpCode, QScript::OpCode longOpCode )
+	{
+		if ( chunk->m_Constants.size() >= 255 )
+		{
+			auto longIndex = ( uint32_t ) AddConstant( value, chunk );
+
+			EmitByte( longOpCode, chunk );
+			EmitByte( ENCODE_LONG( longIndex, 0 ), chunk );
+			EmitByte( ENCODE_LONG( longIndex, 1 ), chunk );
+			EmitByte( ENCODE_LONG( longIndex, 2 ), chunk );
+			EmitByte( ENCODE_LONG( longIndex, 3 ), chunk );
+		}
+		else
+		{
+			auto shortIndex = ( uint8_t ) AddConstant( value, chunk );
+
+			EmitByte( shortOpCode, chunk );
+			EmitByte( shortIndex, chunk );
+		}
+	}
+
 	BaseNode::BaseNode( int lineNr, int colNr, const std::string token, NodeType type, NodeId id )
 	{
 		m_LineNr		= lineNr;
@@ -61,25 +82,28 @@ namespace Compiler
 	{
 		int start = chunk->m_Code.size();
 
-		if ( chunk->m_Constants.size() >= 255 )
+		switch ( m_NodeId )
 		{
-			auto longIndex = ( uint32_t ) AddConstant( m_Value, chunk );
-
-			EmitByte( QScript::OpCode::OP_LOAD_LONG, chunk );
-			EmitByte( ENCODE_LONG( longIndex, 0 ), chunk );
-			EmitByte( ENCODE_LONG( longIndex, 1 ), chunk );
-			EmitByte( ENCODE_LONG( longIndex, 2 ), chunk );
-			EmitByte( ENCODE_LONG( longIndex, 3 ), chunk );
+		case NODE_NAME:
+		{
+			EmitConstant( chunk, m_Value, QScript::OpCode::OP_LG_SHORT, QScript::OpCode::OP_LG_LONG );
+			break;
 		}
-		else
+		default:
 		{
-			auto shortIndex = ( uint8_t ) AddConstant( m_Value, chunk );
-
-			EmitByte( QScript::OpCode::OP_LOAD_SHORT, chunk );
-			EmitByte( shortIndex, chunk );
+			if ( IS_NULL( m_Value ) )
+				EmitByte( QScript::OP_PNULL, chunk );
+			else
+				EmitConstant( chunk, m_Value, QScript::OpCode::OP_LD_SHORT, QScript::OpCode::OP_LD_LONG );
+		}
 		}
 
 		AddDebugSymbol( chunk, start, m_LineNr, m_ColNr, m_Token );
+	}
+
+	bool ValueNode::IsString() const
+	{
+		return IS_STRING( m_Value );
 	}
 
 	ComplexNode::ComplexNode( int lineNr, int colNr, const std::string token, NodeId id, BaseNode* left, BaseNode* right )
@@ -137,18 +161,38 @@ namespace Compiler
 
 	void SimpleNode::Compile( QScript::Chunk_t* chunk )
 	{
-		m_Node->Compile( chunk );
+		int start = 0;
 
-		int start = chunk->m_Code.size();
+		std::map< Compiler::NodeId, QScript::OpCode > singleByte ={
+			{ NODE_PRINT, 			QScript::OpCode::OP_PRINT },
+			{ NODE_RETURN, 			QScript::OpCode::OP_RETN },
+			{ NODE_NOT, 			QScript::OpCode::OP_NOT },
+			{ NODE_NEG, 			QScript::OpCode::OP_NEG },
+		};
 
-		switch ( m_NodeId )
+		auto opCode = singleByte.find( m_NodeId );
+		if ( opCode != singleByte.end() )
 		{
-		case NODE_PRINT: EmitByte( QScript::OpCode::OP_PRINT, chunk ); break;
-		case NODE_RETURN: EmitByte( QScript::OpCode::OP_RETN, chunk ); break;
-		case NODE_NOT: EmitByte( QScript::OpCode::OP_NOT, chunk ); break;
-		case NODE_NEG: EmitByte( QScript::OpCode::OP_NEG, chunk ); break;
-		default:
-			throw Exception( "cp_invalid_simple_node", "Unknown simple node: " + std::to_string( m_NodeId ) );
+			m_Node->Compile( chunk );
+
+			start = chunk->m_Code.size();
+			EmitByte( opCode->second, chunk );
+		}
+		else
+		{
+			switch ( m_NodeId )
+			{
+			case NODE_VAR:
+			{
+				// Define an empty global variable, like "var global;"
+				auto& value = static_cast< ValueNode* >( m_Node )->GetValue();
+				EmitByte( QScript::OpCode::OP_PNULL, chunk );
+				EmitConstant( chunk, value, QScript::OpCode::OP_SG_SHORT, QScript::OpCode::OP_SG_LONG );
+				break;
+			}
+			default:
+				throw Exception( "cp_invalid_simple_node", "Unknown simple node: " + std::to_string( m_NodeId ) );
+			}
 		}
 
 		AddDebugSymbol( chunk, start, m_LineNr, m_ColNr, m_Token );

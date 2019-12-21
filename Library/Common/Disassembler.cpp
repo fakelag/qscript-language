@@ -61,10 +61,32 @@ void Compiler::DisassembleChunk( const QScript::Chunk_t& chunk, const std::strin
 
 int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, int offset )
 {
-	#define SIMPLE_INST( inst, name ) case QScript::OpCode::inst: {\
-		instString = name; \
-		instOffset = offset + 1; \
-		break; }
+#define SIMPLE_INST( inst, name ) case QScript::OpCode::inst: {\
+	instString = name; \
+	instOffset = offset + 1; \
+	break; }
+
+#define CNST_INST_SHORT( inst, name ) case QScript::OpCode::inst: { \
+	uint8_t constant = chunk.m_Code[ offset + 1 ]; \
+	const QScript::Value& value = chunk.m_Constants[ constant ]; \
+	instString = name + std::string( " " ) \
+		+ std::to_string( constant ) \
+		+ " " + Compiler::ValueToString( value ) \
+		+ " (SHORT)"; \
+	instOffset = offset + 2; \
+	break; \
+}
+
+#define CNST_INST_LONG( inst, name ) case QScript::OpCode::inst: { \
+	uint32_t constant = DECODE_LONG( chunk.m_Code[ offset + 1 ], chunk.m_Code[ offset + 2 ], chunk.m_Code[ offset + 3 ], chunk.m_Code[ offset + 4 ] ); \
+	const QScript::Value& value = chunk.m_Constants[ constant ]; \
+	instString = name + std::string( " " ) \
+		+ std::to_string( constant ) \
+		+ " " + Compiler::ValueToString( value ) \
+		+ " (LONG)"; \
+	instOffset = offset + 5; \
+	break; \
+}
 
 	// Print offset with 3 leading zeros
 	std::cout << std::setfill( '0' ) << std::setw( 4 ) << offset << " "
@@ -83,41 +105,12 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, int offset 
 	// Decode current instruction
 	switch ( chunk.m_Code[ offset ] )
 	{
-	case QScript::OpCode::OP_LOAD_SHORT:
-	{
-		// Index of the constant from code
-		uint8_t constant = chunk.m_Code[ offset + 1 ];
-		const QScript::Value& value = chunk.m_Constants[ chunk.m_Code[ offset + 1 ] ];
-
-		instString = "LOAD "
-			+ std::to_string( constant )
-			+ " " + Compiler::ValueToString( value )
-			+ " (SHORT)";
-
-		instOffset = offset + 2;
-		break;
-	}
-	case QScript::OpCode::OP_LOAD_LONG:
-	{
-		// Decode index
-		// uint32_t constant = ( uint32_t ) ( chunk.m_Code[ offset + 1 ] )
-		// 	| ( uint32_t ) ( chunk.m_Code[ offset + 2 ] ) << 8
-		// 	| ( uint32_t ) ( chunk.m_Code[ offset + 3 ] ) << 16
-		// 	| ( uint32_t ) ( chunk.m_Code[ offset + 4 ] ) << 24;
-
-		uint32_t constant = DECODE_LONG( chunk.m_Code[ offset + 1 ], chunk.m_Code[ offset + 2 ],
-			chunk.m_Code[ offset + 3 ], chunk.m_Code[ offset + 4 ] );
-
-		const QScript::Value& value = chunk.m_Constants[ constant ];
-
-		instString = "LOAD "
-			+ std::to_string( constant )
-			+ " " + Compiler::ValueToString( value )
-			+ " (LONG)";
-
-		instOffset = offset + 5;
-		break;
-	}
+	CNST_INST_SHORT( OP_LD_SHORT, "LOAD" );
+	CNST_INST_LONG( OP_LD_LONG, "LOAD" );
+	CNST_INST_SHORT( OP_SG_SHORT, "SG" );
+	CNST_INST_LONG( OP_SG_LONG, "SG" );
+	CNST_INST_SHORT( OP_LG_SHORT, "LG" );
+	CNST_INST_LONG( OP_LG_LONG, "LG" );
 	SIMPLE_INST( OP_ADD, "ADD" );
 	SIMPLE_INST( OP_SUB, "SUB" );
 	SIMPLE_INST( OP_DIV, "DIV" );
@@ -133,17 +126,20 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, int offset 
 	SIMPLE_INST( OP_RETN, "RETN" );
 	SIMPLE_INST( OP_PRINT, "PRINT" );
 	SIMPLE_INST( OP_POP, "POP" );
+	SIMPLE_INST( OP_PNULL, "PNULL" );
 	default:
 		std::cout << "Unknown opcode: " << chunk.m_Code[ offset ] << std::endl;
 		instOffset = offset + 1;
 		break;
 	}
 
-	std::cout << std::setfill( ' ' ) << std::left << std::setw( 25 ) << instString
+	std::cout << std::setfill( ' ' ) << std::left << std::setw( 45 ) << instString
 		<< std::setfill( ' ' ) << std::right << std::setw( 0 ) << debugString
 		<< std::endl;
 
-	#undef SIMPLE_INST
+#undef SIMPLE_INST
+#undef CNST_INST_LONG
+#undef CNST_INST_SHORT
 	return instOffset;
 }
 
@@ -154,5 +150,26 @@ void Compiler::DumpStack( const VM_t& vm )
 	{
 		std::cout << std::setfill( '0' ) << std::setw( 4 ) << ( value - vm.m_Stack ) << std::setfill( ' ' ) << std::left << std::setw( 10 ) << " ";
 		std::cout << Compiler:: ValueToString( *value ) << std::setfill( ' ' ) << std::right << std::setw( 0 ) << std::endl;
+	}
+}
+
+void Compiler::DumpConstants( const QScript::Chunk_t& chunk )
+{
+	std::cout << "CONSTANTS (" << ( chunk.m_Constants.size() ) << ")" << std::endl;
+	for ( size_t i = 0; i < chunk.m_Constants.size(); ++i )
+	{
+		auto value = chunk.m_Constants[ i ];
+		std::cout << std::setfill( '0' ) << std::setw( 4 ) << i << std::setfill( ' ' ) << std::left << std::setw( 10 ) << " ";
+		std::cout << Compiler::ValueToString( value ) << std::setfill( ' ' ) << std::right << std::setw( 0 ) << std::endl;
+	}
+}
+
+void Compiler::DumpGlobals( const VM_t& vm )
+{
+	std::cout << "GLOBALS (" << ( vm.m_Globals.size() ) << ")" << std::endl;
+	for ( auto global : vm.m_Globals )
+	{
+		std::cout << global.first << std::setfill( ' ' ) << std::left << std::setw( 10 ) << " ";
+		std::cout << Compiler::ValueToString( global.second ) << std::setfill( ' ' ) << std::right << std::setw( 0 ) << std::endl;
 	}
 }

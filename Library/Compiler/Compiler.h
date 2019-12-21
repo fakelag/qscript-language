@@ -19,7 +19,11 @@ namespace Compiler
 	// Disassembler
 	void DisassembleChunk( const QScript::Chunk_t& chunk, const std::string& identifier );
 	int DisassembleInstruction( const QScript::Chunk_t& chunk, int offset );
+
+	void DumpConstants( const QScript::Chunk_t& chunk );
+	void DumpGlobals( const VM_t& vm );
 	void DumpStack( const VM_t& vm );
+
 	std::string ValueToString( const QScript::Value& value );
 
 	// Object allocation

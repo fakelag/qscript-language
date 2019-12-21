@@ -92,7 +92,7 @@ namespace Compiler
 							break;
 						default:
 						{
-							throw CompilerException( "ir_invalid_value_token", "Invalid value token: \"" + irBuilder.m_Token.m_String + "\"",
+							throw CompilerException( "ir_invalid_token", "Invalid token: \"" + irBuilder.m_Token.m_String + "\"",
 								irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr, irBuilder.m_Token.m_String );
 						}
 					};
@@ -104,7 +104,7 @@ namespace Compiler
 			}
 			case Compiler::TOK_NAME:
 			{
-				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder )
+				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder ) -> BaseNode*
 				{
 					if ( irBuilder.m_Token.m_String == "print" )
 					{
@@ -113,8 +113,27 @@ namespace Compiler
 					}
 					else
 					{
-						throw Exception( "error_not_implemented", "TOK_NAME IR generation is not yet implemented" );
+						return parserState.AllocateNode< ValueNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+							irBuilder.m_Token.m_String, NODE_NAME, MAKE_STRING( irBuilder.m_Token.m_String ) );
 					}
+				};
+				break;
+			}
+			case Compiler::TOK_VAR:
+			{
+				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder )
+				{
+					auto varName = nextExpression( irBuilder.m_Token.m_LBP );
+
+					if ( !varName->IsString() )
+					{
+						auto builder = parserState.CurrentBuilder();
+						throw CompilerException( "ir_invalid_token", "Invalid token: \"" + builder->m_Token.m_String + "\"",
+							builder->m_Token.m_LineNr, builder->m_Token.m_ColNr, builder->m_Token.m_String );
+					}
+
+					return parserState.AllocateNode< SimpleNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+						irBuilder.m_Token.m_String, NODE_VAR, varName );
 				};
 				break;
 			}
@@ -197,7 +216,6 @@ namespace Compiler
 
 					return expression;
 				};
-
 				break;
 			}
 			case Compiler::TOK_RETURN:
@@ -226,20 +244,39 @@ namespace Compiler
 		{
 			try
 			{
-				parserState.AddNode( nextExpression() );
+				auto expression = nextExpression();
+				parserState.AddNode( expression );
 
-				auto builder = parserState.CurrentBuilder();
-
-				if ( builder )
+				if ( expression )
 				{
-					auto& token = builder->m_Token;
+					bool isExpressionStatement = true;
 
-					// Pop the intermediate value off stack
-					parserState.AddNode( parserState.AllocateNode< TermNode >( token.m_LineNr,
-						token.m_ColNr, token.m_String, NODE_POP ) );
+					switch ( expression->Id() )
+					{
+					case Compiler::NODE_NAME:
+					{
+						auto stringObject = AS_STRING( static_cast< ValueNode* >( expression )->GetValue() );
+						isExpressionStatement = stringObject->GetString() != "print";
+						break;
+					}
+					case Compiler::NODE_VAR:
+						isExpressionStatement = false;
+						break;
+					default:
+						break;
+					}
+
+					if ( isExpressionStatement )
+					{
+						auto& token = parserState.CurrentBuilder()->m_Token;
+
+						// Pop the intermediate value off stack
+						parserState.AddNode( parserState.AllocateNode< TermNode >( token.m_LineNr,
+							token.m_ColNr, token.m_String, NODE_POP ) );
+					}
 				}
 
-				// A statement expression must end in a semicolon
+				// A expression statements must end in a semicolon
 				parserState.Expect( TOK_SCOLON, "Expected end of expression" );
 			}
 			catch ( const CompilerException& exception )

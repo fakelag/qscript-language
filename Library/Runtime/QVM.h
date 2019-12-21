@@ -23,6 +23,11 @@ struct VM_t
 		return *m_StackTop;
 	}
 
+	FORCEINLINE QScript::Value& Peek( uint32_t offset )
+	{
+		return *( m_StackTop + offset - 1 );
+	}
+
 	void Release( QScript::Value* exitCode )
 	{
 		for ( auto object : m_Objects )
@@ -36,12 +41,15 @@ struct VM_t
 		m_Objects.clear();
 	}
 
-	const QScript::Chunk_t* 			m_Chunk;
-	const uint8_t*						m_IP;
+	const QScript::Chunk_t* 							m_Chunk;
+	const uint8_t*										m_IP;
 
 	// Keep track of allocated objects in the VM
-	std::vector< QScript::Object* >		m_Objects;
+	std::vector< QScript::Object* >						m_Objects;
 
-	QScript::Value*						m_StackTop;
-	QScript::Value 						m_Stack[ 256 ];
+	// Global scope
+	std::unordered_map< std::string, QScript::Value >	m_Globals;
+
+	QScript::Value*										m_StackTop;
+	QScript::Value 										m_Stack[ 256 ];
 };

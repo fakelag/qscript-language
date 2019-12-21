@@ -24,8 +24,8 @@ bool Tests::TestCompiler()
 		*/
 
 		UTEST_ASSERT( chunk->m_Code.size() >= 6 );
-		UTEST_ASSERT( chunk->m_Code[ 0 ] == QScript::OpCode::OP_LOAD_SHORT );
-		UTEST_ASSERT( chunk->m_Code[ 2 ] == QScript::OpCode::OP_LOAD_SHORT );
+		UTEST_ASSERT( chunk->m_Code[ 0 ] == QScript::OpCode::OP_LD_SHORT );
+		UTEST_ASSERT( chunk->m_Code[ 2 ] == QScript::OpCode::OP_LD_SHORT );
 		UTEST_ASSERT( chunk->m_Code[ 4 ] == QScript::OpCode::OP_ADD );
 		UTEST_ASSERT( chunk->m_Code[ 5 ] == QScript::OpCode::OP_RETN );
 
@@ -116,12 +116,12 @@ bool Tests::TestCompiler()
 			0005 OP_POP
 		*/
 
-		UTEST_ASSERT( chunk->m_Code[ 0 ] == QScript::OpCode::OP_LOAD_SHORT );
+		UTEST_ASSERT( chunk->m_Code[ 0 ] == QScript::OpCode::OP_LD_SHORT );
 		UTEST_ASSERT( chunk->m_Code[ 1 ] == 0 );
 		UTEST_ASSERT( chunk->m_Code[ 2 ] == QScript::OpCode::OP_POP );
 
 		int firstLong = 255 * 3;
-		UTEST_ASSERT( chunk->m_Code[ firstLong ] == QScript::OpCode::OP_LOAD_LONG );
+		UTEST_ASSERT( chunk->m_Code[ firstLong ] == QScript::OpCode::OP_LD_LONG );
 		UTEST_ASSERT( chunk->m_Code[ firstLong + 5 ] == QScript::OpCode::OP_POP );
 
 		QScript::FreeChunk( chunk );

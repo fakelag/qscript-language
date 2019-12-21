@@ -13,23 +13,25 @@ namespace Compiler
 
 	enum NodeId
 	{
-		NODE_INVALID = -1,
-		NODE_CONSTANT,
 		NODE_ADD,
-		NODE_SUB,
-		NODE_MUL,
+		NODE_CONSTANT,
 		NODE_DIV,
+		NODE_EQUALS,
+		NODE_GREATEREQUAL,
+		NODE_GREATERTHAN,
+		NODE_INVALID = -1,
+		NODE_LESSEQUAL,
+		NODE_LESSTHAN,
+		NODE_MUL,
+		NODE_NAME,
 		NODE_NEG,
 		NODE_NOT,
-		NODE_EQUALS,
 		NODE_NOTEQUALS,
-		NODE_GREATERTHAN,
-		NODE_GREATEREQUAL,
-		NODE_LESSTHAN,
-		NODE_LESSEQUAL,
-		NODE_RETURN,
 		NODE_POP,
 		NODE_PRINT,
+		NODE_RETURN,
+		NODE_SUB,
+		NODE_VAR,
 	};
 
 	class BaseNode
@@ -43,6 +45,8 @@ namespace Compiler
 		virtual ~BaseNode() {}
 		virtual void Release() {};
 		virtual void Compile( QScript::Chunk_t* chunk ) = 0;
+
+		virtual bool IsString() const { return false; }
 
 	protected:
 		NodeId				m_NodeId;
@@ -65,6 +69,9 @@ namespace Compiler
 		ValueNode( int lineNr, int colNr, const std::string token, NodeId id, const QScript::Value& value );
 		void Compile( QScript::Chunk_t* chunk ) override;
 
+		bool IsString() const override;
+
+		QScript::Value& GetValue() { return m_Value; }
 	private:
 		QScript::Value		m_Value;
 	};

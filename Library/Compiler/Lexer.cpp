@@ -36,6 +36,7 @@ namespace Compiler
 		{ TOK_FALSE,		{ TOK_FALSE, 		"false", 	BP_NONE,					true } },
 		{ TOK_NULL,			{ TOK_NULL, 		"null", 	BP_NONE,					true } },
 		{ TOK_RETURN,		{ TOK_RETURN, 		"return", 	BP_NONE,					true } },
+		{ TOK_VAR, 			{ TOK_VAR, 			"var", 		BP_IMMEDIATE,				true } },
 	};
 
 	std::vector< Token_t > Lexer( const std::string& source )
