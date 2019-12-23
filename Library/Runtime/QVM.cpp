@@ -122,13 +122,13 @@ namespace QVM
 			case QScript::OP_SG_SHORT:
 			{
 				auto constant = READ_CONST_SHORT( vm );
-				vm.m_Globals[ AS_STRING( constant )->GetString() ].From( vm.Pop() );
+				vm.m_Globals[ AS_STRING( constant )->GetString() ].From( vm.Peek( 0 ) );
 				break;
 			}
 			case QScript::OP_SG_LONG:
 			{
 				READ_CONST_LONG( vm, constant );
-				vm.m_Globals[ AS_STRING( constant )->GetString() ].From( vm.Pop() );
+				vm.m_Globals[ AS_STRING( constant )->GetString() ].From( vm.Peek( 0 ) );
 				break;
 			}
 			case QScript::OP_NOT:
