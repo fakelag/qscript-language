@@ -29,24 +29,24 @@ namespace QVM
 	QScript::Value Run( VM_t& vm )
 	{
 #ifdef QVM_DEBUG
-	bool isStepping = true;
+		const uint8_t* runTill = NULL;
 #endif
 
 		for (;;)
 		{
 #ifdef QVM_DEBUG
-			if ( isStepping )
+			if ( !runTill || vm.m_IP > runTill )
 			{
 				std::string input;
 
 				for( ;; )
 				{
-					std::cout << "Action (s/r/ds/dc/dcnst/dg/q): ";
-					std::cin >> input;
+					std::cout << "Action (s/j/r/ds/dc/dcnst/dg/help/q): ";
+					std::getline( std::cin, input );
 
 					if ( input == "r" )
 					{
-						isStepping = false;
+						runTill = ( const uint8_t* ) -1;
 						break;
 					}
 					else if ( input == "ds" )
@@ -56,7 +56,7 @@ namespace QVM
 					}
 					else if ( input == "dc" )
 					{
-						Compiler::DisassembleChunk( *vm.m_Chunk, "current chunk", ( unsigned int )( vm.m_IP - ( uint8_t* ) &vm.m_Chunk->m_Code[ 0 ] ) );
+						Compiler::DisassembleChunk( *vm.m_Chunk, "current chunk", ( unsigned int ) ( vm.m_IP - ( uint8_t* ) &vm.m_Chunk->m_Code[ 0 ] ) );
 						continue;
 					}
 					else if ( input == "dcnst" )
@@ -68,6 +68,22 @@ namespace QVM
 					{
 						Compiler::DumpGlobals( vm );
 						continue;
+					}
+					else if ( input.substr( 0, 2 ) == "j " )
+					{
+						vm.m_IP = ( &vm.m_Chunk->m_Code[ 0 ] ) +  std::atoi( input.substr( 2 ).c_str() ) - 1;
+						runTill = NULL;
+						break;
+					}
+					else if ( input.substr( 0, 2 ) == "s " )
+					{
+						runTill = ( &vm.m_Chunk->m_Code[ 0 ] ) + std::atoi( input.substr( 2 ).c_str() ) - 1;
+						break;
+					}
+					else if ( input == "help" )
+					{
+						std::cout << "" << std::endl;
+						break;
 					}
 					else if ( input == "s" )
 						break;
