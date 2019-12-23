@@ -10,6 +10,14 @@
 using namespace Tests;
 using namespace Compiler;
 
+#define ASSERT_OPCODE( address, opcode ) \
+int opcodeOffset = Compiler::InstructionSize( chunk->m_Code[ address ] ); \
+UTEST_ASSERT( chunk->m_Code[ address ] == QScript::OpCode::opcode )
+
+#define ASSERT_OPCODE_NEXT( opcode ) \
+UTEST_ASSERT( chunk->m_Code[ opcodeOffset ] == QScript::OpCode::opcode ) \
+opcodeOffset += Compiler::InstructionSize( chunk->m_Code[ opcodeOffset ] ); \
+
 bool Tests::TestCompiler()
 {
 	UTEST_BEGIN( "Compiler Tests" );
@@ -26,10 +34,11 @@ bool Tests::TestCompiler()
 		*/
 
 		UTEST_ASSERT( chunk->m_Code.size() >= 6 );
-		UTEST_ASSERT( chunk->m_Code[ 0 ] == QScript::OpCode::OP_LD_SHORT );
-		UTEST_ASSERT( chunk->m_Code[ 2 ] == QScript::OpCode::OP_LD_SHORT );
-		UTEST_ASSERT( chunk->m_Code[ 4 ] == QScript::OpCode::OP_ADD );
-		UTEST_ASSERT( chunk->m_Code[ 5 ] == QScript::OpCode::OP_RETN );
+
+		ASSERT_OPCODE( 0000, OP_LD_SHORT );
+		ASSERT_OPCODE_NEXT( OP_LD_SHORT );
+		ASSERT_OPCODE_NEXT( OP_ADD );
+		ASSERT_OPCODE_NEXT( OP_RETN );
 
 		QScript::FreeChunk( chunk );
 		UTEST_CASE_CLOSED();
@@ -68,13 +77,35 @@ bool Tests::TestCompiler()
 			0005 OP_POP
 		*/
 
-		UTEST_ASSERT( chunk->m_Code[ 0 ] == QScript::OpCode::OP_LD_SHORT );
-		UTEST_ASSERT( chunk->m_Code[ 1 ] == 0 );
-		UTEST_ASSERT( chunk->m_Code[ 2 ] == QScript::OpCode::OP_POP );
+		ASSERT_OPCODE( 0000, OP_LD_SHORT );
+		ASSERT_OPCODE_NEXT( OP_POP );
 
 		int firstLong = 255 * 3;
 		UTEST_ASSERT( chunk->m_Code[ firstLong ] == QScript::OpCode::OP_LD_LONG );
 		UTEST_ASSERT( chunk->m_Code[ firstLong + 5 ] == QScript::OpCode::OP_POP );
+
+		QScript::FreeChunk( chunk );
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "Assign constants" )
+	{
+		auto chunk = QScript::Compile( "var a; var b = 4; a = 32.2;" );
+
+		UTEST_ASSERT( chunk->m_Constants.size() == 5 );
+
+		ASSERT_OPCODE( 0000, OP_PNULL );
+		ASSERT_OPCODE_NEXT( OP_SG_SHORT );
+		ASSERT_OPCODE_NEXT( OP_POP );
+		ASSERT_OPCODE_NEXT( OP_LD_SHORT );
+		ASSERT_OPCODE_NEXT( OP_SG_SHORT );
+		ASSERT_OPCODE_NEXT( OP_POP );
+
+		ASSERT_OPCODE_NEXT( OP_LD_SHORT );
+		ASSERT_OPCODE_NEXT( OP_SG_SHORT );
+		ASSERT_OPCODE_NEXT( OP_POP );
+
+		ASSERT_OPCODE_NEXT( OP_RETN );
 
 		QScript::FreeChunk( chunk );
 		UTEST_CASE_CLOSED();

@@ -75,5 +75,19 @@ bool Tests::TestInterpreter()
 		UTEST_CASE_CLOSED();
 	}( );
 
+	UTEST_CASE( "Assigning global variables" )
+	{
+		auto chunk = QScript::Compile( "var h = \"hello \"; var w = \"world!\"; var hw = h + w; return hw;" );
+
+		QScript::Value exitCode;
+		QScript::Interpret( *chunk, &exitCode );
+
+		UTEST_ASSERT( IS_STRING( exitCode ) );
+		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "hello world!" );
+
+		QScript::FreeChunk( chunk );
+		UTEST_CASE_CLOSED();
+	}( );
+
 	UTEST_END();
 }
