@@ -224,7 +224,6 @@ namespace Compiler
 
 					EmitByte( QScript::OpCode::OP_PNULL, chunk );
 					EmitConstant( chunk, value, QScript::OpCode::OP_SG_SHORT, QScript::OpCode::OP_SG_LONG );
-					EmitByte( QScript::OpCode::OP_POP, chunk );
 				}
 
 				break;

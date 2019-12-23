@@ -268,9 +268,6 @@ namespace Compiler
 						isExpressionStatement = stringObject->GetString() != "print";
 						break;
 					}
-					case Compiler::NODE_VAR:
-						isExpressionStatement = false;
-						break;
 					default:
 						break;
 					}
