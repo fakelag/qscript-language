@@ -24,11 +24,11 @@ int main()
 		}
 		catch ( const RuntimeException& exception )
 		{
-			std::cout << "Exception (" << exception.id() << "): " << exception.what() << std::endl;
+			std::cout << "Exception (" << exception.id() << "): " << exception.describe() << std::endl;
 		}
 		catch ( const Exception& exception )
 		{
-			std::cout << "Exception (" << exception.id() << "): " << exception.what() << std::endl;
+			std::cout << "Exception (" << exception.id() << "): " << exception.describe() << std::endl;
 		}
 		catch ( const std::exception& exception )
 		{
