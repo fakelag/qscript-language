@@ -262,10 +262,9 @@ namespace Compiler
 
 					switch ( expression->Id() )
 					{
-					case Compiler::NODE_NAME:
+					case Compiler::NODE_PRINT:
 					{
-						auto stringObject = AS_STRING( static_cast< ValueNode* >( expression )->GetValue() );
-						isExpressionStatement = stringObject->GetString() != "print";
+						isExpressionStatement = false;
 						break;
 					}
 					default:
@@ -274,11 +273,9 @@ namespace Compiler
 
 					if ( isExpressionStatement )
 					{
-						auto& token = parserState.CurrentBuilder()->m_Token;
-
 						// Pop the intermediate value off stack
-						parserState.AddNode( parserState.AllocateNode< TermNode >( token.m_LineNr,
-							token.m_ColNr, token.m_String, NODE_POP ) );
+						parserState.AddNode( parserState.AllocateNode< TermNode >( expression->LineNr(),
+							expression->ColNr(), expression->Token(), NODE_POP ) );
 					}
 				}
 
