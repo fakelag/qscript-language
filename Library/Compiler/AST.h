@@ -13,13 +13,14 @@ namespace Compiler
 
 	enum NodeId
 	{
+		NODE_INVALID = -1,
 		NODE_ADD,
+		NODE_ASSIGN,
 		NODE_CONSTANT,
 		NODE_DIV,
 		NODE_EQUALS,
 		NODE_GREATEREQUAL,
 		NODE_GREATERTHAN,
-		NODE_INVALID = -1,
 		NODE_LESSEQUAL,
 		NODE_LESSTHAN,
 		NODE_MUL,
@@ -34,17 +35,26 @@ namespace Compiler
 		NODE_VAR,
 	};
 
+	enum CompileOptions : uint32_t
+	{
+		CO_NONE = ( 0 << 0 ),
+		CO_ASSIGN = ( 1 << 0 ),
+	};
+
 	class BaseNode
 	{
 	public:
 		BaseNode( int lineNr, int colNr, const std::string token, NodeType type, NodeId id );
 
-		NodeType Type()		const { return m_NodeType; }
-		NodeId Id()			const { return m_NodeId; }
+		NodeType Type()			const { return m_NodeType; }
+		NodeId Id()				const { return m_NodeId; }
+		int LineNr()			const { return m_LineNr; }
+		int ColNr()				const { return m_ColNr; }
+		std::string Token()		const { return m_Token; }
 
 		virtual ~BaseNode() {}
 		virtual void Release() {};
-		virtual void Compile( QScript::Chunk_t* chunk ) = 0;
+		virtual void Compile( QScript::Chunk_t* chunk, uint32_t options = CO_NONE ) = 0;
 
 		virtual bool IsString() const { return false; }
 
@@ -60,14 +70,14 @@ namespace Compiler
 	{
 	public:
 		TermNode( int lineNr, int colNr, const std::string token, NodeId id );
-		void Compile( QScript::Chunk_t* chunk ) override;
+		void Compile( QScript::Chunk_t* chunk, uint32_t options = CO_NONE ) override;
 	};
 
 	class ValueNode : public BaseNode
 	{
 	public:
 		ValueNode( int lineNr, int colNr, const std::string token, NodeId id, const QScript::Value& value );
-		void Compile( QScript::Chunk_t* chunk ) override;
+		void Compile( QScript::Chunk_t* chunk, uint32_t options = CO_NONE ) override;
 
 		bool IsString() const override;
 
@@ -82,7 +92,7 @@ namespace Compiler
 		ComplexNode( int lineNr, int colNr, const std::string token, NodeId id, BaseNode* left, BaseNode* right );
 
 		void Release() override;
-		void Compile( QScript::Chunk_t* chunk ) override;
+		void Compile( QScript::Chunk_t* chunk, uint32_t options = CO_NONE ) override;
 
 	private:
 		BaseNode*			m_Left;
@@ -95,7 +105,7 @@ namespace Compiler
 		SimpleNode( int lineNr, int colNr, const std::string token, NodeId id, BaseNode* node );
 
 		void Release() override;
-		void Compile( QScript::Chunk_t* chunk ) override;
+		void Compile( QScript::Chunk_t* chunk, uint32_t options = CO_NONE ) override;
 
 	private:
 		BaseNode*			m_Node;

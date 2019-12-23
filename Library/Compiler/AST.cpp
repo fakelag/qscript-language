@@ -41,6 +41,18 @@ namespace Compiler
 		}
 	}
 
+	void RequireAssignability( BaseNode* node )
+	{
+		switch ( node->Id() )
+		{
+		case NODE_NAME:
+		case NODE_VAR:
+			break;
+		default:
+			throw CompilerException( "cp_invalid_assign_target", "Invalid assignment target", node->LineNr(), node->ColNr(), node->Token() );
+		}
+	}
+
 	BaseNode::BaseNode( int lineNr, int colNr, const std::string token, NodeType type, NodeId id )
 	{
 		m_LineNr		= lineNr;
@@ -55,7 +67,7 @@ namespace Compiler
 	{
 	}
 
-	void TermNode::Compile( QScript::Chunk_t* chunk )
+	void TermNode::Compile( QScript::Chunk_t* chunk, uint32_t options )
 	{
 		// Call CompileXXX functions from Compiler.cpp for code generation,
 		// but append debugging info to the chunk here
@@ -66,7 +78,7 @@ namespace Compiler
 		case NODE_POP: EmitByte( QScript::OpCode::OP_POP, chunk ); break;
 		case NODE_RETURN: EmitByte( QScript::OpCode::OP_RETN, chunk ); break;
 		default:
-			throw Exception( "cp_invalid_term_node", "Unknown terminating node: " + std::to_string( m_NodeId ) );
+			throw CompilerException( "cp_invalid_term_node", "Unknown terminating node: " + std::to_string( m_NodeId ), m_LineNr, m_ColNr, m_Token );
 		}
 
 		AddDebugSymbol( chunk, start, m_LineNr, m_ColNr, m_Token );
@@ -78,7 +90,7 @@ namespace Compiler
 		m_Value.From( value );
 	}
 
-	void ValueNode::Compile( QScript::Chunk_t* chunk )
+	void ValueNode::Compile( QScript::Chunk_t* chunk, uint32_t options )
 	{
 		int start = chunk->m_Code.size();
 
@@ -86,7 +98,10 @@ namespace Compiler
 		{
 		case NODE_NAME:
 		{
-			EmitConstant( chunk, m_Value, QScript::OpCode::OP_LG_SHORT, QScript::OpCode::OP_LG_LONG );
+			if ( options & CO_ASSIGN )
+				EmitConstant( chunk, m_Value, QScript::OpCode::OP_SG_SHORT, QScript::OpCode::OP_SG_LONG );
+			else
+				EmitConstant( chunk, m_Value, QScript::OpCode::OP_LG_SHORT, QScript::OpCode::OP_LG_LONG );
 			break;
 		}
 		default:
@@ -119,33 +134,45 @@ namespace Compiler
 		delete m_Right;
 	}
 
-	void ComplexNode::Compile( QScript::Chunk_t* chunk )
+	void ComplexNode::Compile( QScript::Chunk_t* chunk, uint32_t options )
 	{
-		m_Left->Compile( chunk );
-		m_Right->Compile( chunk );
+		if ( m_NodeId == NODE_ASSIGN )
+		{
+			RequireAssignability( m_Left );
 
-		int start = chunk->m_Code.size();
-
-		std::map< Compiler::NodeId, QScript::OpCode > singleByte = {
-			{ NODE_ADD, 			QScript::OpCode::OP_ADD },
-			{ NODE_SUB, 			QScript::OpCode::OP_SUB },
-			{ NODE_MUL, 			QScript::OpCode::OP_MUL },
-			{ NODE_DIV, 			QScript::OpCode::OP_DIV },
-			{ NODE_EQUALS,			QScript::OpCode::OP_EQ },
-			{ NODE_NOTEQUALS,		QScript::OpCode::OP_NEQ },
-			{ NODE_GREATERTHAN,		QScript::OpCode::OP_GT },
-			{ NODE_GREATEREQUAL,	QScript::OpCode::OP_GTE },
-			{ NODE_LESSTHAN,		QScript::OpCode::OP_LT },
-			{ NODE_LESSEQUAL,		QScript::OpCode::OP_LTE },
-		};
-
-		auto opCode = singleByte.find( m_NodeId );
-		if ( opCode != singleByte.end() )
-			EmitByte( opCode->second, chunk );
+			// When assigning a value, first evaluate right hand operant (value)
+			// and then set it via the left hand operand
+			m_Right->Compile( chunk, options );
+			m_Left->Compile( chunk, options | CO_ASSIGN );
+		}
 		else
-			throw Exception( "cp_invalid_complex_node", "Unknown complex node: " + std::to_string( m_NodeId ) );
+		{
+			m_Left->Compile( chunk, options );
+			m_Right->Compile( chunk, options );
 
-		AddDebugSymbol( chunk, start, m_LineNr, m_ColNr, m_Token );
+			int start = chunk->m_Code.size();
+
+			std::map< Compiler::NodeId, QScript::OpCode > singleByte ={
+				{ NODE_ADD, 			QScript::OpCode::OP_ADD },
+				{ NODE_SUB, 			QScript::OpCode::OP_SUB },
+				{ NODE_MUL, 			QScript::OpCode::OP_MUL },
+				{ NODE_DIV, 			QScript::OpCode::OP_DIV },
+				{ NODE_EQUALS,			QScript::OpCode::OP_EQ },
+				{ NODE_NOTEQUALS,		QScript::OpCode::OP_NEQ },
+				{ NODE_GREATERTHAN,		QScript::OpCode::OP_GT },
+				{ NODE_GREATEREQUAL,	QScript::OpCode::OP_GTE },
+				{ NODE_LESSTHAN,		QScript::OpCode::OP_LT },
+				{ NODE_LESSEQUAL,		QScript::OpCode::OP_LTE },
+			};
+
+			auto opCode = singleByte.find( m_NodeId );
+			if ( opCode != singleByte.end() )
+				EmitByte( opCode->second, chunk );
+			else
+				throw CompilerException( "cp_invalid_complex_node", "Unknown complex node: " + std::to_string( m_NodeId ), m_LineNr, m_ColNr, m_Token );
+
+			AddDebugSymbol( chunk, start, m_LineNr, m_ColNr, m_Token );
+		}
 	}
 
 	SimpleNode::SimpleNode( int lineNr, int colNr, const std::string token, NodeId id, BaseNode* node )
@@ -159,7 +186,7 @@ namespace Compiler
 		delete m_Node;
 	}
 
-	void SimpleNode::Compile( QScript::Chunk_t* chunk )
+	void SimpleNode::Compile( QScript::Chunk_t* chunk, uint32_t options )
 	{
 		int start = 0;
 
@@ -173,7 +200,7 @@ namespace Compiler
 		auto opCode = singleByte.find( m_NodeId );
 		if ( opCode != singleByte.end() )
 		{
-			m_Node->Compile( chunk );
+			m_Node->Compile( chunk, options );
 
 			start = chunk->m_Code.size();
 			EmitByte( opCode->second, chunk );
@@ -184,10 +211,22 @@ namespace Compiler
 			{
 			case NODE_VAR:
 			{
-				// Define an empty global variable, like "var global;"
-				auto& value = static_cast< ValueNode* >( m_Node )->GetValue();
-				EmitByte( QScript::OpCode::OP_PNULL, chunk );
-				EmitConstant( chunk, value, QScript::OpCode::OP_SG_SHORT, QScript::OpCode::OP_SG_LONG );
+				// Define a variable (empty or otherwise)
+				if ( options & CO_ASSIGN )
+				{
+					RequireAssignability( m_Node );
+					m_Node->Compile( chunk, options );
+				}
+				else
+				{
+					// Undefined variable
+					auto& value = static_cast< ValueNode* >( m_Node )->GetValue();
+
+					EmitByte( QScript::OpCode::OP_PNULL, chunk );
+					EmitConstant( chunk, value, QScript::OpCode::OP_SG_SHORT, QScript::OpCode::OP_SG_LONG );
+					EmitByte( QScript::OpCode::OP_POP, chunk );
+				}
+
 				break;
 			}
 			default:

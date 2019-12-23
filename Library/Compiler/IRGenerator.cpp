@@ -173,6 +173,15 @@ namespace Compiler
 				};
 				break;
 			}
+			case Compiler::TOK_EQUALS:
+			{
+				builder->m_Led = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder, BaseNode* left )
+				{
+					return parserState.AllocateNode< ComplexNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+						irBuilder.m_Token.m_String, NODE_ASSIGN, left, nextExpression( irBuilder.m_Token.m_LBP ) );
+				};
+				break;
+			}
 			case Compiler::TOK_NOTEQUALS:
 			case Compiler::TOK_2EQUALS:
 			case Compiler::TOK_GREATERTHAN:
