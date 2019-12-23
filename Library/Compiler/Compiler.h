@@ -19,6 +19,7 @@ namespace Compiler
 	// Disassembler
 	void DisassembleChunk( const QScript::Chunk_t& chunk, const std::string& identifier, unsigned int ip = 0 );
 	int DisassembleInstruction( const QScript::Chunk_t& chunk, int offset, bool isIp );
+	int InstructionSize( uint8_t inst );
 
 	void DumpConstants( const QScript::Chunk_t& chunk );
 	void DumpGlobals( const VM_t& vm );

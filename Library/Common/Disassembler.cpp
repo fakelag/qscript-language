@@ -63,7 +63,7 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, int offset,
 {
 #define SIMPLE_INST( inst, name ) case QScript::OpCode::inst: {\
 	instString = name; \
-	instOffset = offset + 1; \
+	instOffset = offset + InstructionSize( QScript::OpCode::inst ); \
 	break; }
 
 #define CNST_INST_SHORT( inst, name ) case QScript::OpCode::inst: { \
@@ -73,7 +73,7 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, int offset,
 		+ std::to_string( constant ) \
 		+ " " + Compiler::ValueToString( value ) \
 		+ " (SHORT)"; \
-	instOffset = offset + 2; \
+	instOffset = offset + InstructionSize( QScript::OpCode::inst ); \
 	break; \
 }
 
@@ -84,7 +84,7 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, int offset,
 		+ std::to_string( constant ) \
 		+ " " + Compiler::ValueToString( value ) \
 		+ " (LONG)"; \
-	instOffset = offset + 5; \
+	instOffset = offset + InstructionSize( QScript::OpCode::inst ); \
 	break; \
 }
 
@@ -142,6 +142,37 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, int offset,
 #undef CNST_INST_LONG
 #undef CNST_INST_SHORT
 	return instOffset;
+}
+
+int Compiler::InstructionSize( uint8_t inst )
+{
+	switch ( inst )
+	{
+	case QScript::OpCode::OP_LD_SHORT: return 2;
+	case QScript::OpCode::OP_LD_LONG: return 5;
+	case QScript::OpCode::OP_SG_SHORT: return 2;
+	case QScript::OpCode::OP_SG_LONG: return 5;
+	case QScript::OpCode::OP_LG_SHORT: return 2;
+	case QScript::OpCode::OP_LG_LONG: return 5;
+	case QScript::OpCode::OP_ADD: return 1;
+	case QScript::OpCode::OP_SUB: return 1;
+	case QScript::OpCode::OP_DIV: return 1;
+	case QScript::OpCode::OP_MUL: return 1;
+	case QScript::OpCode::OP_NEG: return 1;
+	case QScript::OpCode::OP_NOT: return 1;
+	case QScript::OpCode::OP_EQ: return 1;
+	case QScript::OpCode::OP_NEQ: return 1;
+	case QScript::OpCode::OP_GT: return 1;
+	case QScript::OpCode::OP_LT: return 1;
+	case QScript::OpCode::OP_GTE: return 1;
+	case QScript::OpCode::OP_LTE: return 1;
+	case QScript::OpCode::OP_RETN: return 1;
+	case QScript::OpCode::OP_PRINT: return 1;
+	case QScript::OpCode::OP_POP: return 1;
+	case QScript::OpCode::OP_PNULL: return 1;
+	default:
+		return 1;
+	}
 }
 
 void Compiler::DumpStack( const VM_t& vm )
