@@ -28,11 +28,13 @@ namespace Compiler
 		{ TOK_LESSTHAN, 	{ TOK_LESSTHAN, 	"<", 		BP_EQUALITY, 				false } },
 		{ TOK_LESSEQUAL,	{ TOK_LESSEQUAL, 	"<=", 		BP_EQUALITY, 				false } },
 
-		{ TOK_LPAREN,		{ TOK_LPAREN, 		"(", 		BP_OPENBRACKET,				false } },
+		{ TOK_LPAREN,		{ TOK_LPAREN, 		"(", 		BP_OPENPAREN,				false } },
 		{ TOK_RPAREN,		{ TOK_RPAREN, 		")", 		BP_NONE,					false } },
 
 		{ TOK_SCOLON,		{ TOK_SCOLON, 		";", 		BP_NONE,					false } },
 		{ TOK_BANG, 		{ TOK_BANG, 		"!", 		BP_LOGIC_NOT,				false } },
+		{ TOK_BRACE_LEFT, 	{ TOK_BRACE_LEFT, 	"{", 		BP_NONE,					false } },
+		{ TOK_BRACE_RIGHT, 	{ TOK_BRACE_RIGHT, 	"}", 		BP_NONE,					false } },
 
 		{ TOK_TRUE,			{ TOK_TRUE, 		"true", 	BP_NONE,					true } },
 		{ TOK_FALSE,		{ TOK_FALSE, 		"false", 	BP_NONE,					true } },

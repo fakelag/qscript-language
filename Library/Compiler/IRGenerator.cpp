@@ -53,7 +53,62 @@ namespace Compiler
 			return left;
 		};
 
-		auto createBuilder = [ &parserState, &nextExpression ]( const Token_t& token ) -> IrBuilder_t*
+		auto nextStatement = [ &parserState, &nextExpression ]() -> BaseNode*
+		{
+			try
+			{
+				auto headNode = nextExpression();
+
+				if ( headNode )
+				{
+					bool isExpressionStatement = true;
+
+					switch ( headNode->Id() )
+					{
+					case Compiler::NODE_SCOPE:
+					case Compiler::NODE_PRINT:
+					case Compiler::NODE_RETURN:
+					case Compiler::NODE_ASSIGN:
+					case Compiler::NODE_VAR:
+					{
+						isExpressionStatement = false;
+						break;
+					}
+					default:
+						break;
+					}
+
+					if ( isExpressionStatement )
+					{
+						// Pop the intermediate value off stack
+						headNode = parserState.AllocateNode< SimpleNode >( headNode->LineNr(),
+							headNode->ColNr(), headNode->Token(), NODE_POP, headNode );
+					}
+
+					if ( headNode->Id() == Compiler::NODE_SCOPE )
+					{
+						// Block declarations must end with a right brace
+						parserState.Expect( TOK_BRACE_RIGHT, "Expected end of block declaration" );
+					}
+					else
+					{
+						// Expression statements must end with a semicolon
+						parserState.Expect( TOK_SCOLON, "Expected end of expression" );
+					}
+				}
+
+				return headNode;
+			}
+			catch ( const CompilerException& exception )
+			{
+				// A compilation error occurred, resync and continue parsing
+				// to catch as many errors with a single pass as possible
+				parserState.AddErrorAndResync( exception );
+				return NULL;
+			}
+		};
+
+		auto createBuilder = [ &parserState, &nextExpression, &nextStatement ]( const Token_t& token ) -> IrBuilder_t*
 		{
 			IrBuilder_t* builder = new IrBuilder_t( token );
 
@@ -128,7 +183,7 @@ namespace Compiler
 					if ( !varName->IsString() )
 					{
 						auto builder = parserState.CurrentBuilder();
-						throw CompilerException( "ir_invalid_token", "Invalid token: \"" + builder->m_Token.m_String + "\"",
+						throw CompilerException( "ir_variable_name", "Invalid variable name: \"" + builder->m_Token.m_String + "\"",
 							builder->m_Token.m_LineNr, builder->m_Token.m_ColNr, builder->m_Token.m_String );
 					}
 
@@ -205,6 +260,26 @@ namespace Compiler
 				};
 				break;
 			}
+			case Compiler::TOK_BRACE_LEFT:
+			{
+				builder->m_Nud = [ &parserState, &nextStatement ]( const IrBuilder_t& irBuilder ) -> BaseNode*
+				{
+					std::vector< BaseNode* > scopeExpressions;
+
+					while ( parserState.CurrentBuilder()->m_Token.m_Token != TOK_BRACE_RIGHT )
+					{
+						auto headNode = nextStatement();
+
+						if ( headNode )
+							scopeExpressions.push_back( headNode );
+					}
+
+					return parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+						irBuilder.m_Token.m_String, NODE_SCOPE, scopeExpressions );
+				};
+				break;
+			}
+			case Compiler::TOK_BRACE_RIGHT:
 			case Compiler::TOK_RPAREN:
 			case Compiler::TOK_SCOLON:
 				break;
@@ -251,43 +326,10 @@ namespace Compiler
 		// Parse from top-level down
 		while ( !parserState.IsFinished() )
 		{
-			try
-			{
-				auto expression = nextExpression();
-				parserState.AddNode( expression );
+			auto headNode = nextStatement();
 
-				if ( expression )
-				{
-					bool isExpressionStatement = true;
-
-					switch ( expression->Id() )
-					{
-					case Compiler::NODE_PRINT:
-					{
-						isExpressionStatement = false;
-						break;
-					}
-					default:
-						break;
-					}
-
-					if ( isExpressionStatement )
-					{
-						// Pop the intermediate value off stack
-						parserState.AddNode( parserState.AllocateNode< TermNode >( expression->LineNr(),
-							expression->ColNr(), expression->Token(), NODE_POP ) );
-					}
-				}
-
-				// A expression statements must end in a semicolon
-				parserState.Expect( TOK_SCOLON, "Expected end of expression" );
-			}
-			catch ( const CompilerException& exception )
-			{
-				// A compilation error occurred, resync and continue parsing
-				// to catch as many errors with a single pass as possible
-				parserState.AddErrorAndResync( exception );
-			}
+			if ( headNode )
+				parserState.AddNode( headNode );
 		}
 
 		// Exit interpreter loop on REPL mode
