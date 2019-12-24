@@ -12,7 +12,7 @@ namespace Compiler
 	std::vector< BaseNode* > GenerateIR( const std::vector< Token_t >& tokens );
 	// std::vector< BaseNode* > OptimizeIR( std::vector< BaseNode* > nodes );
 
-	// Compilers
+	// Bytecode
 	uint32_t AddConstant( const QScript::Value& value, QScript::Chunk_t* chunk );
 	void EmitByte( uint8_t byte, QScript::Chunk_t* chunk );
 
@@ -20,14 +20,43 @@ namespace Compiler
 	void DisassembleChunk( const QScript::Chunk_t& chunk, const std::string& identifier, unsigned int ip = 0 );
 	int DisassembleInstruction( const QScript::Chunk_t& chunk, int offset, bool isIp );
 	int InstructionSize( uint8_t inst );
-
 	void DumpConstants( const QScript::Chunk_t& chunk );
 	void DumpGlobals( const VM_t& vm );
 	void DumpStack( const VM_t& vm );
-
 	std::string ValueToString( const QScript::Value& value );
 
 	// Object allocation
 	QScript::StringObject* AllocateString( const std::string& string );
 	void GarbageCollect( const QScript::Chunk_t* chunk );
+
+	class Assembler
+	{
+	public:
+		struct Local_t
+		{
+			std::string		m_Name;
+			uint32_t		m_Depth;
+		};
+
+		Assembler( QScript::Chunk_t* chunk );
+
+		QScript::Chunk_t*	CurrentChunk();
+		Local_t*			GetLocal( int local );
+		uint32_t			CreateLocal( const std::string& name );
+		bool				FindLocal( const std::string& name, uint32_t* out );
+		int					StackDepth();
+		int					LocalCount();
+		void				PushScope();
+		void				PopScope();
+
+	private:
+		struct Stack_t
+		{
+			std::vector< Local_t >	m_Locals;
+			uint32_t				m_CurrentDepth;
+		};
+
+		Stack_t				m_Stack;
+		QScript::Chunk_t*	m_Chunk;
+	};
 };

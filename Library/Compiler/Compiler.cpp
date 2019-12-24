@@ -22,8 +22,9 @@ namespace QScript
 		// Run IR optimizers
 
 		// Compile bytecode
+		Compiler::Assembler assembler( chunk );
 		for ( auto node : entryNodes )
-			node->Compile( chunk );
+			node->Compile( assembler );
 
 		for ( auto node : entryNodes )
 		{
@@ -89,5 +90,75 @@ namespace Compiler
 		}
 
 		ObjectList.clear();
+	}
+
+	Assembler::Assembler( QScript::Chunk_t* chunk )
+	{
+		m_Chunk = chunk;
+		m_Stack.m_CurrentDepth = 0;
+	}
+
+	QScript::Chunk_t* Assembler::CurrentChunk()
+	{
+		return m_Chunk;
+	}
+
+	uint32_t Assembler::CreateLocal( const std::string& name )
+	{
+		m_Stack.m_Locals.push_back( Assembler::Local_t{ name, m_Stack.m_CurrentDepth } );
+		return ( uint32_t ) m_Stack.m_Locals.size() - 1;
+	}
+
+	Assembler::Local_t* Assembler::GetLocal( int local )
+	{
+		return &m_Stack.m_Locals[ local ];
+	}
+
+	bool Assembler::FindLocal( const std::string& name, uint32_t* out )
+	{
+		for ( int i = ( int ) m_Stack.m_Locals.size() - 1; i >= 0 ; --i )
+		{
+			if ( m_Stack.m_Locals[ i ].m_Name == name )
+			{
+				*out = ( uint32_t ) i;
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	int Assembler::StackDepth()
+	{
+		return m_Stack.m_CurrentDepth;
+	}
+
+	void Assembler::PushScope()
+	{
+		++m_Stack.m_CurrentDepth;
+	}
+
+	void Assembler::PopScope()
+	{
+		for ( int i = ( int ) m_Stack.m_Locals.size() - 1; i >= 0; --i )
+		{
+			if ( m_Stack.m_Locals[ i ].m_Depth < m_Stack.m_CurrentDepth )
+				break;
+
+			m_Stack.m_Locals.erase( m_Stack.m_Locals.begin() + i );
+		}
+
+		--m_Stack.m_CurrentDepth;
+	}
+	
+	int Assembler::LocalCount()
+	{
+		for ( int i = ( int ) m_Stack.m_Locals.size() - 1; i >= 0; --i )
+		{
+			if ( m_Stack.m_Locals[ i ].m_Depth < m_Stack.m_CurrentDepth )
+				return ( int ) m_Stack.m_Locals.size() - i;
+		}
+
+		return m_Stack.m_Locals.size();
 	}
 }

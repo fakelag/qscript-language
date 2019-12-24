@@ -22,7 +22,7 @@ namespace Compiler
 
 	void EmitConstant( QScript::Chunk_t* chunk, const QScript::Value& value, QScript::OpCode shortOpCode, QScript::OpCode longOpCode )
 	{
-		if ( chunk->m_Constants.size() >= 255 )
+		if ( chunk->m_Constants.size() > 255 )
 		{
 			auto longIndex = ( uint32_t ) AddConstant( value, chunk );
 
@@ -67,15 +67,16 @@ namespace Compiler
 	{
 	}
 
-	void TermNode::Compile( QScript::Chunk_t* chunk, uint32_t options )
+	void TermNode::Compile( Assembler& assembler, uint32_t options )
 	{
+		auto chunk = assembler.CurrentChunk();
+
 		// Call CompileXXX functions from Compiler.cpp for code generation,
 		// but append debugging info to the chunk here
 		int start = chunk->m_Code.size();
 
 		switch( m_NodeId )
 		{
-		case NODE_POP: EmitByte( QScript::OpCode::OP_POP, chunk ); break;
 		case NODE_RETURN: EmitByte( QScript::OpCode::OP_RETN, chunk ); break;
 		default:
 			throw CompilerException( "cp_invalid_term_node", "Unknown terminating node: " + std::to_string( m_NodeId ), m_LineNr, m_ColNr, m_Token );
@@ -90,18 +91,40 @@ namespace Compiler
 		m_Value.From( value );
 	}
 
-	void ValueNode::Compile( QScript::Chunk_t* chunk, uint32_t options )
+	void ValueNode::Compile( Assembler& assembler, uint32_t options )
 	{
+		auto chunk = assembler.CurrentChunk();
 		int start = chunk->m_Code.size();
 
 		switch ( m_NodeId )
 		{
 		case NODE_NAME:
 		{
-			if ( options & CO_ASSIGN )
-				EmitConstant( chunk, m_Value, QScript::OpCode::OP_SG_SHORT, QScript::OpCode::OP_SG_LONG );
+			uint32_t local;
+			if ( assembler.FindLocal( AS_STRING( m_Value )->GetString(), &local ) )
+			{
+				if ( local > 255 )
+				{
+					EmitByte( ( options & CO_ASSIGN ) ? QScript::OpCode::OP_SL_LONG : QScript::OpCode::OP_LL_LONG, chunk );
+					EmitByte( ENCODE_LONG( local, 0 ), chunk );
+					EmitByte( ENCODE_LONG( local, 1 ), chunk );
+					EmitByte( ENCODE_LONG( local, 2 ), chunk );
+					EmitByte( ENCODE_LONG( local, 3 ), chunk );
+				}
+				else
+				{
+					EmitByte( ( options & CO_ASSIGN ) ? QScript::OpCode::OP_SL_SHORT : QScript::OpCode::OP_LL_SHORT, chunk );
+					EmitByte( ( uint8_t ) local, chunk );
+				}
+			}
 			else
-				EmitConstant( chunk, m_Value, QScript::OpCode::OP_LG_SHORT, QScript::OpCode::OP_LG_LONG );
+			{
+				if ( options & CO_ASSIGN )
+					EmitConstant( chunk, m_Value, QScript::OpCode::OP_SG_SHORT, QScript::OpCode::OP_SG_LONG );
+				else
+					EmitConstant( chunk, m_Value, QScript::OpCode::OP_LG_SHORT, QScript::OpCode::OP_LG_LONG );
+			}
+
 			break;
 		}
 		default:
@@ -130,29 +153,34 @@ namespace Compiler
 
 	void ComplexNode::Release()
 	{
+		m_Left->Release();
+		m_Right->Release();
+
 		delete m_Left;
 		delete m_Right;
 	}
 
-	void ComplexNode::Compile( QScript::Chunk_t* chunk, uint32_t options )
+	void ComplexNode::Compile( Assembler& assembler, uint32_t options )
 	{
+		auto chunk = assembler.CurrentChunk();
+
 		if ( m_NodeId == NODE_ASSIGN )
 		{
 			RequireAssignability( m_Left );
 
 			// When assigning a value, first evaluate right hand operant (value)
 			// and then set it via the left hand operand
-			m_Right->Compile( chunk, options );
-			m_Left->Compile( chunk, options | CO_ASSIGN );
+			m_Right->Compile( assembler, options );
+			m_Left->Compile( assembler, options | CO_ASSIGN );
 		}
 		else
 		{
-			m_Left->Compile( chunk, options );
-			m_Right->Compile( chunk, options );
+			m_Left->Compile( assembler, options );
+			m_Right->Compile( assembler, options );
 
 			int start = chunk->m_Code.size();
 
-			std::map< Compiler::NodeId, QScript::OpCode > singleByte ={
+			std::map< NodeId, QScript::OpCode > singleByte ={
 				{ NODE_ADD, 			QScript::OpCode::OP_ADD },
 				{ NODE_SUB, 			QScript::OpCode::OP_SUB },
 				{ NODE_MUL, 			QScript::OpCode::OP_MUL },
@@ -183,24 +211,27 @@ namespace Compiler
 
 	void SimpleNode::Release()
 	{
+		m_Node->Release();
 		delete m_Node;
 	}
 
-	void SimpleNode::Compile( QScript::Chunk_t* chunk, uint32_t options )
+	void SimpleNode::Compile( Assembler& assembler, uint32_t options )
 	{
-		int start = 0;
+		auto chunk = assembler.CurrentChunk();
+		int start = -1;
 
-		std::map< Compiler::NodeId, QScript::OpCode > singleByte ={
+		std::map< NodeId, QScript::OpCode > singleByte ={
 			{ NODE_PRINT, 			QScript::OpCode::OP_PRINT },
 			{ NODE_RETURN, 			QScript::OpCode::OP_RETN },
 			{ NODE_NOT, 			QScript::OpCode::OP_NOT },
 			{ NODE_NEG, 			QScript::OpCode::OP_NEG },
+			{ NODE_POP,				QScript::OpCode::OP_POP },
 		};
 
 		auto opCode = singleByte.find( m_NodeId );
 		if ( opCode != singleByte.end() )
 		{
-			m_Node->Compile( chunk, options );
+			m_Node->Compile( assembler, options );
 
 			start = chunk->m_Code.size();
 			EmitByte( opCode->second, chunk );
@@ -211,19 +242,34 @@ namespace Compiler
 			{
 			case NODE_VAR:
 			{
+				// Variables must be assignable
+				RequireAssignability( m_Node );
+				auto& varName = static_cast< ValueNode* >( m_Node )->GetValue();
+
 				// Define a variable (empty or otherwise)
 				if ( options & CO_ASSIGN )
 				{
-					RequireAssignability( m_Node );
-					m_Node->Compile( chunk, options );
+					if ( assembler.StackDepth() > 0 )
+						assembler.CreateLocal( AS_STRING( varName )->GetString() );
+					else
+						m_Node->Compile( assembler, options );
 				}
 				else
 				{
 					// Undefined variable
-					auto& value = static_cast< ValueNode* >( m_Node )->GetValue();
+					start = chunk->m_Code.size();
 
 					EmitByte( QScript::OpCode::OP_PNULL, chunk );
-					EmitConstant( chunk, value, QScript::OpCode::OP_SG_SHORT, QScript::OpCode::OP_SG_LONG );
+
+					if ( assembler.StackDepth() == 0 )
+					{
+						// Global variable
+						EmitConstant( chunk, varName, QScript::OpCode::OP_SG_SHORT, QScript::OpCode::OP_SG_LONG );
+					}
+					else
+					{
+						assembler.CreateLocal( AS_STRING( varName )->GetString() );
+					}
 				}
 
 				break;
@@ -233,6 +279,42 @@ namespace Compiler
 			}
 		}
 
-		AddDebugSymbol( chunk, start, m_LineNr, m_ColNr, m_Token );
+		if ( start != -1 )
+			AddDebugSymbol( chunk, start, m_LineNr, m_ColNr, m_Token );
+	}
+
+	ListNode::ListNode( int lineNr, int colNr, const std::string token, NodeId id, const std::vector< BaseNode* >& nodeList )
+		: BaseNode( lineNr, colNr, token, NT_SIMPLE, id )
+	{
+		m_NodeList = nodeList;
+	}
+
+	void ListNode::Release()
+	{
+		for ( auto node : m_NodeList )
+		{
+			node->Release();
+			delete node;
+		}
+
+		m_NodeList.clear();
+	}
+
+	void ListNode::Compile( Assembler& assembler, uint32_t options )
+	{
+		if ( m_NodeId == NODE_SCOPE )
+			assembler.PushScope();
+
+		for ( auto node : m_NodeList )
+			node->Compile( assembler, options );
+
+		if ( m_NodeId == NODE_SCOPE )
+		{
+			// Clear stack
+			for ( int i = assembler.LocalCount() - 1; i >= 0; --i )
+				EmitByte( QScript::OpCode::OP_POP, assembler.CurrentChunk() );
+
+			assembler.PopScope();
+		}
 	}
 }

@@ -2,6 +2,8 @@
 
 namespace Compiler
 {
+	class Assembler;
+
 	enum NodeType
 	{
 		NT_INVALID = -1,
@@ -31,14 +33,15 @@ namespace Compiler
 		NODE_POP,
 		NODE_PRINT,
 		NODE_RETURN,
+		NODE_SCOPE,
 		NODE_SUB,
 		NODE_VAR,
 	};
 
 	enum CompileOptions : uint32_t
 	{
-		CO_NONE = ( 0 << 0 ),
-		CO_ASSIGN = ( 1 << 0 ),
+		CO_NONE					= ( 0 << 0 ),
+		CO_ASSIGN				= ( 1 << 0 ),
 	};
 
 	class BaseNode
@@ -54,7 +57,7 @@ namespace Compiler
 
 		virtual ~BaseNode() {}
 		virtual void Release() {};
-		virtual void Compile( QScript::Chunk_t* chunk, uint32_t options = CO_NONE ) = 0;
+		virtual void Compile( Assembler& assembler, uint32_t options = CO_NONE ) = 0;
 
 		virtual bool IsString() const { return false; }
 
@@ -70,14 +73,14 @@ namespace Compiler
 	{
 	public:
 		TermNode( int lineNr, int colNr, const std::string token, NodeId id );
-		void Compile( QScript::Chunk_t* chunk, uint32_t options = CO_NONE ) override;
+		void Compile( Assembler& assembler, uint32_t options = CO_NONE ) override;
 	};
 
 	class ValueNode : public BaseNode
 	{
 	public:
 		ValueNode( int lineNr, int colNr, const std::string token, NodeId id, const QScript::Value& value );
-		void Compile( QScript::Chunk_t* chunk, uint32_t options = CO_NONE ) override;
+		void Compile( Assembler& assembler, uint32_t options = CO_NONE ) override;
 
 		bool IsString() const override;
 
@@ -92,7 +95,7 @@ namespace Compiler
 		ComplexNode( int lineNr, int colNr, const std::string token, NodeId id, BaseNode* left, BaseNode* right );
 
 		void Release() override;
-		void Compile( QScript::Chunk_t* chunk, uint32_t options = CO_NONE ) override;
+		void Compile( Assembler& assembler, uint32_t options = CO_NONE ) override;
 
 	private:
 		BaseNode*			m_Left;
@@ -105,9 +108,21 @@ namespace Compiler
 		SimpleNode( int lineNr, int colNr, const std::string token, NodeId id, BaseNode* node );
 
 		void Release() override;
-		void Compile( QScript::Chunk_t* chunk, uint32_t options = CO_NONE ) override;
+		void Compile( Assembler& assembler, uint32_t options = CO_NONE ) override;
 
 	private:
 		BaseNode*			m_Node;
+	};
+
+	class ListNode : public BaseNode
+	{
+	public:
+		ListNode( int lineNr, int colNr, const std::string token, NodeId id, const std::vector< BaseNode* >& nodeList );
+
+		void Release() override;
+		void Compile( Assembler& assembler, uint32_t options = CO_NONE ) override;
+
+	private:
+		std::vector< BaseNode* >		m_NodeList;
 	};
 }
