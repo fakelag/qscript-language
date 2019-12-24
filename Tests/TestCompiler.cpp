@@ -80,7 +80,7 @@ bool Tests::TestCompiler()
 		ASSERT_OPCODE( 0000, OP_LD_SHORT );
 		ASSERT_OPCODE_NEXT( OP_POP );
 
-		int firstLong = 255 * 3;
+		int firstLong = 256 * 3;
 		UTEST_ASSERT( chunk->m_Code[ firstLong ] == QScript::OpCode::OP_LD_LONG );
 		UTEST_ASSERT( chunk->m_Code[ firstLong + 5 ] == QScript::OpCode::OP_POP );
 
@@ -88,7 +88,7 @@ bool Tests::TestCompiler()
 		UTEST_CASE_CLOSED();
 	}( );
 
-	UTEST_CASE( "Assign constants" )
+	UTEST_CASE( "Assign constants to global variables" )
 	{
 		auto chunk = QScript::Compile( "var a; var b = 4; a = 32.2;" );
 
@@ -96,14 +96,11 @@ bool Tests::TestCompiler()
 
 		ASSERT_OPCODE( 0000, OP_PNULL );
 		ASSERT_OPCODE_NEXT( OP_SG_SHORT );
-		ASSERT_OPCODE_NEXT( OP_POP );
 		ASSERT_OPCODE_NEXT( OP_LD_SHORT );
 		ASSERT_OPCODE_NEXT( OP_SG_SHORT );
-		ASSERT_OPCODE_NEXT( OP_POP );
 
 		ASSERT_OPCODE_NEXT( OP_LD_SHORT );
 		ASSERT_OPCODE_NEXT( OP_SG_SHORT );
-		ASSERT_OPCODE_NEXT( OP_POP );
 
 		ASSERT_OPCODE_NEXT( OP_RETN );
 
