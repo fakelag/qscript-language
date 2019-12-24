@@ -139,12 +139,29 @@ namespace QVM
 			{
 				auto constant = READ_CONST_SHORT( vm );
 				vm.m_Globals[ AS_STRING( constant )->GetString() ].From( vm.Peek( 0 ) );
+				vm.Pop();
 				break;
 			}
 			case QScript::OP_SG_LONG:
 			{
 				READ_CONST_LONG( vm, constant );
 				vm.m_Globals[ AS_STRING( constant )->GetString() ].From( vm.Peek( 0 ) );
+				vm.Pop();
+				break;
+			}
+			case QScript::OP_LL_SHORT: vm.Push( vm.m_Stack[ READ_BYTE( vm ) ] ); break;
+			case QScript::OP_LL_LONG:
+			{
+				READ_CONST_LONG( vm, constant );
+				vm.Push( vm.m_Stack[ constant ] );
+				break;
+			}
+			case QScript::OP_SL_SHORT: vm.m_Stack[ READ_BYTE( vm ) ].From( vm.Peek( 0 ) ); vm.Pop(); break;
+			case QScript::OP_SL_LONG:
+			{
+				READ_CONST_LONG( vm, constant );
+				vm.m_Stack[ constant ].From( vm.Peek( 0 ) );
+				vm.Pop();
 				break;
 			}
 			case QScript::OP_NOT:
@@ -243,6 +260,21 @@ void QScript::Interpret( const Chunk_t& chunk, Value* out )
 
 	// Clear allocated objects
 	vm.Release( out );
+
+	// Clear allocators
+	QScript::Object::AllocateString = NULL;
+}
+
+void QScript::Interpret( VM_t& vm, Value* out )
+{
+	// Setup allocators
+	QVM::VirtualMachine = &vm;
+	QScript::Object::AllocateString = &QVM::AllocateString;
+
+	auto exitCode = QVM::Run( vm );
+
+	if ( out )
+		out->From( exitCode );
 
 	// Clear allocators
 	QScript::Object::AllocateString = NULL;

@@ -4,10 +4,16 @@ struct VM_t
 {
 	VM_t( const QScript::Chunk_t* chunk )
 	{
+		Init( chunk );
+	}
+
+	void Init( const QScript::Chunk_t* chunk )
+	{
 		m_Chunk = chunk;
 		m_IP = &chunk->m_Code[ 0 ];
-
 		m_StackTop = &m_Stack[ 0 ];
+		m_Objects.clear();
+		m_Globals.clear();
 	}
 
 	FORCEINLINE void Push( QScript::Value value )

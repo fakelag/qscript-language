@@ -10,6 +10,8 @@
 #endif
 #endif
 
+struct VM_t;
+
 namespace QScript
 {
 	struct Chunk_t;
@@ -20,4 +22,5 @@ namespace QScript
 
 	Chunk_t* Compile( const std::string& source );
 	void Interpret( const Chunk_t& chunk, Value* exitCode );
+	void Interpret( VM_t& vm, Value* out );
 }

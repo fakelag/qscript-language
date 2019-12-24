@@ -127,6 +127,52 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, int offset,
 	SIMPLE_INST( OP_PRINT, "PRINT" );
 	SIMPLE_INST( OP_POP, "POP" );
 	SIMPLE_INST( OP_PNULL, "PNULL" );
+	case QScript::OpCode::OP_LL_SHORT:
+	{
+		uint8_t stackOffset = chunk.m_Code[ offset + 1 ];
+
+		instString = "LL" + std::string( " " )
+			+ std::to_string( stackOffset )
+			+ " (SHORT)";
+
+		instOffset = offset + InstructionSize( chunk.m_Code[ offset ] );
+		break;
+	}
+	case QScript::OpCode::OP_LL_LONG:
+	{
+		uint32_t stackOffset = DECODE_LONG( chunk.m_Code[ offset + 1 ], chunk.m_Code[ offset + 2 ],
+			chunk.m_Code[ offset + 3 ], chunk.m_Code[ offset + 4 ] );
+
+		instString = "LL" + std::string( " " )
+			+ std::to_string( stackOffset )
+			+ " (LONG)";
+
+		instOffset = offset + InstructionSize( chunk.m_Code[ offset ] );
+		break;
+	}
+	case QScript::OpCode::OP_SL_SHORT:
+	{
+		uint8_t stackOffset = chunk.m_Code[ offset + 1 ];
+
+		instString = "SL" + std::string( " " )
+			+ std::to_string( stackOffset )
+			+ " (SHORT)";
+
+		instOffset = offset + InstructionSize( chunk.m_Code[ offset ] );
+		break;
+	}
+	case QScript::OpCode::OP_SL_LONG:
+	{
+		uint32_t stackOffset = DECODE_LONG( chunk.m_Code[ offset + 1 ], chunk.m_Code[ offset + 2 ],
+			chunk.m_Code[ offset + 3 ], chunk.m_Code[ offset + 4 ] );
+
+		instString = "SL" + std::string( " " )
+			+ std::to_string( stackOffset )
+			+ " (LONG)";
+
+		instOffset = offset + InstructionSize( chunk.m_Code[ offset ] );
+		break;
+	}
 	default:
 		std::cout << "Unknown opcode: " << chunk.m_Code[ offset ] << std::endl;
 		instOffset = offset + 1;
@@ -154,6 +200,10 @@ int Compiler::InstructionSize( uint8_t inst )
 	case QScript::OpCode::OP_SG_LONG: return 5;
 	case QScript::OpCode::OP_LG_SHORT: return 2;
 	case QScript::OpCode::OP_LG_LONG: return 5;
+	case QScript::OpCode::OP_LL_SHORT: return 2;
+	case QScript::OpCode::OP_LL_LONG: return 5;
+	case QScript::OpCode::OP_SL_SHORT: return 2;
+	case QScript::OpCode::OP_SL_LONG: return 5;
 	case QScript::OpCode::OP_ADD: return 1;
 	case QScript::OpCode::OP_SUB: return 1;
 	case QScript::OpCode::OP_DIV: return 1;
