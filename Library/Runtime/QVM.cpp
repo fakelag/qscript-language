@@ -156,12 +156,11 @@ namespace QVM
 				vm.Push( vm.m_Stack[ constant ] );
 				break;
 			}
-			case QScript::OP_SL_SHORT: vm.m_Stack[ READ_BYTE( vm ) ].From( vm.Peek( 0 ) ); vm.Pop(); break;
+			case QScript::OP_SL_SHORT: vm.m_Stack[ READ_BYTE( vm ) ].From( vm.Peek( 0 ) ); break;
 			case QScript::OP_SL_LONG:
 			{
 				READ_CONST_LONG( vm, constant );
 				vm.m_Stack[ constant ].From( vm.Peek( 0 ) );
-				vm.Pop();
 				break;
 			}
 			case QScript::OP_NOT:
