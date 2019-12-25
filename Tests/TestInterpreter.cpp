@@ -86,6 +86,29 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 26.00 );
 
+		UTEST_ASSERT( TestUtils::RunVM( "var glob1 = 60;		\
+			var glob2 = 40;										\
+			{													\
+				var loc1 = glob1;								\
+				var loc2;										\
+				{												\
+					var loc3;									\
+					var loc4 = loc1 + glob2;					\
+					loc2 = loc4;								\
+					loc3 = loc2 / 2.0; /* loc3 is 50 now */		\
+					{											\
+						var loc5;								\
+						loc5 = 1.5;								\
+						loc2 = loc3 * loc5; /* loc2 is 75.00*/	\
+					}											\
+					loc2 = loc2 + 1;							\
+				}												\
+				return loc2;									\
+			}", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 76.00 );
+
 		UTEST_CASE_CLOSED();
 	}( );
 
