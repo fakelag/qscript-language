@@ -60,7 +60,7 @@ bool Tests::TestInterpreter()
 	UTEST_CASE( "Assigning global variables" )
 	{
 		QScript::Value exitCode;
-		UTEST_ASSERT( TestUtils::RunVM( "var h = \"hello \"; var w = \"world!\"; var hw = h + w; return hw;", &exitCode ) );
+		UTEST_ASSERT( TestUtils::RunVM( "var h = \"hello \"; var w; w = \"world!\"; var hw = h + w; return hw;", &exitCode ) );
 
 		UTEST_ASSERT( IS_STRING( exitCode ) );
 		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "hello world!" );
@@ -80,6 +80,11 @@ bool Tests::TestInterpreter()
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 25.00 );
+
+		UTEST_ASSERT( TestUtils::RunVM( "var g = 5; g = 10; { var z = g + 1; var x; x = z + 2; g = x * 2; } return g;", &exitCode ) );
+		
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 26.00 );
 
 		UTEST_CASE_CLOSED();
 	}( );
