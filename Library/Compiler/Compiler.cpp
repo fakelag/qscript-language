@@ -6,7 +6,7 @@
 
 namespace QScript
 {
-	Chunk_t* Compile( const std::string& source )
+	Chunk_t* Compile( const std::string& source, int flags )
 	{
 		Object::AllocateString = &Compiler::AllocateString;
 
@@ -22,7 +22,7 @@ namespace QScript
 		// Run IR optimizers
 
 		// Compile bytecode
-		Compiler::Assembler assembler( chunk );
+		Compiler::Assembler assembler( chunk, flags );
 		for ( auto node : entryNodes )
 			node->Compile( assembler );
 
@@ -92,10 +92,11 @@ namespace Compiler
 		ObjectList.clear();
 	}
 
-	Assembler::Assembler( QScript::Chunk_t* chunk )
+	Assembler::Assembler( QScript::Chunk_t* chunk, int optimizationFlags )
 	{
 		m_Chunk = chunk;
 		m_Stack.m_CurrentDepth = 0;
+		m_OptimizationFlags = optimizationFlags;
 	}
 
 	QScript::Chunk_t* Assembler::CurrentChunk()
@@ -160,5 +161,10 @@ namespace Compiler
 		}
 
 		return m_Stack.m_Locals.size();
+	}
+
+	int Assembler::OptimizationFlags() const
+	{
+		return m_OptimizationFlags;
 	}
 }

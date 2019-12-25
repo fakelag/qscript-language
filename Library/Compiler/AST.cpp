@@ -20,24 +20,43 @@ namespace Compiler
 		} );
 	}
 
-	void EmitConstant( QScript::Chunk_t* chunk, const QScript::Value& value, QScript::OpCode shortOpCode, QScript::OpCode longOpCode )
+	void EmitConstant( QScript::Chunk_t* chunk, const QScript::Value& value, QScript::OpCode shortOpCode, QScript::OpCode longOpCode, Compiler::Assembler& assembler )
 	{
-		if ( chunk->m_Constants.size() > 255 )
-		{
-			auto longIndex = ( uint32_t ) AddConstant( value, chunk );
+		uint32_t constant = 0;
 
-			EmitByte( longOpCode, chunk );
-			EmitByte( ENCODE_LONG( longIndex, 0 ), chunk );
-			EmitByte( ENCODE_LONG( longIndex, 1 ), chunk );
-			EmitByte( ENCODE_LONG( longIndex, 2 ), chunk );
-			EmitByte( ENCODE_LONG( longIndex, 3 ), chunk );
+		if ( assembler.OptimizationFlags() & QScript::OF_CONSTANT_STACKING )
+		{
+			bool found = false;
+			for ( uint32_t i = 0; i < chunk->m_Constants.size(); ++i )
+			{
+				if ( chunk->m_Constants[ i ] == value )
+				{
+					constant = i;
+					found = true;
+					break;
+				}
+			}
+
+			if ( !found )
+				constant = AddConstant( value, chunk );
 		}
 		else
 		{
-			auto shortIndex = ( uint8_t ) AddConstant( value, chunk );
+			constant = AddConstant( value, chunk );
+		}
 
+		if ( constant > 255 )
+		{
+			EmitByte( longOpCode, chunk );
+			EmitByte( ENCODE_LONG( constant, 0 ), chunk );
+			EmitByte( ENCODE_LONG( constant, 1 ), chunk );
+			EmitByte( ENCODE_LONG( constant, 2 ), chunk );
+			EmitByte( ENCODE_LONG( constant, 3 ), chunk );
+		}
+		else
+		{
 			EmitByte( shortOpCode, chunk );
-			EmitByte( shortIndex, chunk );
+			EmitByte( ( uint8_t ) constant, chunk );
 		}
 	}
 
@@ -122,9 +141,9 @@ namespace Compiler
 			else
 			{
 				if ( options & CO_ASSIGN )
-					EmitConstant( chunk, m_Value, QScript::OpCode::OP_SG_SHORT, QScript::OpCode::OP_SG_LONG );
+					EmitConstant( chunk, m_Value, QScript::OpCode::OP_SG_SHORT, QScript::OpCode::OP_SG_LONG, assembler );
 				else
-					EmitConstant( chunk, m_Value, QScript::OpCode::OP_LG_SHORT, QScript::OpCode::OP_LG_LONG );
+					EmitConstant( chunk, m_Value, QScript::OpCode::OP_LG_SHORT, QScript::OpCode::OP_LG_LONG, assembler );
 			}
 
 			break;
@@ -134,7 +153,7 @@ namespace Compiler
 			if ( IS_NULL( m_Value ) )
 				EmitByte( QScript::OP_PNULL, chunk );
 			else
-				EmitConstant( chunk, m_Value, QScript::OpCode::OP_LD_SHORT, QScript::OpCode::OP_LD_LONG );
+				EmitConstant( chunk, m_Value, QScript::OpCode::OP_LD_SHORT, QScript::OpCode::OP_LD_LONG, assembler );
 		}
 		}
 
@@ -207,7 +226,7 @@ namespace Compiler
 				if ( assembler.StackDepth() == 0 )
 				{
 					// Global variable
-					EmitConstant( chunk, varName, QScript::OpCode::OP_SG_SHORT, QScript::OpCode::OP_SG_LONG );
+					EmitConstant( chunk, varName, QScript::OpCode::OP_SG_SHORT, QScript::OpCode::OP_SG_LONG, assembler );
 				}
 				else
 				{

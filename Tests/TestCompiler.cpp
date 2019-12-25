@@ -57,25 +57,13 @@ bool Tests::TestCompiler()
 
 	UTEST_CASE( "Compile > 255 constants" )
 	{
-		auto chunk = QScript::Compile( TestUtils::GenerateSequence( 512, []( int iter ) {
+		std::string sourceCode = TestUtils::GenerateSequence( 512, []( int iter ) {
 			return std::to_string( iter ) + std::string( ".00;" );
-		} ) );
+		} );
+
+		auto chunk = QScript::Compile( sourceCode );
 
 		UTEST_ASSERT( chunk->m_Constants.size() == 512 );
-
-		/*
-			Sequences of
-			0000 OP_LOAD_SHORT
-			0001 index
-			0002 OP_POP
-			...
-			0000 OP_LOAD_LONG
-			0001 index
-			0002 index
-			0003 index
-			0004 index
-			0005 OP_POP
-		*/
 
 		ASSERT_OPCODE( 0000, OP_LD_SHORT );
 		ASSERT_OPCODE_NEXT( OP_POP );
@@ -84,7 +72,34 @@ bool Tests::TestCompiler()
 		UTEST_ASSERT( chunk->m_Code[ firstLong ] == QScript::OpCode::OP_LD_LONG );
 		UTEST_ASSERT( chunk->m_Code[ firstLong + 5 ] == QScript::OpCode::OP_POP );
 
+		opcodeOffset = 0;
 		QScript::FreeChunk( chunk );
+
+		chunk = QScript::Compile( sourceCode, QScript::OF_CONSTANT_STACKING );
+
+		UTEST_ASSERT( chunk->m_Constants.size() == 512 );
+
+		ASSERT_OPCODE_NEXT( OP_LD_SHORT );
+		ASSERT_OPCODE_NEXT( OP_POP );
+
+		firstLong = 256 * 3;
+		UTEST_ASSERT( chunk->m_Code[ firstLong ] == QScript::OpCode::OP_LD_LONG );
+		UTEST_ASSERT( chunk->m_Code[ firstLong + 5 ] == QScript::OpCode::OP_POP );
+
+		QScript::FreeChunk( chunk );
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "Constant stacking" )
+	{
+		auto chunk = QScript::Compile( TestUtils::GenerateSequence( 512, []( int iter ) {
+			return std::to_string( iter % 2 == 0 ? iter : 8000 ) + std::string( ".00;" );
+		} ), QScript::OF_CONSTANT_STACKING );
+
+		UTEST_ASSERT( chunk->m_Constants.size() == 257 );
+
+		QScript::FreeChunk( chunk );
+
 		UTEST_CASE_CLOSED();
 	}( );
 

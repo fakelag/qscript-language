@@ -38,7 +38,7 @@ namespace Compiler
 			uint32_t		m_Depth;
 		};
 
-		Assembler( QScript::Chunk_t* chunk );
+		Assembler( QScript::Chunk_t* chunk, int optimizationFlags );
 
 		QScript::Chunk_t*	CurrentChunk();
 		Local_t*			GetLocal( int local );
@@ -49,6 +49,8 @@ namespace Compiler
 		void				PushScope();
 		void				PopScope();
 
+		int					OptimizationFlags() const;
+
 	private:
 		struct Stack_t
 		{
@@ -58,5 +60,6 @@ namespace Compiler
 
 		Stack_t				m_Stack;
 		QScript::Chunk_t*	m_Chunk;
+		int					m_OptimizationFlags;
 	};
 };
