@@ -276,7 +276,7 @@ namespace Compiler
 				{
 					std::vector< BaseNode* > scopeExpressions;
 
-					while ( parserState.CurrentBuilder()->m_Token.m_Token != TOK_BRACE_RIGHT )
+					while ( !parserState.IsFinished() && parserState.CurrentBuilder()->m_Token.m_Token != TOK_BRACE_RIGHT )
 					{
 						auto headNode = nextStatement();
 
