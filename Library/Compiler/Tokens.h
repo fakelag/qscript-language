@@ -15,9 +15,10 @@ namespace Compiler
 		BP_ARITHMETIC_MULDIV		= 70,
 		BP_ARITHMETIC_POWMOD		= 80,
 		BP_INCDEC					= 90,
-		BP_OPENPAREN				= 100,
-		BP_DOT						= 110,
-		BP_TYPE						= 120,
+		BP_VAR						= 100,
+		BP_OPENPAREN				= 110,
+		BP_DOT						= 120,
+		BP_TYPE						= 130,
 	};
 
 	enum Token

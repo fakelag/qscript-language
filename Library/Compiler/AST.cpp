@@ -46,7 +46,6 @@ namespace Compiler
 		switch ( node->Id() )
 		{
 		case NODE_NAME:
-		case NODE_VAR:
 			break;
 		default:
 			throw CompilerException( "cp_invalid_assign_target", "Invalid assignment target", node->LineNr(), node->ColNr(), node->Token() );
@@ -116,6 +115,9 @@ namespace Compiler
 					EmitByte( ( options & CO_ASSIGN ) ? QScript::OpCode::OP_SL_SHORT : QScript::OpCode::OP_LL_SHORT, chunk );
 					EmitByte( ( uint8_t ) local, chunk );
 				}
+
+				if ( options & CO_ASSIGN )
+					EmitByte( QScript::OpCode::OP_POP, chunk );
 			}
 			else
 			{
@@ -153,32 +155,73 @@ namespace Compiler
 
 	void ComplexNode::Release()
 	{
-		m_Left->Release();
-		m_Right->Release();
+		if ( m_Left )
+		{
+			m_Left->Release();
+			delete m_Left;
+		}
 
-		delete m_Left;
-		delete m_Right;
+		if ( m_Right )
+		{
+			m_Right->Release();
+			delete m_Right;
+		}
 	}
 
 	void ComplexNode::Compile( Assembler& assembler, uint32_t options )
 	{
+		int start = -1;
 		auto chunk = assembler.CurrentChunk();
 
 		if ( m_NodeId == NODE_ASSIGN )
 		{
 			RequireAssignability( m_Left );
 
-			// When assigning a value, first evaluate right hand operant (value)
+			// When assigning a value, first evaluate right hand operand (value)
 			// and then set it via the left hand operand
 			m_Right->Compile( assembler, options );
 			m_Left->Compile( assembler, options | CO_ASSIGN );
+		}
+		else if ( m_NodeId == NODE_VAR )
+		{
+			// Target must be assignable
+			RequireAssignability( m_Left );
+
+			auto& varName = static_cast< ValueNode* >( m_Left )->GetValue();
+
+			if ( m_Right )
+			{
+				// Assign variable at declaration
+				m_Right->Compile( assembler, options );
+				if ( assembler.StackDepth() > 0 )
+					assembler.CreateLocal( AS_STRING( varName )->GetString() );
+				else
+					m_Left->Compile( assembler, options | CO_ASSIGN );
+			}
+			else
+			{
+				// Empty variable
+				start = chunk->m_Code.size();
+				EmitByte( QScript::OpCode::OP_PNULL, chunk );
+
+				if ( assembler.StackDepth() == 0 )
+				{
+					// Global variable
+					EmitConstant( chunk, varName, QScript::OpCode::OP_SG_SHORT, QScript::OpCode::OP_SG_LONG );
+				}
+				else
+				{
+					// Local variable
+					assembler.CreateLocal( AS_STRING( varName )->GetString() );
+				}
+			}
 		}
 		else
 		{
 			m_Left->Compile( assembler, options );
 			m_Right->Compile( assembler, options );
 
-			int start = chunk->m_Code.size();
+			start = chunk->m_Code.size();
 
 			std::map< NodeId, QScript::OpCode > singleByte ={
 				{ NODE_ADD, 			QScript::OpCode::OP_ADD },
@@ -198,9 +241,10 @@ namespace Compiler
 				EmitByte( opCode->second, chunk );
 			else
 				throw CompilerException( "cp_invalid_complex_node", "Unknown complex node: " + std::to_string( m_NodeId ), m_LineNr, m_ColNr, m_Token );
-
-			AddDebugSymbol( chunk, start, m_LineNr, m_ColNr, m_Token );
 		}
+
+		if ( start != -1 )
+			AddDebugSymbol( chunk, start, m_LineNr, m_ColNr, m_Token );
 	}
 
 	SimpleNode::SimpleNode( int lineNr, int colNr, const std::string token, NodeId id, BaseNode* node )
@@ -211,8 +255,11 @@ namespace Compiler
 
 	void SimpleNode::Release()
 	{
-		m_Node->Release();
-		delete m_Node;
+		if ( m_Node )
+		{
+			m_Node->Release();
+			delete m_Node;
+		}
 	}
 
 	void SimpleNode::Compile( Assembler& assembler, uint32_t options )
@@ -238,45 +285,7 @@ namespace Compiler
 		}
 		else
 		{
-			switch ( m_NodeId )
-			{
-			case NODE_VAR:
-			{
-				// Variables must be assignable
-				RequireAssignability( m_Node );
-				auto& varName = static_cast< ValueNode* >( m_Node )->GetValue();
-
-				// Define a variable (empty or otherwise)
-				if ( options & CO_ASSIGN )
-				{
-					if ( assembler.StackDepth() > 0 )
-						assembler.CreateLocal( AS_STRING( varName )->GetString() );
-					else
-						m_Node->Compile( assembler, options );
-				}
-				else
-				{
-					// Undefined variable
-					start = chunk->m_Code.size();
-
-					EmitByte( QScript::OpCode::OP_PNULL, chunk );
-
-					if ( assembler.StackDepth() == 0 )
-					{
-						// Global variable
-						EmitConstant( chunk, varName, QScript::OpCode::OP_SG_SHORT, QScript::OpCode::OP_SG_LONG );
-					}
-					else
-					{
-						assembler.CreateLocal( AS_STRING( varName )->GetString() );
-					}
-				}
-
-				break;
-			}
-			default:
-				throw Exception( "cp_invalid_simple_node", "Unknown simple node: " + std::to_string( m_NodeId ) );
-			}
+			throw Exception( "cp_invalid_simple_node", "Unknown simple node: " + std::to_string( m_NodeId ) );
 		}
 
 		if ( start != -1 )

@@ -187,8 +187,18 @@ namespace Compiler
 							builder->m_Token.m_LineNr, builder->m_Token.m_ColNr, builder->m_Token.m_String );
 					}
 
-					return parserState.AllocateNode< SimpleNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-						irBuilder.m_Token.m_String, NODE_VAR, varName );
+					if ( parserState.CurrentBuilder()->m_Token.m_Token == Compiler::TOK_EQUALS )
+					{
+						parserState.NextBuilder();
+
+						return parserState.AllocateNode< ComplexNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+							irBuilder.m_Token.m_String, NODE_VAR, varName, nextExpression( BP_ASSIGN ) );
+					}
+					else
+					{
+						return parserState.AllocateNode< ComplexNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+							irBuilder.m_Token.m_String, NODE_VAR, varName, ( BaseNode* ) NULL );
+					}
 				};
 				break;
 			}
