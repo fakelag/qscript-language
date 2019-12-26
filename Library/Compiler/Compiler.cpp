@@ -154,10 +154,13 @@ namespace Compiler
 	
 	int Assembler::LocalCount()
 	{
+		int count = 0;
 		for ( int i = ( int ) m_Stack.m_Locals.size() - 1; i >= 0; --i )
 		{
 			if ( m_Stack.m_Locals[ i ].m_Depth < m_Stack.m_CurrentDepth )
-				return ( int ) m_Stack.m_Locals.size() - i;
+				return count;
+
+			++count;
 		}
 
 		return m_Stack.m_Locals.size();
