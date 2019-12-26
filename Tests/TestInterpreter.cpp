@@ -88,6 +88,7 @@ bool Tests::TestInterpreter()
 
 		UTEST_ASSERT( TestUtils::RunVM( "var glob1 = 60;		\
 			var glob2 = 40;										\
+			var glob3;											\
 			{													\
 				var loc1 = glob1;								\
 				var loc2;										\
@@ -103,11 +104,72 @@ bool Tests::TestInterpreter()
 					}											\
 					loc2 = loc2 + 1;							\
 				}												\
-				return loc2;									\
-			}", &exitCode ) );
+				glob3 = loc2;									\
+			}\
+			return glob3;", &exitCode ) );
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 76.00 );
+
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "If-else clause" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "var global = 50;	\
+			var res;										\
+			if (global == 50)								\
+			{												\
+				var local = global + 20;					\
+				if (local == global)						\
+				{											\
+					return \"wrong\";						\
+				}											\
+				else										\
+				{											\
+					{										\
+						var local2 = local + 30;			\
+						res = local2;						\
+					}										\
+				}											\
+			}												\
+			else											\
+			{												\
+				return \"wrong\";							\
+			}\
+			return res;", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 100.00 );
+
+		UTEST_ASSERT( TestUtils::RunVM( "var x = 0;								\
+			if (x == 1) {														\
+				var a = \"hello \";												\
+				{																\
+					var b = a + \" hello\";										\
+					x = b * 2 + 10;												\
+					if ( x > 0 ) { x = \"unreachable unreachable\"; }			\
+					else { x = \"unreachable unreachable\"; }					\
+				}																\
+			} else {															\
+				var b = 1000;													\
+				if ( x == 0 ) {													\
+					var f = x + 10;												\
+					if ( f == 20 ) { f = f + 1; x = f; }						\
+					else { var z = f + 120; x = \"number is \" + (z + f + b); }	\
+				} else {														\
+					x = 60;														\
+					if ( 1 ) { x = 90; }										\
+					else { x = 120 * x; }										\
+				}																\
+			}																	\
+		return x;", &exitCode ) );
+
+		UTEST_ASSERT( IS_STRING( exitCode ) );
+		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "number is 1140." );
+		
+		// TODO: LONG jmp tests
 
 		UTEST_CASE_CLOSED();
 	}( );
