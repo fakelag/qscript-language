@@ -26,7 +26,7 @@ namespace Compiler
 	public:
 		ParserState()
 		{
-			m_CurrentObject = 0;
+			m_CurrentBuilder = 0;
 		}
 
 		~ParserState()
@@ -51,10 +51,10 @@ namespace Compiler
 		std::vector< IrBuilder_t* >& 		Builders()					{ return m_Builders; }
 		std::vector< CompilerException >&	Errors()					{ return m_Errors; }
 
-		bool 							IsFinished()					const { return ( size_t ) m_CurrentObject >= m_Builders.size(); }
-		bool 							IsError()						const { return m_Errors.size() > 0; }
-		IrBuilder_t*					CurrentBuilder()				const { return m_Builders[ m_CurrentObject ]; }
-		IrBuilder_t*					NextBuilder() 					{ return m_Builders[ m_CurrentObject++ ]; }
+		bool 							IsFinished()						const { return ( size_t ) m_CurrentBuilder >= m_Builders.size(); }
+		bool 							IsError()							const { return m_Errors.size() > 0; }
+		IrBuilder_t*					CurrentBuilder()					const { return m_Builders[ m_CurrentBuilder ]; }
+		IrBuilder_t*					NextBuilder() 						{ return m_Builders[ m_CurrentBuilder++ ]; }
 
 		void 							Expect( Token token, const std::string desc )
 		{
@@ -68,20 +68,34 @@ namespace Compiler
 			NextBuilder();
 		}
 
+		bool 							Match( Token token )
+		{
+			if ( IsFinished() )
+				return false;
+
+			if ( m_Builders[ m_CurrentBuilder + 1 ]->m_Token.m_Token == token )
+			{
+				NextBuilder();
+				return true;
+			}
+			
+			return false;
+		}
+
 		void							AddErrorAndResync( const CompilerException& exception )
 		{
 			m_Errors.push_back( exception );
 
 			while ( !IsFinished() )
 			{
-				switch ( m_Builders[ m_CurrentObject ]->m_Token.m_Token )
+				switch ( m_Builders[ m_CurrentBuilder ]->m_Token.m_Token )
 				{
 				case Compiler::TOK_SCOLON:
-				// case Compiler::TOK_BRACKET_CLOSE:
-					++m_CurrentObject;
+				case Compiler::TOK_BRACE_RIGHT:
+					++m_CurrentBuilder;
 					break;
 				default:
-					++m_CurrentObject;
+					++m_CurrentBuilder;
 					continue;
 				}
 
@@ -101,7 +115,7 @@ namespace Compiler
 		}
 
 	private:
-		int 								m_CurrentObject;
+		int 								m_CurrentBuilder;
 		std::vector< BaseNode* > 			m_Ast;
 		std::vector< IrBuilder_t* > 		m_Builders;
 

@@ -65,11 +65,12 @@ namespace Compiler
 
 					switch ( headNode->Id() )
 					{
-					case Compiler::NODE_SCOPE:
-					case Compiler::NODE_PRINT:
-					case Compiler::NODE_RETURN:
-					case Compiler::NODE_ASSIGN:
-					case Compiler::NODE_VAR:
+					case NODE_SCOPE:
+					case NODE_PRINT:
+					case NODE_RETURN:
+					case NODE_ASSIGN:
+					case NODE_VAR:
+					case NODE_IF:
 					{
 						isExpressionStatement = false;
 						break;
@@ -85,15 +86,30 @@ namespace Compiler
 							headNode->ColNr(), headNode->Token(), NODE_POP, headNode );
 					}
 
-					if ( headNode->Id() == Compiler::NODE_SCOPE )
+					if ( headNode->Id() == NODE_IF )
 					{
-						// Block declarations must end with a right brace
-						parserState.Expect( TOK_BRACE_RIGHT, "Expected end of block declaration" );
+						auto currentToken = parserState.CurrentBuilder()->m_Token.m_Token;
+						if ( currentToken != TOK_BRACE_RIGHT && currentToken != TOK_SCOLON )
+						{
+							auto builder = parserState.CurrentBuilder();
+							throw CompilerException( "ir_expect", "Expected end of if-statement", builder->m_Token.m_LineNr,
+								builder->m_Token.m_ColNr, builder->m_Token.m_String );
+						}
+
+						parserState.NextBuilder();
 					}
 					else
 					{
-						// Expression statements must end with a semicolon
-						parserState.Expect( TOK_SCOLON, "Expected end of expression" );
+						if ( headNode->Id() == NODE_SCOPE )
+						{
+							// Block declarations must end with a right brace
+							parserState.Expect( TOK_BRACE_RIGHT, "Expected end of block declaration" );
+						}
+						else
+						{
+							// Expression statements must end with a semicolon
+							parserState.Expect( TOK_SCOLON, "Expected end of expression" );
+						}
 					}
 				}
 
@@ -114,12 +130,12 @@ namespace Compiler
 
 			switch ( token.m_Token )
 			{
-			case Compiler::TOK_NULL:
-			case Compiler::TOK_FALSE:
-			case Compiler::TOK_TRUE:
-			case Compiler::TOK_DBL:
-			case Compiler::TOK_INT:
-			case Compiler::TOK_STR:
+			case TOK_NULL:
+			case TOK_FALSE:
+			case TOK_TRUE:
+			case TOK_DBL:
+			case TOK_INT:
+			case TOK_STR:
 			{
 				builder->m_Nud = [ &parserState ]( const IrBuilder_t& irBuilder )
 				{
@@ -127,22 +143,22 @@ namespace Compiler
 
 					switch ( irBuilder.m_Token.m_Token )
 					{
-						case Compiler::TOK_STR:
+						case TOK_STR:
 							value.From( MAKE_STRING( irBuilder.m_Token.m_String ) );
 							break;
-						case Compiler::TOK_INT:
+						case TOK_INT:
 							value.From( MAKE_NUMBER( ( double ) std::stoi( irBuilder.m_Token.m_String ) ) );
 							break;
-						case Compiler::TOK_DBL:
+						case TOK_DBL:
 							value.From( MAKE_NUMBER( std::stod( irBuilder.m_Token.m_String ) ) );
 							break;
-						case Compiler::TOK_NULL:
+						case TOK_NULL:
 							value.From( MAKE_NULL );
 							break;
-						case Compiler::TOK_FALSE:
+						case TOK_FALSE:
 							value.From( MAKE_BOOL( false ) );
 							break;
-						case Compiler::TOK_TRUE:
+						case TOK_TRUE:
 							value.From( MAKE_BOOL( true ) );
 							break;
 						default:
@@ -157,7 +173,7 @@ namespace Compiler
 				};
 				break;
 			}
-			case Compiler::TOK_NAME:
+			case TOK_NAME:
 			{
 				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder ) -> BaseNode*
 				{
@@ -174,7 +190,7 @@ namespace Compiler
 				};
 				break;
 			}
-			case Compiler::TOK_VAR:
+			case TOK_VAR:
 			{
 				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder )
 				{
@@ -187,7 +203,7 @@ namespace Compiler
 							builder->m_Token.m_LineNr, builder->m_Token.m_ColNr, builder->m_Token.m_String );
 					}
 
-					if ( parserState.CurrentBuilder()->m_Token.m_Token == Compiler::TOK_EQUALS )
+					if ( parserState.CurrentBuilder()->m_Token.m_Token == TOK_EQUALS )
 					{
 						parserState.NextBuilder();
 
@@ -202,7 +218,7 @@ namespace Compiler
 				};
 				break;
 			}
-			case Compiler::TOK_BANG:
+			case TOK_BANG:
 			{
 				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder )
 				{
@@ -211,7 +227,7 @@ namespace Compiler
 				};
 				break;
 			}
-			case Compiler::TOK_MINUS:
+			case TOK_MINUS:
 			{
 				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder )
 				{
@@ -220,17 +236,17 @@ namespace Compiler
 				};
 				/* Fall Through */
 			}
-			case Compiler::TOK_PLUS:
-			case Compiler::TOK_SLASH:
-			case Compiler::TOK_STAR:
+			case TOK_PLUS:
+			case TOK_SLASH:
+			case TOK_STAR:
 			{
 				builder->m_Led = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder, BaseNode* left )
 				{
-					std::map<Compiler::Token, Compiler::NodeId> map = {
-						{ Compiler::TOK_MINUS, 	Compiler::NODE_SUB },
-						{ Compiler::TOK_STAR, 	Compiler::NODE_MUL },
-						{ Compiler::TOK_SLASH, 	Compiler::NODE_DIV },
-						{ Compiler::TOK_PLUS, 	Compiler::NODE_ADD },
+					std::map<Token, NodeId> map = {
+						{ TOK_MINUS, 	NODE_SUB },
+						{ TOK_STAR, 	NODE_MUL },
+						{ TOK_SLASH, 	NODE_DIV },
+						{ TOK_PLUS, 	NODE_ADD },
 					};
 
 					return parserState.AllocateNode< ComplexNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
@@ -238,7 +254,7 @@ namespace Compiler
 				};
 				break;
 			}
-			case Compiler::TOK_EQUALS:
+			case TOK_EQUALS:
 			{
 				builder->m_Led = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder, BaseNode* left )
 				{
@@ -247,22 +263,22 @@ namespace Compiler
 				};
 				break;
 			}
-			case Compiler::TOK_NOTEQUALS:
-			case Compiler::TOK_2EQUALS:
-			case Compiler::TOK_GREATERTHAN:
-			case Compiler::TOK_GREATEREQUAL:
-			case Compiler::TOK_LESSTHAN:
-			case Compiler::TOK_LESSEQUAL:
+			case TOK_NOTEQUALS:
+			case TOK_2EQUALS:
+			case TOK_GREATERTHAN:
+			case TOK_GREATEREQUAL:
+			case TOK_LESSTHAN:
+			case TOK_LESSEQUAL:
 			{
 				builder->m_Led = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder, BaseNode* left )
 				{
-					std::map<Compiler::Token, Compiler::NodeId> map = {
-						{ Compiler::TOK_2EQUALS, 		Compiler::NODE_EQUALS },
-						{ Compiler::TOK_NOTEQUALS, 		Compiler::NODE_NOTEQUALS },
-						{ Compiler::TOK_GREATERTHAN, 	Compiler::NODE_GREATERTHAN },
-						{ Compiler::TOK_GREATEREQUAL, 	Compiler::NODE_GREATEREQUAL },
-						{ Compiler::TOK_LESSTHAN, 		Compiler::NODE_LESSTHAN },
-						{ Compiler::TOK_LESSEQUAL, 		Compiler::NODE_LESSEQUAL },
+					std::map<Token, NodeId> map = {
+						{ TOK_2EQUALS, 		NODE_EQUALS },
+						{ TOK_NOTEQUALS, 		NODE_NOTEQUALS },
+						{ TOK_GREATERTHAN, 	NODE_GREATERTHAN },
+						{ TOK_GREATEREQUAL, 	NODE_GREATEREQUAL },
+						{ TOK_LESSTHAN, 		NODE_LESSTHAN },
+						{ TOK_LESSEQUAL, 		NODE_LESSEQUAL },
 					};
 
 					return parserState.AllocateNode< ComplexNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
@@ -270,7 +286,44 @@ namespace Compiler
 				};
 				break;
 			}
-			case Compiler::TOK_BRACE_LEFT:
+			case TOK_IF:
+			{
+				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder ) -> BaseNode*
+				{
+					std::vector< BaseNode* > chain;
+
+					// condition
+					chain.push_back( nextExpression() );
+
+					auto body = nextExpression();
+					if ( body->Id() != NODE_SCOPE )
+					{
+						body = parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+							irBuilder.m_Token.m_String, NODE_SCOPE, std::vector< BaseNode* >{ body } );
+					}
+					
+					chain.push_back( body );
+
+					// optional else block
+					if ( parserState.Match( TOK_ELSE ) )
+						chain.push_back( nextExpression() );
+					else
+						chain.push_back( NULL );
+
+					return parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+						irBuilder.m_Token.m_String, NODE_IF, chain );
+				};
+				break;
+			}
+			case TOK_ELSE:
+			{
+				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder ) -> BaseNode*
+				{
+					return nextExpression();
+				};
+				break;
+			}
+			case TOK_BRACE_LEFT:
 			{
 				builder->m_Nud = [ &parserState, &nextStatement ]( const IrBuilder_t& irBuilder ) -> BaseNode*
 				{
@@ -289,11 +342,11 @@ namespace Compiler
 				};
 				break;
 			}
-			case Compiler::TOK_BRACE_RIGHT:
-			case Compiler::TOK_RPAREN:
-			case Compiler::TOK_SCOLON:
+			case TOK_BRACE_RIGHT:
+			case TOK_RPAREN:
+			case TOK_SCOLON:
 				break;
-			case Compiler::TOK_LPAREN:
+			case TOK_LPAREN:
 			{
 				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder )
 				{
@@ -301,7 +354,7 @@ namespace Compiler
 
 					auto expression = nextExpression();
 
-					if ( parserState.NextBuilder()->m_Token.m_Token != Compiler::TOK_RPAREN )
+					if ( parserState.NextBuilder()->m_Token.m_Token != TOK_RPAREN )
 					{
 						auto curBuilder = parserState.CurrentBuilder();
 						throw Exception( "ir_missing_rparen",
@@ -312,7 +365,7 @@ namespace Compiler
 				};
 				break;
 			}
-			case Compiler::TOK_RETURN:
+			case TOK_RETURN:
 			{
 				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder )
 				{

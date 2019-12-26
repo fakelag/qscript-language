@@ -28,6 +28,9 @@ namespace Compiler
 		{ TOK_LESSTHAN, 	{ TOK_LESSTHAN, 	"<", 		BP_EQUALITY, 				false } },
 		{ TOK_LESSEQUAL,	{ TOK_LESSEQUAL, 	"<=", 		BP_EQUALITY, 				false } },
 
+		{ TOK_AND,			{ TOK_AND, 			"&&", 		BP_LOGIC, 					false } },
+		{ TOK_OR,			{ TOK_OR, 			"||", 		BP_LOGIC, 					false } },
+
 		{ TOK_LPAREN,		{ TOK_LPAREN, 		"(", 		BP_OPENPAREN,				false } },
 		{ TOK_RPAREN,		{ TOK_RPAREN, 		")", 		BP_NONE,					false } },
 
@@ -36,6 +39,8 @@ namespace Compiler
 		{ TOK_BRACE_LEFT, 	{ TOK_BRACE_LEFT, 	"{", 		BP_NONE,					false } },
 		{ TOK_BRACE_RIGHT, 	{ TOK_BRACE_RIGHT, 	"}", 		BP_NONE,					false } },
 
+		{ TOK_IF,			{ TOK_IF,			"if",		BP_NONE,					true } },
+		{ TOK_ELSE,			{ TOK_ELSE,			"else",		BP_NONE,					true } },
 		{ TOK_TRUE,			{ TOK_TRUE, 		"true", 	BP_NONE,					true } },
 		{ TOK_FALSE,		{ TOK_FALSE, 		"false", 	BP_NONE,					true } },
 		{ TOK_NULL,			{ TOK_NULL, 		"null", 	BP_NONE,					true } },
