@@ -60,6 +60,40 @@ namespace Compiler
 		}
 	}
 
+	uint32_t PlaceJump( QScript::Chunk_t* chunk, uint32_t from, uint32_t size, QScript::OpCode shortOpCode, QScript::OpCode longOpCode )
+	{
+		bool isLong = size > 255;
+		short patchSize = isLong ? 5 : 2;
+
+		std::vector< uint8_t > body;
+		body.insert( body.begin(), chunk->m_Code.begin() + from, chunk->m_Code.end() );
+
+		// Append patchSize additional bytes for jump
+		chunk->m_Code.resize( chunk->m_Code.size() + patchSize, 0xFF );
+
+		// Move body by patchSize
+		for ( size_t i = 0; i < body.size(); ++i )
+			chunk->m_Code[ from + i + patchSize ] = body[ i ];
+
+		if ( isLong )
+		{
+			// Write long jump
+			chunk->m_Code[ from ] = longOpCode;
+			chunk->m_Code[ from + 1 ] = ENCODE_LONG( size, 0 );
+			chunk->m_Code[ from + 2 ] = ENCODE_LONG( size, 1 );
+			chunk->m_Code[ from + 3 ] = ENCODE_LONG( size, 2 );
+			chunk->m_Code[ from + 4 ] = ENCODE_LONG( size, 3 );
+		}
+		else
+		{
+			// Patch single-byte jump
+			chunk->m_Code[ from ] = shortOpCode;
+			chunk->m_Code[ from + 1 ] = ( uint8_t ) size;
+		}
+
+		return patchSize;
+	}
+
 	void RequireAssignability( BaseNode* node )
 	{
 		switch ( node->Id() )
@@ -192,7 +226,9 @@ namespace Compiler
 		int start = -1;
 		auto chunk = assembler.CurrentChunk();
 
-		if ( m_NodeId == NODE_ASSIGN )
+		switch ( m_NodeId )
+		{
+		case NODE_ASSIGN:
 		{
 			RequireAssignability( m_Left );
 
@@ -200,8 +236,9 @@ namespace Compiler
 			// and then set it via the left hand operand
 			m_Right->Compile( assembler, options );
 			m_Left->Compile( assembler, options | CO_ASSIGN );
+			break;
 		}
-		else if ( m_NodeId == NODE_VAR )
+		case NODE_VAR:
 		{
 			// Target must be assignable
 			RequireAssignability( m_Left );
@@ -234,8 +271,9 @@ namespace Compiler
 					assembler.CreateLocal( AS_STRING( varName )->GetString() );
 				}
 			}
+			break;
 		}
-		else
+		default:
 		{
 			m_Left->Compile( assembler, options );
 			m_Right->Compile( assembler, options );
@@ -260,6 +298,9 @@ namespace Compiler
 				EmitByte( opCode->second, chunk );
 			else
 				throw CompilerException( "cp_invalid_complex_node", "Unknown complex node: " + std::to_string( m_NodeId ), m_LineNr, m_ColNr, m_Token );
+
+			break;
+		}
 		}
 
 		if ( start != -1 )
@@ -321,8 +362,11 @@ namespace Compiler
 	{
 		for ( auto node : m_NodeList )
 		{
-			node->Release();
-			delete node;
+			if ( node )
+			{
+				node->Release();
+				delete node;
+			}
 		}
 
 		m_NodeList.clear();
@@ -330,19 +374,66 @@ namespace Compiler
 
 	void ListNode::Compile( Assembler& assembler, uint32_t options )
 	{
-		if ( m_NodeId == NODE_SCOPE )
-			assembler.PushScope();
+		auto chunk = assembler.CurrentChunk();
+		int start = chunk->m_Code.size();
 
-		for ( auto node : m_NodeList )
-			node->Compile( assembler, options );
-
-		if ( m_NodeId == NODE_SCOPE )
+		switch ( m_NodeId )
 		{
-			// Clear stack
-			for ( int i = assembler.LocalCount() - 1; i >= 0; --i )
-				EmitByte( QScript::OpCode::OP_POP, assembler.CurrentChunk() );
+		case NODE_IF:
+		{
+			// Compile condition, now the result is at the top of the stack
+			m_NodeList[ 0 ]->Compile( assembler, options );
 
-			assembler.PopScope();
+			// Address of the next instruction from the jump
+			uint32_t thenBodyBegin = chunk->m_Code.size();
+
+			// Pop condition value off stack
+			EmitByte( QScript::OpCode::OP_POP, chunk );
+
+			// Compile body
+			m_NodeList[ 1 ]->Compile( assembler, options );
+
+			uint32_t elseBodyBegin = chunk->m_Code.size();
+
+			// Pop condition value off stack
+			EmitByte( QScript::OpCode::OP_POP, chunk );
+
+			// Compile optional else-branch
+			if ( m_NodeList[ 2 ] )
+				m_NodeList[ 2 ]->Compile( assembler, options );
+
+			uint32_t elseBodyEnd = chunk->m_Code.size();
+
+			// Jump over else branch
+			elseBodyBegin += PlaceJump( chunk, elseBodyBegin, elseBodyEnd - elseBodyBegin, QScript::OpCode::OP_JMP_SHORT, QScript::OpCode::OP_JMP_LONG );
+
+			// Create jump instruction
+			PlaceJump( chunk, thenBodyBegin, elseBodyBegin - thenBodyBegin, QScript::OpCode::OP_JZ_SHORT, QScript::OpCode::OP_JZ_LONG );
+			break;
 		}
+		case NODE_SCOPE:
+		{
+			if ( m_NodeId == NODE_SCOPE )
+				assembler.PushScope();
+
+			for ( auto node : m_NodeList )
+				node->Compile( assembler, options );
+
+			if ( m_NodeId == NODE_SCOPE )
+			{
+				// Clear stack
+				for ( int i = assembler.LocalCount() - 1; i >= 0; --i )
+					EmitByte( QScript::OpCode::OP_POP, assembler.CurrentChunk() );
+
+				assembler.PopScope();
+			}
+
+			break;
+		}
+		default:
+			throw Exception( "cp_invalid_list_node", "Unknown list node: " + std::to_string( m_NodeId ) );
+		}
+
+		AddDebugSymbol( chunk, start, m_LineNr, m_ColNr, m_Token );
 	}
 }
