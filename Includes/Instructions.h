@@ -11,6 +11,10 @@ namespace QScript
 		OP_SL_LONG,		// Set Local Long
 		OP_GT,			// Greater Than
 		OP_GTE,			// Greater Than or Equal
+		OP_JMP_SHORT,	// Jump Short
+		OP_JMP_LONG,	// Jump Long
+		OP_JZ_SHORT,	// Jump if Zero Short
+		OP_JZ_LONG,		// Jump if Zero Long
 		OP_LD_LONG,		// Load Long
 		OP_LD_SHORT,	// Load Short
 		OP_LG_LONG,		// Load Global Long

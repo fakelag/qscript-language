@@ -88,6 +88,44 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, int offset,
 	break; \
 }
 
+#define INST_LONG( inst, name ) case QScript::OpCode::inst: { \
+	uint32_t value = DECODE_LONG( chunk.m_Code[ offset + 1 ], chunk.m_Code[ offset + 2 ], chunk.m_Code[ offset + 3 ], chunk.m_Code[ offset + 4 ] ); \
+	instString = name + std::string( " " ) \
+		+ std::to_string( value ) \
+		+ " (LONG)"; \
+	instOffset = offset + InstructionSize( QScript::OpCode::inst ); \
+	break; \
+}
+
+#define INST_SHORT( inst, name ) case QScript::OpCode::inst: { \
+	uint8_t value = chunk.m_Code[ offset + 1 ]; \
+	instString = name + std::string( " " ) \
+		+ std::to_string( value ) \
+		+ " (SHORT)"; \
+	instOffset = offset + InstructionSize( QScript::OpCode::inst ); \
+	break; \
+}
+
+#define JMP_INST_LONG( inst, name ) case QScript::OpCode::inst: { \
+	uint32_t value = DECODE_LONG( chunk.m_Code[ offset + 1 ], chunk.m_Code[ offset + 2 ], chunk.m_Code[ offset + 3 ], chunk.m_Code[ offset + 4 ] ); \
+	instString = name + std::string( " " ) \
+		+ std::to_string( value ) \
+		+ " [to " + std::to_string( offset + 5 + value ) + "]" \
+		+ " (LONG)"; \
+	instOffset = offset + InstructionSize( QScript::OpCode::inst ); \
+	break; \
+}
+
+#define JMP_INST_SHORT( inst, name ) case QScript::OpCode::inst: { \
+	uint8_t value = chunk.m_Code[ offset + 1 ]; \
+	instString = name + std::string( " " ) \
+		+ std::to_string( value ) \
+		+ " [to " + std::to_string( offset + 2 + value ) + "]" \
+		+ " (SHORT)"; \
+	instOffset = offset + InstructionSize( QScript::OpCode::inst ); \
+	break; \
+}
+
 	// Print offset with 3 leading zeros
 	std::cout << std::setfill( '0' ) << std::setw( 4 ) << offset << " "
 		<< std::setw( 0 ) << std::setfill( ' ' );
@@ -111,6 +149,14 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, int offset,
 	CNST_INST_LONG( OP_SG_LONG, "SG" );
 	CNST_INST_SHORT( OP_LG_SHORT, "LG" );
 	CNST_INST_LONG( OP_LG_LONG, "LG" );
+	INST_SHORT( OP_LL_SHORT, "LL" );
+	INST_LONG( OP_LL_LONG, "LL" );
+	INST_SHORT( OP_SL_SHORT, "SL" );
+	INST_LONG( OP_SL_LONG, "SL" );
+	JMP_INST_SHORT( OP_JZ_SHORT, "JZ" );
+	JMP_INST_LONG( OP_JZ_LONG, "JZ" );
+	JMP_INST_SHORT( OP_JMP_SHORT, "JMP" );
+	JMP_INST_LONG( OP_JMP_LONG, "JMP" );
 	SIMPLE_INST( OP_ADD, "ADD" );
 	SIMPLE_INST( OP_SUB, "SUB" );
 	SIMPLE_INST( OP_DIV, "DIV" );
@@ -127,52 +173,6 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, int offset,
 	SIMPLE_INST( OP_PRINT, "PRINT" );
 	SIMPLE_INST( OP_POP, "POP" );
 	SIMPLE_INST( OP_PNULL, "PNULL" );
-	case QScript::OpCode::OP_LL_SHORT:
-	{
-		uint8_t stackOffset = chunk.m_Code[ offset + 1 ];
-
-		instString = "LL" + std::string( " " )
-			+ std::to_string( stackOffset )
-			+ " (SHORT)";
-
-		instOffset = offset + InstructionSize( chunk.m_Code[ offset ] );
-		break;
-	}
-	case QScript::OpCode::OP_LL_LONG:
-	{
-		uint32_t stackOffset = DECODE_LONG( chunk.m_Code[ offset + 1 ], chunk.m_Code[ offset + 2 ],
-			chunk.m_Code[ offset + 3 ], chunk.m_Code[ offset + 4 ] );
-
-		instString = "LL" + std::string( " " )
-			+ std::to_string( stackOffset )
-			+ " (LONG)";
-
-		instOffset = offset + InstructionSize( chunk.m_Code[ offset ] );
-		break;
-	}
-	case QScript::OpCode::OP_SL_SHORT:
-	{
-		uint8_t stackOffset = chunk.m_Code[ offset + 1 ];
-
-		instString = "SL" + std::string( " " )
-			+ std::to_string( stackOffset )
-			+ " (SHORT)";
-
-		instOffset = offset + InstructionSize( chunk.m_Code[ offset ] );
-		break;
-	}
-	case QScript::OpCode::OP_SL_LONG:
-	{
-		uint32_t stackOffset = DECODE_LONG( chunk.m_Code[ offset + 1 ], chunk.m_Code[ offset + 2 ],
-			chunk.m_Code[ offset + 3 ], chunk.m_Code[ offset + 4 ] );
-
-		instString = "SL" + std::string( " " )
-			+ std::to_string( stackOffset )
-			+ " (LONG)";
-
-		instOffset = offset + InstructionSize( chunk.m_Code[ offset ] );
-		break;
-	}
 	default:
 		std::cout << "Unknown opcode: " << chunk.m_Code[ offset ] << std::endl;
 		instOffset = offset + 1;
@@ -187,6 +187,10 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, int offset,
 #undef SIMPLE_INST
 #undef CNST_INST_LONG
 #undef CNST_INST_SHORT
+#undef INST_LONG
+#undef INST_SHORT
+#undef JMP_INST_SHORT
+#undef JMP_INST_LONG
 	return instOffset;
 }
 
@@ -204,6 +208,10 @@ int Compiler::InstructionSize( uint8_t inst )
 	case QScript::OpCode::OP_LL_LONG: return 5;
 	case QScript::OpCode::OP_SL_SHORT: return 2;
 	case QScript::OpCode::OP_SL_LONG: return 5;
+	case QScript::OpCode::OP_JZ_SHORT: return 2;
+	case QScript::OpCode::OP_JZ_LONG: return 5;
+	case QScript::OpCode::OP_JMP_SHORT: return 2;
+	case QScript::OpCode::OP_JMP_LONG: return 5;
 	case QScript::OpCode::OP_ADD: return 1;
 	case QScript::OpCode::OP_SUB: return 1;
 	case QScript::OpCode::OP_DIV: return 1;
