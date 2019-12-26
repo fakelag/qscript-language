@@ -163,6 +163,27 @@ namespace QVM
 				vm.m_Stack[ constant ].From( vm.Peek( 0 ) );
 				break;
 			}
+			case QScript::OP_JMP_SHORT: vm.m_IP += READ_BYTE( vm ); break;
+			case QScript::OP_JMP_LONG:
+			{
+				READ_CONST_LONG( vm, offset );
+				vm.m_IP += offset;
+				break;
+			}
+			case QScript::OP_JZ_SHORT:
+			{
+				auto offset = READ_BYTE( vm );
+				if ( ( bool ) ( vm.Peek( 0 ) ) == false )
+					vm.m_IP += offset;
+				break;
+			}
+			case QScript::OP_JZ_LONG:
+			{
+				READ_CONST_LONG( vm, offset );
+				if ( ( bool ) ( vm.Peek( 0 ) ) == false )
+					vm.m_IP += offset;
+				break;
+			}
 			case QScript::OP_NOT:
 			{
 				auto value = vm.Pop();
@@ -227,7 +248,10 @@ namespace QVM
 				std::cout << "Exit: " << Compiler::ValueToString( exitCode ) << std::endl;
 				return exitCode;
 #else
-				return vm.m_StackTop - vm.m_Stack > 0 ? vm.Pop() : MAKE_NULL;
+				QScript::Value exitCode;
+				exitCode.From( vm.m_StackTop - vm.m_Stack > 0 ? vm.Pop() : MAKE_NULL );
+
+				return exitCode;
 #endif
 			}
 			default:
