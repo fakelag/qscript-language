@@ -6,13 +6,18 @@
 #include "../Compiler/Compiler.h"
 
 #define READ_BYTE( vm ) (*vm.m_IP++)
-#define READ_CONST_SHORT( vm ) (vm.m_Chunk->m_Constants[ READ_BYTE( vm ) ])
-#define READ_CONST_LONG( vm, constant ) QScript::Value constant; { \
+#define READ_LONG( vm, out ) uint32_t out; { \
 	auto a = READ_BYTE( vm ); \
 	auto b = READ_BYTE( vm ); \
 	auto c = READ_BYTE( vm ); \
 	auto d = READ_BYTE( vm ); \
-	constant.From( vm.m_Chunk->m_Constants[ DECODE_LONG( a, b, c, d ) ] ); \
+	out = DECODE_LONG( a, b, c, d ); \
+}
+
+#define READ_CONST_SHORT( vm ) (vm.m_Chunk->m_Constants[ READ_BYTE( vm ) ])
+#define READ_CONST_LONG( vm, constant ) QScript::Value constant; { \
+	READ_LONG( vm, cnstIndex ); \
+	constant.From( vm.m_Chunk->m_Constants[ cnstIndex ] ); \
 }
 #define BINARY_OP( op, require ) { \
 	auto b = vm.Pop(); auto a = vm.Pop(); \
@@ -152,21 +157,21 @@ namespace QVM
 			case QScript::OP_LL_SHORT: vm.Push( vm.m_Stack[ READ_BYTE( vm ) ] ); break;
 			case QScript::OP_LL_LONG:
 			{
-				READ_CONST_LONG( vm, constant );
-				vm.Push( vm.m_Stack[ constant ] );
+				READ_LONG( vm, offset );
+				vm.Push( vm.m_Stack[ offset ] );
 				break;
 			}
 			case QScript::OP_SL_SHORT: vm.m_Stack[ READ_BYTE( vm ) ].From( vm.Peek( 0 ) ); break;
 			case QScript::OP_SL_LONG:
 			{
-				READ_CONST_LONG( vm, constant );
-				vm.m_Stack[ constant ].From( vm.Peek( 0 ) );
+				READ_LONG( vm, offset );
+				vm.m_Stack[ offset ].From( vm.Peek( 0 ) );
 				break;
 			}
 			case QScript::OP_JMP_SHORT: vm.m_IP += READ_BYTE( vm ); break;
 			case QScript::OP_JMP_LONG:
 			{
-				READ_CONST_LONG( vm, offset );
+				READ_LONG( vm, offset );
 				vm.m_IP += offset;
 				break;
 			}
@@ -179,7 +184,7 @@ namespace QVM
 			}
 			case QScript::OP_JZ_LONG:
 			{
-				READ_CONST_LONG( vm, offset );
+				READ_LONG( vm, offset );
 				if ( ( bool ) ( vm.Peek( 0 ) ) == false )
 					vm.m_IP += offset;
 				break;
