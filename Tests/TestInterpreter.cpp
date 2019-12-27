@@ -168,8 +168,32 @@ bool Tests::TestInterpreter()
 
 		UTEST_ASSERT( IS_STRING( exitCode ) );
 		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "number is 1140." );
-		
-		// TODO: LONG jmp tests
+
+		UTEST_ASSERT( TestUtils::RunVM( "var x = 0;								\
+			if (x) { x = 1; }													\
+			else if (0) { x = 2; }												\
+			else if (x == 1) { x = 3; }											\
+			else if (x == 0) { x = 4; }											\
+			else if (x == 0) { x = 5; }											\
+			else { x = 6; }														\
+		return x;", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 4 );
+
+		// Generate a body of more than 255 instructions
+		auto largeBodyOfCode = TestUtils::GenerateSequence( 1024, []( int iter ) {
+			return "_tmp = _tmp+" + std::to_string( iter ) + std::string( ".00;" );
+		}, "var _tmp = 0;" );
+
+		UTEST_ASSERT( TestUtils::RunVM( "var x = 0;								\
+				if (x) { " + largeBodyOfCode + " }								\
+				else if (x == 1) { " + largeBodyOfCode + " }					\
+				else { " + largeBodyOfCode + " x = 42; }						\
+			return x;", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 42 );
 
 		UTEST_CASE_CLOSED();
 	}( );

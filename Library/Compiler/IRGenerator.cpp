@@ -273,9 +273,9 @@ namespace Compiler
 				builder->m_Led = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder, BaseNode* left )
 				{
 					std::map<Token, NodeId> map = {
-						{ TOK_2EQUALS, 		NODE_EQUALS },
+						{ TOK_2EQUALS, 			NODE_EQUALS },
 						{ TOK_NOTEQUALS, 		NODE_NOTEQUALS },
-						{ TOK_GREATERTHAN, 	NODE_GREATERTHAN },
+						{ TOK_GREATERTHAN, 		NODE_GREATERTHAN },
 						{ TOK_GREATEREQUAL, 	NODE_GREATEREQUAL },
 						{ TOK_LESSTHAN, 		NODE_LESSTHAN },
 						{ TOK_LESSEQUAL, 		NODE_LESSEQUAL },
