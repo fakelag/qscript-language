@@ -124,11 +124,12 @@ namespace Compiler
 		};
 
 		auto pushKeyword = [ &languageSymbols, &results, &currentLineNr,
-			&currentColNr, &pushToken, &stringBuffer, &isInteger ]( std::string pattern ) -> int {
+			&currentColNr, &pushToken, &stringBuffer, &isInteger ]( std::string pattern ) -> int
+		{
 			// Iterate all the commons
 			for ( auto symIt = languageSymbols.cbegin(); symIt != languageSymbols.cend(); ++symIt )
 			{
-				if ( symIt->m_String == pattern.substr( symIt->m_IsWord ? 0 : stringBuffer.length(), symIt->m_String.length() ) )
+				if ( pattern.compare( symIt->m_IsWord ? 0 : stringBuffer.length(), symIt->m_String.length(), symIt->m_String ) == 0 )
 				{
 					if ( symIt->m_String == "." && isInteger( stringBuffer ) )
 						return 0;
