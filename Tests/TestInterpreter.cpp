@@ -179,7 +179,7 @@ bool Tests::TestInterpreter()
 		return x;", &exitCode ) );
 
 		UTEST_ASSERT( IS_STRING( exitCode ) );
-		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "number is 1140." );
+		UTEST_ASSERT( AS_STRING( exitCode )->GetString().compare( 0, 15, "number is 1140." ) == 0 );
 
 		UTEST_ASSERT( TestUtils::RunVM( "var x = 0;								\
 			if (x) { x = 1; }													\
@@ -206,6 +206,25 @@ bool Tests::TestInterpreter()
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 42 );
+
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "And / Or operators" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "var g1 = 1; var g2;			\
+			{															\
+				var l2 = g1 || g1 + 100;								\
+				var l3 = g1 && g1 + 200;								\
+				var l4 = (l2 || l3) && l2;								\
+				if (l4 == 1) l2 = 50;									\
+				g2 = l2 + l3;											\
+			}															\
+			return g2;", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 251 );
 
 		UTEST_CASE_CLOSED();
 	}( );
