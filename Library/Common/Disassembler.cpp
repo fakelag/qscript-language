@@ -5,15 +5,27 @@
 #include "../Compiler/Compiler.h"
 #include "../Runtime/QVM.h"
 
-bool FindDebugSymbol( const QScript::Chunk_t& chunk, int offset, QScript::Chunk_t::Debug_t* out )
+bool FindDebugSymbol( const QScript::Chunk_t& chunk, uint32_t offset, QScript::Chunk_t::Debug_t* out )
 {
+	bool found = false;
+	QScript::Chunk_t::Debug_t symbol;
+
 	for ( auto entry : chunk.m_Debug )
 	{
 		if ( entry.m_To > offset && entry.m_From <= offset )
 		{
-			*out = entry;
-			return true;
+			if ( found && symbol.m_To - symbol.m_From < entry.m_To - entry.m_From )
+				continue;
+
+			symbol = entry;
+			found = true;
 		}
+	}
+
+	if ( found )
+	{
+		*out = symbol;
+		return true;
 	}
 
 	return false;
@@ -59,7 +71,7 @@ void Compiler::DisassembleChunk( const QScript::Chunk_t& chunk, const std::strin
 		offset = DisassembleInstruction( chunk, offset, offset == ip );
 }
 
-int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, int offset, bool isIp )
+int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32_t offset, bool isIp )
 {
 #define SIMPLE_INST( inst, name ) case QScript::OpCode::inst: {\
 	instString = name; \

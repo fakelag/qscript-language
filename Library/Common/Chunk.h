@@ -7,8 +7,8 @@ namespace QScript
 	{
 		struct Debug_t
 		{
-			int 				m_From;
-			int 				m_To;
+			uint32_t 			m_From;
+			uint32_t 			m_To;
 			int 				m_Line;
 			int 				m_Column;
 			std::string 		m_Token;

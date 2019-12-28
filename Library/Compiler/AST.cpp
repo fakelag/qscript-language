@@ -6,14 +6,14 @@
 
 namespace Compiler
 {
-	void AddDebugSymbol( QScript::Chunk_t* chunk, int start, int lineNr, int colNr, const std::string token )
+	void AddDebugSymbol( QScript::Chunk_t* chunk, uint32_t start, int lineNr, int colNr, const std::string token )
 	{
 		if ( lineNr == -1 )
 			return;
 
 		chunk->m_Debug.push_back( QScript::Chunk_t::Debug_t{
 			start,
-			( int ) chunk->m_Code.size(),
+			( uint32_t ) chunk->m_Code.size(),
 			lineNr,
 			colNr,
 			token,
@@ -89,6 +89,16 @@ namespace Compiler
 			// Patch single-byte jump
 			chunk->m_Code[ from ] = shortOpCode;
 			chunk->m_Code[ from + 1 ] = ( uint8_t ) size;
+		}
+
+		// Fix up debugging info
+		for ( auto& symbol : chunk->m_Debug )
+		{
+			if ( symbol.m_From > from )
+				symbol.m_From += patchSize;
+
+			if ( symbol.m_To > from )
+				symbol.m_To += patchSize;
 		}
 
 		return patchSize;
