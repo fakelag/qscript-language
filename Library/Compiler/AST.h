@@ -17,6 +17,7 @@ namespace Compiler
 	{
 		NODE_INVALID = -1,
 		NODE_ADD,
+		NODE_AND,
 		NODE_ASSIGN,
 		NODE_CONSTANT,
 		NODE_DIV,
@@ -31,6 +32,7 @@ namespace Compiler
 		NODE_NEG,
 		NODE_NOT,
 		NODE_NOTEQUALS,
+		NODE_OR,
 		NODE_POP,
 		NODE_PRINT,
 		NODE_RETURN,

@@ -269,6 +269,8 @@ namespace Compiler
 			case TOK_GREATEREQUAL:
 			case TOK_LESSTHAN:
 			case TOK_LESSEQUAL:
+			case TOK_AND:
+			case TOK_OR:
 			{
 				builder->m_Led = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder, BaseNode* left )
 				{
@@ -279,6 +281,8 @@ namespace Compiler
 						{ TOK_GREATEREQUAL, 	NODE_GREATEREQUAL },
 						{ TOK_LESSTHAN, 		NODE_LESSTHAN },
 						{ TOK_LESSEQUAL, 		NODE_LESSEQUAL },
+						{ TOK_AND, 				NODE_AND },
+						{ TOK_OR, 				NODE_OR },
 					};
 
 					return parserState.AllocateNode< ComplexNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,

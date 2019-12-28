@@ -135,7 +135,7 @@ namespace Compiler
 
 		// Call CompileXXX functions from Compiler.cpp for code generation,
 		// but append debugging info to the chunk here
-		int start = chunk->m_Code.size();
+		uint32_t start = chunk->m_Code.size();
 
 		switch( m_NodeId )
 		{
@@ -156,7 +156,7 @@ namespace Compiler
 	void ValueNode::Compile( Assembler& assembler, uint32_t options )
 	{
 		auto chunk = assembler.CurrentChunk();
-		int start = chunk->m_Code.size();
+		uint32_t start = chunk->m_Code.size();
 
 		switch ( m_NodeId )
 		{
@@ -233,8 +233,8 @@ namespace Compiler
 
 	void ComplexNode::Compile( Assembler& assembler, uint32_t options )
 	{
-		int start = -1;
 		auto chunk = assembler.CurrentChunk();
+		uint32_t start = chunk->m_Code.size();
 
 		switch ( m_NodeId )
 		{
@@ -267,7 +267,6 @@ namespace Compiler
 			else
 			{
 				// Empty variable
-				start = chunk->m_Code.size();
 				EmitByte( QScript::OpCode::OP_PNULL, chunk );
 
 				if ( assembler.StackDepth() == 0 )
@@ -283,12 +282,41 @@ namespace Compiler
 			}
 			break;
 		}
+		case NODE_AND:
+		{
+			m_Left->Compile( assembler, options );
+
+			uint32_t endJump = chunk->m_Code.size();
+
+			// Left hand operand evaluated to true, discard it and return the right hand result
+			EmitByte( QScript::OpCode::OP_POP, chunk );
+
+			m_Right->Compile( assembler, options );
+
+			// Create jump instruction
+			PlaceJump( chunk, endJump, chunk->m_Code.size() - endJump, QScript::OpCode::OP_JZ_SHORT, QScript::OpCode::OP_JZ_LONG );
+			break;
+		}
+		case NODE_OR:
+		{
+			m_Left->Compile( assembler, options );
+
+			uint32_t endJump = chunk->m_Code.size();
+
+			// Pop left operand off
+			EmitByte( QScript::OpCode::OP_POP, chunk );
+
+			m_Right->Compile( assembler, options );
+
+			uint32_t patchSize = PlaceJump( chunk, endJump, chunk->m_Code.size() - endJump, QScript::OpCode::OP_JMP_SHORT, QScript::OpCode::OP_JMP_LONG );
+
+			PlaceJump( chunk, endJump, patchSize, QScript::OpCode::OP_JZ_SHORT, QScript::OpCode::OP_JZ_LONG );
+			break;
+		}
 		default:
 		{
 			m_Left->Compile( assembler, options );
 			m_Right->Compile( assembler, options );
-
-			start = chunk->m_Code.size();
 
 			std::map< NodeId, QScript::OpCode > singleByte ={
 				{ NODE_ADD, 			QScript::OpCode::OP_ADD },
@@ -313,8 +341,7 @@ namespace Compiler
 		}
 		}
 
-		if ( start != -1 )
-			AddDebugSymbol( chunk, start, m_LineNr, m_ColNr, m_Token );
+		AddDebugSymbol( chunk, start, m_LineNr, m_ColNr, m_Token );
 	}
 
 	SimpleNode::SimpleNode( int lineNr, int colNr, const std::string token, NodeId id, BaseNode* node )
@@ -335,7 +362,7 @@ namespace Compiler
 	void SimpleNode::Compile( Assembler& assembler, uint32_t options )
 	{
 		auto chunk = assembler.CurrentChunk();
-		int start = -1;
+		uint32_t start = chunk->m_Code.size();
 
 		std::map< NodeId, QScript::OpCode > singleByte ={
 			{ NODE_PRINT, 			QScript::OpCode::OP_PRINT },
@@ -349,8 +376,6 @@ namespace Compiler
 		if ( opCode != singleByte.end() )
 		{
 			m_Node->Compile( assembler, options );
-
-			start = chunk->m_Code.size();
 			EmitByte( opCode->second, chunk );
 		}
 		else
@@ -358,8 +383,7 @@ namespace Compiler
 			throw Exception( "cp_invalid_simple_node", "Unknown simple node: " + std::to_string( m_NodeId ) );
 		}
 
-		if ( start != -1 )
-			AddDebugSymbol( chunk, start, m_LineNr, m_ColNr, m_Token );
+		AddDebugSymbol( chunk, start, m_LineNr, m_ColNr, m_Token );
 	}
 
 	ListNode::ListNode( int lineNr, int colNr, const std::string token, NodeId id, const std::vector< BaseNode* >& nodeList )
@@ -385,7 +409,7 @@ namespace Compiler
 	void ListNode::Compile( Assembler& assembler, uint32_t options )
 	{
 		auto chunk = assembler.CurrentChunk();
-		int start = chunk->m_Code.size();
+		uint32_t start = chunk->m_Code.size();
 
 		switch ( m_NodeId )
 		{
