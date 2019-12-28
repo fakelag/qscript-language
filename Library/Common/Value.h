@@ -119,7 +119,7 @@ namespace QScript
 			{
 				case VT_NUMBER:
 				{
-					char result[ 6 ];
+					char result[ 32 ];
 					snprintf( result, sizeof( result ), "%.2f", AS_NUMBER( *this ) );
 					return std::string( result );
 				}
