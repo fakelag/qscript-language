@@ -111,6 +111,18 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 76.00 );
 
+		// > 255 local variables
+		std::string localVariables = TestUtils::GenerateSequence( 500, []( int iter ) {
+			return "var tmp_" + std::to_string( iter ) + " = " + std::to_string( iter ) + ";";
+		} );
+
+		UTEST_ASSERT( TestUtils::RunVM( "var glob1 = 60;		\
+			{ " + localVariables + " glob1 = tmp_412; }			\
+			return glob1;", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 412 );
+
 		UTEST_CASE_CLOSED();
 	}( );
 
