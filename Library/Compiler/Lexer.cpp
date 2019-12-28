@@ -78,14 +78,14 @@ namespace Compiler
 		} );
 
 		// Is this string an integer ?
-		auto isInteger = []( const std::string token ) -> bool {
-			std::regex re("[-+]?([0-9]*[0-9]+|[0-9]+)");
+		auto isInteger = []( const std::string& token ) -> bool {
+			static std::regex re("[-+]?([0-9]*[0-9]+|[0-9]+)");
 			return std::regex_match( token, re );
 		};
 
 		// Is it a decimal ?
-		auto isDecimal = []( const std::string token ) -> bool {
-			std::regex re("[-+]?\\d+\\.\\d*");
+		auto isDecimal = []( const std::string& token ) -> bool {
+			static std::regex re("[-+]?\\d+\\.\\d*");
 			return std::regex_match( token, re );
 		};
 
