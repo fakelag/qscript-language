@@ -63,6 +63,7 @@ namespace QScript
 		VT_OBJECT,
 	};
 
+	// Value struct -- must be trivially copyable for stack relocations to work
 	struct Value
 	{
 		ValueType 	m_Type;
@@ -97,6 +98,7 @@ namespace QScript
 			From( other );
 		}
 
+		// No side effects, trivially copyable.
 		FORCEINLINE void From( const Value& other )
 		{
 			m_Type = other.m_Type;

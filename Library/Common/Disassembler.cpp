@@ -235,7 +235,7 @@ int Compiler::InstructionSize( uint8_t inst )
 
 void Compiler::DumpStack( const VM_t& vm )
 {
-	std::cout << "STACK (" << ( vm.m_StackTop - vm.m_Stack ) << ")" << std::endl;
+	std::cout << "STACK (" << ( vm.m_StackTop - vm.m_Stack ) << ", capacity=" << vm.m_StackCapacity << ")" << std::endl;
 	for ( const QScript::Value* value = vm.m_Stack; value < vm.m_StackTop; ++value )
 	{
 		std::cout << std::setfill( '0' ) << std::setw( 4 ) << ( value - vm.m_Stack ) << std::setfill( ' ' ) << std::left << std::setw( 10 ) << " ";

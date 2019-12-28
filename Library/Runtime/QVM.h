@@ -2,6 +2,8 @@
 
 struct VM_t
 {
+	static const int s_InitStackSize = 256;
+
 	VM_t( const QScript::Chunk_t* chunk )
 	{
 		Init( chunk );
@@ -11,14 +13,33 @@ struct VM_t
 	{
 		m_Chunk = chunk;
 		m_IP = &chunk->m_Code[ 0 ];
-		m_StackTop = &m_Stack[ 0 ];
 		m_Objects.clear();
 		m_Globals.clear();
+
+		m_Stack = new QScript::Value[ s_InitStackSize ];
+		m_StackCapacity = s_InitStackSize;
+		m_StackTop = &m_Stack[ 0 ];
 	}
 
 	FORCEINLINE void Push( QScript::Value value )
 	{
-		// TODO: This is a copy operation for now
+		if ( m_StackTop - m_Stack == m_StackCapacity )
+		{
+			// Reallocate more stack space
+			int newCapacity = m_StackCapacity * 2;
+			QScript::Value* newStack = new QScript::Value[ newCapacity ];
+
+			// Copy previous contents to new stack
+			std::memcpy( newStack, m_Stack, ( m_StackTop - m_Stack ) * sizeof( QScript::Value ) );
+
+			// Free previous stack space
+			delete[] m_Stack;
+
+			m_StackTop = newStack + m_StackCapacity;
+			m_Stack = newStack;
+			m_StackCapacity = newCapacity;
+		}
+
 		m_StackTop->From( value );
 		++m_StackTop;
 	}
@@ -44,6 +65,10 @@ struct VM_t
 			delete object;
 		}
 
+		delete[] m_Stack;
+		m_StackCapacity = 0;
+		m_StackTop = NULL;
+
 		m_Objects.clear();
 	}
 
@@ -57,5 +82,6 @@ struct VM_t
 	std::unordered_map< std::string, QScript::Value >	m_Globals;
 
 	QScript::Value*										m_StackTop;
-	QScript::Value 										m_Stack[ 256 ];
+	QScript::Value* 									m_Stack;
+	int													m_StackCapacity;
 };
