@@ -35,7 +35,7 @@ namespace QScript
 		entryNodes.clear();
 #else
 		// RET
-		chunk->m_Code.push_back( QScript::OpCode::OP_RETN );
+		chunk->m_Code.push_back( QScript::OpCode::OP_RETURN );
 #endif
 
 		// Clean up objects created in compilation process
@@ -152,7 +152,7 @@ namespace Compiler
 		--m_Stack.m_CurrentDepth;
 	}
 	
-	int Assembler::LocalCount()
+	int Assembler::LocalsInCurrentScope()
 	{
 		int count = 0;
 		for ( int i = ( int ) m_Stack.m_Locals.size() - 1; i >= 0; --i )

@@ -2,35 +2,35 @@ namespace QScript
 {
 	enum OpCode : uint8_t
 	{
-		OP_ADD,			// Addition
-		OP_DIV,			// Division
-		OP_EQ,			// Equals
-		OP_SG_LONG,		// Set Global Long
-		OP_SG_SHORT,	// Set Global Short
-		OP_SL_SHORT,	// Set Local Short
-		OP_SL_LONG,		// Set Local Long
-		OP_GT,			// Greater Than
-		OP_GTE,			// Greater Than or Equal
-		OP_JMP_SHORT,	// Jump Short
-		OP_JMP_LONG,	// Jump Long
-		OP_JZ_SHORT,	// Jump if Zero Short
-		OP_JZ_LONG,		// Jump if Zero Long
-		OP_LD_LONG,		// Load Long
-		OP_LD_SHORT,	// Load Short
-		OP_LG_LONG,		// Load Global Long
-		OP_LG_SHORT,	// Load Global Short
-		OP_LL_LONG,		// Load Local Long
-		OP_LL_SHORT,	// Load Local Short
-		OP_LT,			// Less Than
-		OP_LTE,			// Less Than or Equal
-		OP_MUL,			// Multiply
-		OP_NEG,			// Negate
-		OP_NEQ,			// Not Equals
+		OP_ADD,
+		OP_DIV,
+		OP_EQUALS,
+		OP_SET_GLOBAL_LONG,
+		OP_SET_GLOBAL_SHORT,
+		OP_SET_LOCAL_LONG,
+		OP_SET_LOCAL_SHORT,
+		OP_GREATERTHAN,
+		OP_GREATERTHAN_OR_EQUAL,
+		OP_JUMP_SHORT,
+		OP_JUMP_LONG,
+		OP_JUMP_IF_ZERO_SHORT,
+		OP_JUMP_IF_ZERO_LONG,
+		OP_LOAD_CONSTANT_LONG,
+		OP_LOAD_CONSTANT_SHORT,
+		OP_LOAD_GLOBAL_LONG,
+		OP_LOAD_GLOBAL_SHORT,
+		OP_LOAD_LOCAL_LONG,
+		OP_LOAD_LOCAL_SHORT,
+		OP_LESSTHAN,
+		OP_LESSTHAN_OR_EQUAL,
+		OP_MUL,
+		OP_NEGATE,
+		OP_NOT_EQUALS,
 		OP_NOT,
-		OP_PNULL,		// Push Null
+		OP_LOAD_NULL,
 		OP_POP,
 		OP_PRINT,
-		OP_RETN,		// Return (with exit code)
-		OP_SUB,			// Subtract
+		OP_RETURN,
+		OP_SUB,
 	};
 }

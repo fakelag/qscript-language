@@ -139,7 +139,7 @@ namespace Compiler
 
 		switch( m_NodeId )
 		{
-		case NODE_RETURN: EmitByte( QScript::OpCode::OP_RETN, chunk ); break;
+		case NODE_RETURN: EmitByte( QScript::OpCode::OP_RETURN, chunk ); break;
 		default:
 			throw CompilerException( "cp_invalid_term_node", "Unknown terminating node: " + std::to_string( m_NodeId ), m_LineNr, m_ColNr, m_Token );
 		}
@@ -167,7 +167,7 @@ namespace Compiler
 			{
 				if ( local > 255 )
 				{
-					EmitByte( ( options & CO_ASSIGN ) ? QScript::OpCode::OP_SL_LONG : QScript::OpCode::OP_LL_LONG, chunk );
+					EmitByte( ( options & CO_ASSIGN ) ? QScript::OpCode::OP_SET_LOCAL_LONG : QScript::OpCode::OP_LOAD_LOCAL_LONG, chunk );
 					EmitByte( ENCODE_LONG( local, 0 ), chunk );
 					EmitByte( ENCODE_LONG( local, 1 ), chunk );
 					EmitByte( ENCODE_LONG( local, 2 ), chunk );
@@ -175,7 +175,7 @@ namespace Compiler
 				}
 				else
 				{
-					EmitByte( ( options & CO_ASSIGN ) ? QScript::OpCode::OP_SL_SHORT : QScript::OpCode::OP_LL_SHORT, chunk );
+					EmitByte( ( options & CO_ASSIGN ) ? QScript::OpCode::OP_SET_LOCAL_SHORT : QScript::OpCode::OP_LOAD_LOCAL_SHORT, chunk );
 					EmitByte( ( uint8_t ) local, chunk );
 				}
 
@@ -185,9 +185,9 @@ namespace Compiler
 			else
 			{
 				if ( options & CO_ASSIGN )
-					EmitConstant( chunk, m_Value, QScript::OpCode::OP_SG_SHORT, QScript::OpCode::OP_SG_LONG, assembler );
+					EmitConstant( chunk, m_Value, QScript::OpCode::OP_SET_GLOBAL_SHORT, QScript::OpCode::OP_SET_GLOBAL_LONG, assembler );
 				else
-					EmitConstant( chunk, m_Value, QScript::OpCode::OP_LG_SHORT, QScript::OpCode::OP_LG_LONG, assembler );
+					EmitConstant( chunk, m_Value, QScript::OpCode::OP_LOAD_GLOBAL_SHORT, QScript::OpCode::OP_LOAD_GLOBAL_LONG, assembler );
 			}
 
 			break;
@@ -195,9 +195,9 @@ namespace Compiler
 		default:
 		{
 			if ( IS_NULL( m_Value ) )
-				EmitByte( QScript::OP_PNULL, chunk );
+				EmitByte( QScript::OP_LOAD_NULL, chunk );
 			else
-				EmitConstant( chunk, m_Value, QScript::OpCode::OP_LD_SHORT, QScript::OpCode::OP_LD_LONG, assembler );
+				EmitConstant( chunk, m_Value, QScript::OpCode::OP_LOAD_CONSTANT_SHORT, QScript::OpCode::OP_LOAD_CONSTANT_LONG, assembler );
 		}
 		}
 
@@ -267,12 +267,12 @@ namespace Compiler
 			else
 			{
 				// Empty variable
-				EmitByte( QScript::OpCode::OP_PNULL, chunk );
+				EmitByte( QScript::OpCode::OP_LOAD_NULL, chunk );
 
 				if ( assembler.StackDepth() == 0 )
 				{
 					// Global variable
-					EmitConstant( chunk, varName, QScript::OpCode::OP_SG_SHORT, QScript::OpCode::OP_SG_LONG, assembler );
+					EmitConstant( chunk, varName, QScript::OpCode::OP_SET_GLOBAL_SHORT, QScript::OpCode::OP_SET_GLOBAL_LONG, assembler );
 				}
 				else
 				{
@@ -294,7 +294,7 @@ namespace Compiler
 			m_Right->Compile( assembler, options );
 
 			// Create jump instruction
-			PlaceJump( chunk, endJump, chunk->m_Code.size() - endJump, QScript::OpCode::OP_JZ_SHORT, QScript::OpCode::OP_JZ_LONG );
+			PlaceJump( chunk, endJump, chunk->m_Code.size() - endJump, QScript::OpCode::OP_JUMP_IF_ZERO_SHORT, QScript::OpCode::OP_JUMP_IF_ZERO_LONG );
 			break;
 		}
 		case NODE_OR:
@@ -308,9 +308,9 @@ namespace Compiler
 
 			m_Right->Compile( assembler, options );
 
-			uint32_t patchSize = PlaceJump( chunk, endJump, chunk->m_Code.size() - endJump, QScript::OpCode::OP_JMP_SHORT, QScript::OpCode::OP_JMP_LONG );
+			uint32_t patchSize = PlaceJump( chunk, endJump, chunk->m_Code.size() - endJump, QScript::OpCode::OP_JUMP_SHORT, QScript::OpCode::OP_JUMP_LONG );
 
-			PlaceJump( chunk, endJump, patchSize, QScript::OpCode::OP_JZ_SHORT, QScript::OpCode::OP_JZ_LONG );
+			PlaceJump( chunk, endJump, patchSize, QScript::OpCode::OP_JUMP_IF_ZERO_SHORT, QScript::OpCode::OP_JUMP_IF_ZERO_LONG );
 			break;
 		}
 		default:
@@ -323,12 +323,12 @@ namespace Compiler
 				{ NODE_SUB, 			QScript::OpCode::OP_SUB },
 				{ NODE_MUL, 			QScript::OpCode::OP_MUL },
 				{ NODE_DIV, 			QScript::OpCode::OP_DIV },
-				{ NODE_EQUALS,			QScript::OpCode::OP_EQ },
-				{ NODE_NOTEQUALS,		QScript::OpCode::OP_NEQ },
-				{ NODE_GREATERTHAN,		QScript::OpCode::OP_GT },
-				{ NODE_GREATEREQUAL,	QScript::OpCode::OP_GTE },
-				{ NODE_LESSTHAN,		QScript::OpCode::OP_LT },
-				{ NODE_LESSEQUAL,		QScript::OpCode::OP_LTE },
+				{ NODE_EQUALS,			QScript::OpCode::OP_EQUALS },
+				{ NODE_NOTEQUALS,		QScript::OpCode::OP_NOT_EQUALS },
+				{ NODE_GREATERTHAN,		QScript::OpCode::OP_GREATERTHAN },
+				{ NODE_GREATEREQUAL,	QScript::OpCode::OP_GREATERTHAN_OR_EQUAL },
+				{ NODE_LESSTHAN,		QScript::OpCode::OP_LESSTHAN },
+				{ NODE_LESSEQUAL,		QScript::OpCode::OP_LESSTHAN_OR_EQUAL },
 			};
 
 			auto opCode = singleByte.find( m_NodeId );
@@ -366,9 +366,9 @@ namespace Compiler
 
 		std::map< NodeId, QScript::OpCode > singleByte ={
 			{ NODE_PRINT, 			QScript::OpCode::OP_PRINT },
-			{ NODE_RETURN, 			QScript::OpCode::OP_RETN },
+			{ NODE_RETURN, 			QScript::OpCode::OP_RETURN },
 			{ NODE_NOT, 			QScript::OpCode::OP_NOT },
-			{ NODE_NEG, 			QScript::OpCode::OP_NEG },
+			{ NODE_NEG, 			QScript::OpCode::OP_NEGATE },
 			{ NODE_POP,				QScript::OpCode::OP_POP },
 		};
 
@@ -439,10 +439,10 @@ namespace Compiler
 			uint32_t elseBodyEnd = chunk->m_Code.size();
 
 			// Jump over else branch
-			elseBodyBegin += PlaceJump( chunk, elseBodyBegin, elseBodyEnd - elseBodyBegin, QScript::OpCode::OP_JMP_SHORT, QScript::OpCode::OP_JMP_LONG );
+			elseBodyBegin += PlaceJump( chunk, elseBodyBegin, elseBodyEnd - elseBodyBegin, QScript::OpCode::OP_JUMP_SHORT, QScript::OpCode::OP_JUMP_LONG );
 
 			// Create jump instruction
-			PlaceJump( chunk, thenBodyBegin, elseBodyBegin - thenBodyBegin, QScript::OpCode::OP_JZ_SHORT, QScript::OpCode::OP_JZ_LONG );
+			PlaceJump( chunk, thenBodyBegin, elseBodyBegin - thenBodyBegin, QScript::OpCode::OP_JUMP_IF_ZERO_SHORT, QScript::OpCode::OP_JUMP_IF_ZERO_LONG );
 			break;
 		}
 		case NODE_SCOPE:
@@ -450,13 +450,14 @@ namespace Compiler
 			if ( m_NodeId == NODE_SCOPE )
 				assembler.PushScope();
 
+			// Compile each statement in scope body
 			for ( auto node : m_NodeList )
 				node->Compile( assembler, options );
 
 			if ( m_NodeId == NODE_SCOPE )
 			{
 				// Clear stack
-				for ( int i = assembler.LocalCount() - 1; i >= 0; --i )
+				for ( int i = assembler.LocalsInCurrentScope() - 1; i >= 0; --i )
 					EmitByte( QScript::OpCode::OP_POP, assembler.CurrentChunk() );
 
 				assembler.PopScope();

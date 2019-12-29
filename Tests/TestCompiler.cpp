@@ -35,10 +35,10 @@ bool Tests::TestCompiler()
 
 		UTEST_ASSERT( chunk->m_Code.size() >= 6 );
 
-		ASSERT_OPCODE( 0000, OP_LD_SHORT );
-		ASSERT_OPCODE_NEXT( OP_LD_SHORT );
+		ASSERT_OPCODE( 0000, OP_LOAD_CONSTANT_SHORT );
+		ASSERT_OPCODE_NEXT( OP_LOAD_CONSTANT_SHORT );
 		ASSERT_OPCODE_NEXT( OP_ADD );
-		ASSERT_OPCODE_NEXT( OP_RETN );
+		ASSERT_OPCODE_NEXT( OP_RETURN );
 
 		QScript::FreeChunk( chunk );
 		UTEST_CASE_CLOSED();
@@ -65,11 +65,11 @@ bool Tests::TestCompiler()
 
 		UTEST_ASSERT( chunk->m_Constants.size() == 512 );
 
-		ASSERT_OPCODE( 0000, OP_LD_SHORT );
+		ASSERT_OPCODE( 0000, OP_LOAD_CONSTANT_SHORT );
 		ASSERT_OPCODE_NEXT( OP_POP );
 
 		int firstLong = 256 * 3;
-		UTEST_ASSERT( chunk->m_Code[ firstLong ] == QScript::OpCode::OP_LD_LONG );
+		UTEST_ASSERT( chunk->m_Code[ firstLong ] == QScript::OpCode::OP_LOAD_CONSTANT_LONG );
 		UTEST_ASSERT( chunk->m_Code[ firstLong + 5 ] == QScript::OpCode::OP_POP );
 
 		opcodeOffset = 0;
@@ -79,11 +79,11 @@ bool Tests::TestCompiler()
 
 		UTEST_ASSERT( chunk->m_Constants.size() == 512 );
 
-		ASSERT_OPCODE_NEXT( OP_LD_SHORT );
+		ASSERT_OPCODE_NEXT( OP_LOAD_CONSTANT_SHORT );
 		ASSERT_OPCODE_NEXT( OP_POP );
 
 		firstLong = 256 * 3;
-		UTEST_ASSERT( chunk->m_Code[ firstLong ] == QScript::OpCode::OP_LD_LONG );
+		UTEST_ASSERT( chunk->m_Code[ firstLong ] == QScript::OpCode::OP_LOAD_CONSTANT_LONG );
 		UTEST_ASSERT( chunk->m_Code[ firstLong + 5 ] == QScript::OpCode::OP_POP );
 
 		QScript::FreeChunk( chunk );
@@ -109,15 +109,15 @@ bool Tests::TestCompiler()
 
 		UTEST_ASSERT( chunk->m_Constants.size() == 5 );
 
-		ASSERT_OPCODE( 0000, OP_PNULL );
-		ASSERT_OPCODE_NEXT( OP_SG_SHORT );
-		ASSERT_OPCODE_NEXT( OP_LD_SHORT );
-		ASSERT_OPCODE_NEXT( OP_SG_SHORT );
+		ASSERT_OPCODE( 0000, OP_LOAD_NULL );
+		ASSERT_OPCODE_NEXT( OP_SET_GLOBAL_SHORT );
+		ASSERT_OPCODE_NEXT( OP_LOAD_CONSTANT_SHORT );
+		ASSERT_OPCODE_NEXT( OP_SET_GLOBAL_SHORT );
 
-		ASSERT_OPCODE_NEXT( OP_LD_SHORT );
-		ASSERT_OPCODE_NEXT( OP_SG_SHORT );
+		ASSERT_OPCODE_NEXT( OP_LOAD_CONSTANT_SHORT );
+		ASSERT_OPCODE_NEXT( OP_SET_GLOBAL_SHORT );
 
-		ASSERT_OPCODE_NEXT( OP_RETN );
+		ASSERT_OPCODE_NEXT( OP_RETURN );
 
 		QScript::FreeChunk( chunk );
 		UTEST_CASE_CLOSED();

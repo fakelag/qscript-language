@@ -105,14 +105,14 @@ namespace QVM
 			uint8_t inst = READ_BYTE( vm );
 			switch ( inst )
 			{
-			case QScript::OP_LD_SHORT: vm.Push( READ_CONST_SHORT( vm ) ); break;
-			case QScript::OP_LD_LONG:
+			case QScript::OP_LOAD_CONSTANT_SHORT: vm.Push( READ_CONST_SHORT( vm ) ); break;
+			case QScript::OP_LOAD_CONSTANT_LONG:
 			{
 				READ_CONST_LONG( vm, constant );
 				vm.Push( constant );
 				break;
 			}
-			case QScript::OP_LG_LONG:
+			case QScript::OP_LOAD_GLOBAL_LONG:
 			{
 				READ_CONST_LONG( vm, constant );
 				auto global = vm.m_Globals.find( AS_STRING( constant )->GetString() );
@@ -126,7 +126,7 @@ namespace QVM
 				vm.Push( global->second );
 				break;
 			}
-			case QScript::OP_LG_SHORT:
+			case QScript::OP_LOAD_GLOBAL_SHORT:
 			{
 				auto constant = READ_CONST_SHORT( vm );
 				auto global = vm.m_Globals.find( AS_STRING( constant )->GetString() );
@@ -140,49 +140,49 @@ namespace QVM
 				vm.Push( global->second );
 				break;
 			}
-			case QScript::OP_SG_SHORT:
+			case QScript::OP_SET_GLOBAL_SHORT:
 			{
 				auto constant = READ_CONST_SHORT( vm );
 				vm.m_Globals[ AS_STRING( constant )->GetString() ].From( vm.Peek( 0 ) );
 				vm.Pop();
 				break;
 			}
-			case QScript::OP_SG_LONG:
+			case QScript::OP_SET_GLOBAL_LONG:
 			{
 				READ_CONST_LONG( vm, constant );
 				vm.m_Globals[ AS_STRING( constant )->GetString() ].From( vm.Peek( 0 ) );
 				vm.Pop();
 				break;
 			}
-			case QScript::OP_LL_SHORT: vm.Push( vm.m_Stack[ READ_BYTE( vm ) ] ); break;
-			case QScript::OP_LL_LONG:
+			case QScript::OP_LOAD_LOCAL_SHORT: vm.Push( vm.m_Stack[ READ_BYTE( vm ) ] ); break;
+			case QScript::OP_LOAD_LOCAL_LONG:
 			{
 				READ_LONG( vm, offset );
 				vm.Push( vm.m_Stack[ offset ] );
 				break;
 			}
-			case QScript::OP_SL_SHORT: vm.m_Stack[ READ_BYTE( vm ) ].From( vm.Peek( 0 ) ); break;
-			case QScript::OP_SL_LONG:
+			case QScript::OP_SET_LOCAL_SHORT: vm.m_Stack[ READ_BYTE( vm ) ].From( vm.Peek( 0 ) ); break;
+			case QScript::OP_SET_LOCAL_LONG:
 			{
 				READ_LONG( vm, offset );
 				vm.m_Stack[ offset ].From( vm.Peek( 0 ) );
 				break;
 			}
-			case QScript::OP_JMP_SHORT: vm.m_IP += READ_BYTE( vm ); break;
-			case QScript::OP_JMP_LONG:
+			case QScript::OP_JUMP_SHORT: vm.m_IP += READ_BYTE( vm ); break;
+			case QScript::OP_JUMP_LONG:
 			{
 				READ_LONG( vm, offset );
 				vm.m_IP += offset;
 				break;
 			}
-			case QScript::OP_JZ_SHORT:
+			case QScript::OP_JUMP_IF_ZERO_SHORT:
 			{
 				auto offset = READ_BYTE( vm );
 				if ( ( bool ) ( vm.Peek( 0 ) ) == false )
 					vm.m_IP += offset;
 				break;
 			}
-			case QScript::OP_JZ_LONG:
+			case QScript::OP_JUMP_IF_ZERO_LONG:
 			{
 				READ_LONG( vm, offset );
 				if ( ( bool ) ( vm.Peek( 0 ) ) == false )
@@ -198,7 +198,7 @@ namespace QVM
 				vm.Push( MAKE_BOOL( !( bool )( value ) ) ); break;
 				break;
 			}
-			case QScript::OP_NEG:
+			case QScript::OP_NEGATE:
 			{
 				auto value = vm.Pop();
 				if ( !IS_NUMBER( value ) )
@@ -207,7 +207,7 @@ namespace QVM
 				vm.Push( MAKE_NUMBER( -AS_NUMBER( value ) ) );
 				break;
 			}
-			case QScript::OP_PNULL: vm.Push( MAKE_NULL ); break;
+			case QScript::OP_LOAD_NULL: vm.Push( MAKE_NULL ); break;
 			case QScript::OP_ADD:
 			{
 				auto b = vm.Pop();
@@ -234,15 +234,15 @@ namespace QVM
 			case QScript::OP_SUB: BINARY_OP( -, IS_NUMBER ); break;
 			case QScript::OP_MUL: BINARY_OP( *, IS_NUMBER ); break;
 			case QScript::OP_DIV: BINARY_OP( /, IS_NUMBER ); break;
-			case QScript::OP_EQ: BINARY_OP( ==, IS_ANY ); break;
-			case QScript::OP_NEQ: BINARY_OP( !=, IS_ANY ); break;
-			case QScript::OP_GT: BINARY_OP( >, IS_ANY ); break;
-			case QScript::OP_LT: BINARY_OP( <, IS_ANY ); break;
-			case QScript::OP_LTE: BINARY_OP( <=, IS_ANY ); break;
-			case QScript::OP_GTE: BINARY_OP( >=, IS_ANY ); break;
+			case QScript::OP_EQUALS: BINARY_OP( ==, IS_ANY ); break;
+			case QScript::OP_NOT_EQUALS: BINARY_OP( !=, IS_ANY ); break;
+			case QScript::OP_GREATERTHAN: BINARY_OP( >, IS_ANY ); break;
+			case QScript::OP_LESSTHAN: BINARY_OP( <, IS_ANY ); break;
+			case QScript::OP_LESSTHAN_OR_EQUAL: BINARY_OP( <=, IS_ANY ); break;
+			case QScript::OP_GREATERTHAN_OR_EQUAL: BINARY_OP( >=, IS_ANY ); break;
 			case QScript::OP_POP: vm.Pop(); break;
 			case QScript::OP_PRINT: std::cout << (vm.Pop().ToString()) << std::endl; break;
-			case QScript::OP_RETN:
+			case QScript::OP_RETURN:
 			{
 #ifdef QVM_DEBUG
 				Compiler::DumpStack( vm );

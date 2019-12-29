@@ -45,7 +45,7 @@ namespace Compiler
 		uint32_t			CreateLocal( const std::string& name );
 		bool				FindLocal( const std::string& name, uint32_t* out );
 		int					StackDepth();
-		int					LocalCount();
+		int					LocalsInCurrentScope();
 		void				PushScope();
 		void				PopScope();
 

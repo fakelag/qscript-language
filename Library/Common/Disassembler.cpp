@@ -37,7 +37,7 @@ std::string Compiler::ValueToString( const QScript::Value& value )
 	{
 		case QScript::VT_NUMBER:
 		{
-			char result[ 4 ];
+			char result[ 32 ];
 			snprintf( result, sizeof( result ), "%.2f", AS_NUMBER( value ) );
 			return std::string( "(number, " ) + result + ")";
 		}
@@ -155,36 +155,36 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32_t of
 	// Decode current instruction
 	switch ( chunk.m_Code[ offset ] )
 	{
-	CNST_INST_SHORT( OP_LD_SHORT, "LOAD" );
-	CNST_INST_LONG( OP_LD_LONG, "LOAD" );
-	CNST_INST_SHORT( OP_SG_SHORT, "SG" );
-	CNST_INST_LONG( OP_SG_LONG, "SG" );
-	CNST_INST_SHORT( OP_LG_SHORT, "LG" );
-	CNST_INST_LONG( OP_LG_LONG, "LG" );
-	INST_SHORT( OP_LL_SHORT, "LL" );
-	INST_LONG( OP_LL_LONG, "LL" );
-	INST_SHORT( OP_SL_SHORT, "SL" );
-	INST_LONG( OP_SL_LONG, "SL" );
-	JMP_INST_SHORT( OP_JZ_SHORT, "JZ" );
-	JMP_INST_LONG( OP_JZ_LONG, "JZ" );
-	JMP_INST_SHORT( OP_JMP_SHORT, "JMP" );
-	JMP_INST_LONG( OP_JMP_LONG, "JMP" );
+	CNST_INST_SHORT( OP_LOAD_CONSTANT_SHORT, "LOAD_CONSTANT" );
+	CNST_INST_LONG( OP_LOAD_CONSTANT_LONG, "LOAD_CONSTANT" );
+	CNST_INST_SHORT( OP_SET_GLOBAL_SHORT, "SET_GLOBAL" );
+	CNST_INST_LONG( OP_SET_GLOBAL_LONG, "SET_GLOBAL" );
+	CNST_INST_SHORT( OP_LOAD_GLOBAL_SHORT, "LOAD_GLOBAL" );
+	CNST_INST_LONG( OP_LOAD_GLOBAL_LONG, "LOAD_GLOBAL" );
+	INST_SHORT( OP_LOAD_LOCAL_SHORT, "LOAD_LOCAL" );
+	INST_LONG( OP_LOAD_LOCAL_LONG, "LOAD_LOCAL" );
+	INST_SHORT( OP_SET_LOCAL_SHORT, "SET_LOCAL" );
+	INST_LONG( OP_SET_LOCAL_LONG, "SET_LOCAL" );
+	JMP_INST_SHORT( OP_JUMP_IF_ZERO_SHORT, "JUMP_IF_ZERO" );
+	JMP_INST_LONG( OP_JUMP_IF_ZERO_LONG, "JUMP_IF_ZERO" );
+	JMP_INST_SHORT( OP_JUMP_SHORT, "JUMP" );
+	JMP_INST_LONG( OP_JUMP_LONG, "JUMP" );
 	SIMPLE_INST( OP_ADD, "ADD" );
 	SIMPLE_INST( OP_SUB, "SUB" );
 	SIMPLE_INST( OP_DIV, "DIV" );
 	SIMPLE_INST( OP_MUL, "MUL" );
-	SIMPLE_INST( OP_NEG, "NEG" );
+	SIMPLE_INST( OP_NEGATE, "NEGATE" );
 	SIMPLE_INST( OP_NOT, "NOT" );
-	SIMPLE_INST( OP_EQ, "EQ" );
-	SIMPLE_INST( OP_NEQ, "NEQ" );
-	SIMPLE_INST( OP_GT, "GT" );
-	SIMPLE_INST( OP_LT, "LT" );
-	SIMPLE_INST( OP_GTE, "GTE" );
-	SIMPLE_INST( OP_LTE, "LTE" );
-	SIMPLE_INST( OP_RETN, "RETN" );
+	SIMPLE_INST( OP_EQUALS, "EQUALS" );
+	SIMPLE_INST( OP_NOT_EQUALS, "NOT_EQUALS" );
+	SIMPLE_INST( OP_GREATERTHAN, "GREATERTHAN" );
+	SIMPLE_INST( OP_LESSTHAN, "LESSTHAN" );
+	SIMPLE_INST( OP_GREATERTHAN_OR_EQUAL, "GREATERTHAN_OR_EQUAL" );
+	SIMPLE_INST( OP_LESSTHAN_OR_EQUAL, "LESSTHAN_OR_EQUAL" );
+	SIMPLE_INST( OP_RETURN, "RETUN" );
 	SIMPLE_INST( OP_PRINT, "PRINT" );
 	SIMPLE_INST( OP_POP, "POP" );
-	SIMPLE_INST( OP_PNULL, "PNULL" );
+	SIMPLE_INST( OP_LOAD_NULL, "LOAD_NULL" );
 	default:
 		std::cout << "Unknown opcode: " << chunk.m_Code[ offset ] << std::endl;
 		instOffset = offset + 1;
@@ -210,36 +210,36 @@ int Compiler::InstructionSize( uint8_t inst )
 {
 	switch ( inst )
 	{
-	case QScript::OpCode::OP_LD_SHORT: return 2;
-	case QScript::OpCode::OP_LD_LONG: return 5;
-	case QScript::OpCode::OP_SG_SHORT: return 2;
-	case QScript::OpCode::OP_SG_LONG: return 5;
-	case QScript::OpCode::OP_LG_SHORT: return 2;
-	case QScript::OpCode::OP_LG_LONG: return 5;
-	case QScript::OpCode::OP_LL_SHORT: return 2;
-	case QScript::OpCode::OP_LL_LONG: return 5;
-	case QScript::OpCode::OP_SL_SHORT: return 2;
-	case QScript::OpCode::OP_SL_LONG: return 5;
-	case QScript::OpCode::OP_JZ_SHORT: return 2;
-	case QScript::OpCode::OP_JZ_LONG: return 5;
-	case QScript::OpCode::OP_JMP_SHORT: return 2;
-	case QScript::OpCode::OP_JMP_LONG: return 5;
+	case QScript::OpCode::OP_LOAD_CONSTANT_SHORT: return 2;
+	case QScript::OpCode::OP_LOAD_CONSTANT_LONG: return 5;
+	case QScript::OpCode::OP_SET_GLOBAL_SHORT: return 2;
+	case QScript::OpCode::OP_SET_GLOBAL_LONG: return 5;
+	case QScript::OpCode::OP_LOAD_GLOBAL_SHORT: return 2;
+	case QScript::OpCode::OP_LOAD_GLOBAL_LONG: return 5;
+	case QScript::OpCode::OP_LOAD_LOCAL_SHORT: return 2;
+	case QScript::OpCode::OP_LOAD_LOCAL_LONG: return 5;
+	case QScript::OpCode::OP_SET_LOCAL_SHORT: return 2;
+	case QScript::OpCode::OP_SET_LOCAL_LONG: return 5;
+	case QScript::OpCode::OP_JUMP_IF_ZERO_SHORT: return 2;
+	case QScript::OpCode::OP_JUMP_IF_ZERO_LONG: return 5;
+	case QScript::OpCode::OP_JUMP_SHORT: return 2;
+	case QScript::OpCode::OP_JUMP_LONG: return 5;
 	case QScript::OpCode::OP_ADD: return 1;
 	case QScript::OpCode::OP_SUB: return 1;
 	case QScript::OpCode::OP_DIV: return 1;
 	case QScript::OpCode::OP_MUL: return 1;
-	case QScript::OpCode::OP_NEG: return 1;
+	case QScript::OpCode::OP_NEGATE: return 1;
 	case QScript::OpCode::OP_NOT: return 1;
-	case QScript::OpCode::OP_EQ: return 1;
-	case QScript::OpCode::OP_NEQ: return 1;
-	case QScript::OpCode::OP_GT: return 1;
-	case QScript::OpCode::OP_LT: return 1;
-	case QScript::OpCode::OP_GTE: return 1;
-	case QScript::OpCode::OP_LTE: return 1;
-	case QScript::OpCode::OP_RETN: return 1;
+	case QScript::OpCode::OP_EQUALS: return 1;
+	case QScript::OpCode::OP_NOT_EQUALS: return 1;
+	case QScript::OpCode::OP_GREATERTHAN: return 1;
+	case QScript::OpCode::OP_LESSTHAN: return 1;
+	case QScript::OpCode::OP_GREATERTHAN_OR_EQUAL: return 1;
+	case QScript::OpCode::OP_LESSTHAN_OR_EQUAL: return 1;
+	case QScript::OpCode::OP_RETURN: return 1;
 	case QScript::OpCode::OP_PRINT: return 1;
 	case QScript::OpCode::OP_POP: return 1;
-	case QScript::OpCode::OP_PNULL: return 1;
+	case QScript::OpCode::OP_LOAD_NULL: return 1;
 	default:
 		return 1;
 	}
