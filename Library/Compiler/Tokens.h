@@ -53,6 +53,7 @@ namespace Compiler
 		TOK_TRUE,
 		TOK_VAR,
 		TOK_SCOLON,
+		TOK_WHILE,
 	};
 
 	struct Token_t

@@ -115,7 +115,7 @@ namespace Compiler
 		RelocateDebugSymbols( chunk, from, patchSize );
 
 		return patchSize;
-		}
+	}
 
 	void PatchJump( QScript::Chunk_t* chunk, uint32_t from, uint32_t newSize, QScript::OpCode shortOpCode, QScript::OpCode longOpCode )
 	{
@@ -125,7 +125,7 @@ namespace Compiler
 				throw Exception( "cp_invalid_jmp_patch_size", "Expected long JMP instruction, got short" );
 
 			chunk->m_Code[ from + 1 ] = ( uint8_t ) newSize;
-	}
+		}
 		else if ( chunk->m_Code[ from ] == longOpCode )
 		{
 			chunk->m_Code[ from + 1 ] = ENCODE_LONG( newSize, 0 );
@@ -514,10 +514,35 @@ namespace Compiler
 			}
 			break;
 		}
+		case NODE_WHILE:
+		{
+			if ( !IS_STATEMENT( options ) )
+				throw EXPECTED_EXPRESSION;
+
+			uint32_t loopConditionBegin = chunk->m_Code.size();
+
+			// Compile condition
+			m_NodeList[ 0 ]->Compile( assembler, COMPILE_EXPRESSION( options ) );
+
+			uint32_t loopBodyBegin = chunk->m_Code.size();
+
+			EmitByte( QScript::OpCode::OP_POP, chunk );
+
+			// Compile body
+			m_NodeList[ 1 ]->Compile( assembler, COMPILE_STATEMENT( options ) );
+
+			uint32_t firstJumpSize = chunk->m_Code.size() - loopBodyBegin;
+			PlaceJump( chunk, loopBodyBegin, firstJumpSize + 5, QScript::OpCode::OP_JUMP_IF_ZERO_SHORT, QScript::OpCode::OP_JUMP_IF_ZERO_LONG );
+
+			uint32_t patchSize = PlaceJump( chunk, chunk->m_Code.size(), chunk->m_Code.size() - loopConditionBegin, QScript::OpCode::OP_JUMP_BACK_SHORT, QScript::OpCode::OP_JUMP_BACK_LONG );
+
+			PatchJump( chunk, loopBodyBegin, firstJumpSize + patchSize, QScript::OpCode::OP_JUMP_IF_ZERO_SHORT, QScript::OpCode::OP_JUMP_IF_ZERO_LONG );
+
+			EmitByte( QScript::OpCode::OP_POP, chunk );
 			break;
 		}
 		default:
-			throw Exception( "cp_invalid_list_node", "Unknown list node: " + std::to_string( m_NodeId ) );
+			throw CompilerException( "cp_invalid_list_node", "Unknown list node: " + std::to_string( m_NodeId ), m_LineNr, m_ColNr, m_Token );
 		}
 
 		AddDebugSymbol( chunk, start, m_LineNr, m_ColNr, m_Token );

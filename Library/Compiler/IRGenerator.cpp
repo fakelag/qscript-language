@@ -311,6 +311,21 @@ namespace Compiler
 				};
 				break;
 			}
+			case TOK_WHILE:
+			{
+				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder ) -> BaseNode*
+				{
+					auto condition = nextExpression( irBuilder.m_Token.m_LBP );
+
+					auto body = nextExpression( irBuilder.m_Token.m_LBP );
+					if ( body->Id() != NODE_SCOPE )
+					{
+						body = parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+							irBuilder.m_Token.m_String, NODE_SCOPE, std::vector< BaseNode* >{ body } );
+					}
+
+					return parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+						irBuilder.m_Token.m_String, NODE_WHILE, std::vector< BaseNode* >{ condition, body } );
 				};
 				break;
 			}
