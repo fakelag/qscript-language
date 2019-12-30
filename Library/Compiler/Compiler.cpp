@@ -23,8 +23,16 @@ namespace QScript
 
 		// Compile bytecode
 		Compiler::Assembler assembler( chunk, flags );
-		for ( auto node : entryNodes )
-			node->Compile( assembler );
+
+		try
+		{
+			for ( auto node : entryNodes )
+				node->Compile( assembler );
+		}
+		catch ( const CompilerException& exception )
+		{
+			throw std::vector< CompilerException >{ exception };
+		}
 
 		for ( auto node : entryNodes )
 		{

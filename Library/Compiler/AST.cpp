@@ -4,6 +4,15 @@
 #include "Compiler.h"
 #include "Instructions.h"
 
+#define COMPILE_EXPRESSION( options ) (options | CO_EXPRESSION)
+#define COMPILE_STATEMENT( options ) (options & ~CO_EXPRESSION)
+#define COMPILE_ASSIGN_TARGET( options ) (options | CO_ASSIGN)
+
+#define IS_STATEMENT( options ) (!(options & CO_EXPRESSION))
+
+#define EXPECTED_EXPRESSION CompilerException( "cp_expected_expression", "Expected an expression, got: + \"" + m_Token + "\" (statement)", m_LineNr, m_ColNr, m_Token );
+#define EXPECTED_STATEMENT CompilerException( "cp_expected_statement", "Expected a statement, got: + \"" + m_Token + "\" (expression)", m_LineNr, m_ColNr, m_Token );
+
 namespace Compiler
 {
 	void AddDebugSymbol( QScript::Chunk_t* chunk, uint32_t start, int lineNr, int colNr, const std::string token )
@@ -60,6 +69,18 @@ namespace Compiler
 		}
 	}
 
+	void RelocateDebugSymbols( QScript::Chunk_t* chunk, uint32_t from, uint32_t patchSize )
+	{
+		for ( auto& symbol : chunk->m_Debug )
+		{
+			if ( symbol.m_From > from )
+				symbol.m_From += patchSize;
+
+			if ( symbol.m_To > from )
+				symbol.m_To += patchSize;
+		}
+	}
+
 	uint32_t PlaceJump( QScript::Chunk_t* chunk, uint32_t from, uint32_t size, QScript::OpCode shortOpCode, QScript::OpCode longOpCode )
 	{
 		bool isLong = size > 255;
@@ -91,17 +112,31 @@ namespace Compiler
 			chunk->m_Code[ from + 1 ] = ( uint8_t ) size;
 		}
 
-		// Fix up debugging info
-		for ( auto& symbol : chunk->m_Debug )
-		{
-			if ( symbol.m_From > from )
-				symbol.m_From += patchSize;
-
-			if ( symbol.m_To > from )
-				symbol.m_To += patchSize;
-		}
+		RelocateDebugSymbols( chunk, from, patchSize );
 
 		return patchSize;
+		}
+
+	void PatchJump( QScript::Chunk_t* chunk, uint32_t from, uint32_t newSize, QScript::OpCode shortOpCode, QScript::OpCode longOpCode )
+	{
+		if ( chunk->m_Code[ from ] == shortOpCode )
+		{
+			if ( newSize > 255 )
+				throw Exception( "cp_invalid_jmp_patch_size", "Expected long JMP instruction, got short" );
+
+			chunk->m_Code[ from + 1 ] = ( uint8_t ) newSize;
+	}
+		else if ( chunk->m_Code[ from ] == longOpCode )
+		{
+			chunk->m_Code[ from + 1 ] = ENCODE_LONG( newSize, 0 );
+			chunk->m_Code[ from + 2 ] = ENCODE_LONG( newSize, 1 );
+			chunk->m_Code[ from + 3 ] = ENCODE_LONG( newSize, 2 );
+			chunk->m_Code[ from + 4 ] = ENCODE_LONG( newSize, 3 );
+		}
+		else
+		{
+			throw Exception( "cp_invalid_jmp_patch_inst", "Expected JMP instruction at patch site" );
+		}
 	}
 
 	void RequireAssignability( BaseNode* node )
@@ -178,9 +213,6 @@ namespace Compiler
 					EmitByte( ( options & CO_ASSIGN ) ? QScript::OpCode::OP_SET_LOCAL_SHORT : QScript::OpCode::OP_LOAD_LOCAL_SHORT, chunk );
 					EmitByte( ( uint8_t ) local, chunk );
 				}
-
-				if ( options & CO_ASSIGN )
-					EmitByte( QScript::OpCode::OP_POP, chunk );
 			}
 			else
 			{
@@ -190,10 +222,16 @@ namespace Compiler
 					EmitConstant( chunk, m_Value, QScript::OpCode::OP_LOAD_GLOBAL_SHORT, QScript::OpCode::OP_LOAD_GLOBAL_LONG, assembler );
 			}
 
+			if ( IS_STATEMENT( options ) && ( options & CO_ASSIGN ) )
+				EmitByte( QScript::OpCode::OP_POP, chunk );
+
 			break;
 		}
 		default:
 		{
+			if ( IS_STATEMENT( options ) )
+				throw EXPECTED_STATEMENT;
+
 			if ( IS_NULL( m_Value ) )
 				EmitByte( QScript::OP_LOAD_NULL, chunk );
 			else
@@ -244,54 +282,20 @@ namespace Compiler
 
 			// When assigning a value, first evaluate right hand operand (value)
 			// and then set it via the left hand operand
-			m_Right->Compile( assembler, options );
-			m_Left->Compile( assembler, options | CO_ASSIGN );
-			break;
-		}
-		case NODE_VAR:
-		{
-			// Target must be assignable
-			RequireAssignability( m_Left );
-
-			auto& varName = static_cast< ValueNode* >( m_Left )->GetValue();
-
-			if ( m_Right )
-			{
-				// Assign variable at declaration
-				m_Right->Compile( assembler, options );
-				if ( assembler.StackDepth() > 0 )
-					assembler.CreateLocal( AS_STRING( varName )->GetString() );
-				else
-					m_Left->Compile( assembler, options | CO_ASSIGN );
-			}
-			else
-			{
-				// Empty variable
-				EmitByte( QScript::OpCode::OP_LOAD_NULL, chunk );
-
-				if ( assembler.StackDepth() == 0 )
-				{
-					// Global variable
-					EmitConstant( chunk, varName, QScript::OpCode::OP_SET_GLOBAL_SHORT, QScript::OpCode::OP_SET_GLOBAL_LONG, assembler );
-				}
-				else
-				{
-					// Local variable
-					assembler.CreateLocal( AS_STRING( varName )->GetString() );
-				}
-			}
+			m_Right->Compile( assembler, COMPILE_EXPRESSION( options ) );
+			m_Left->Compile( assembler, COMPILE_ASSIGN_TARGET( options ) );
 			break;
 		}
 		case NODE_AND:
 		{
-			m_Left->Compile( assembler, options );
+			m_Left->Compile( assembler, COMPILE_EXPRESSION( options ) );
 
 			uint32_t endJump = chunk->m_Code.size();
 
 			// Left hand operand evaluated to true, discard it and return the right hand result
 			EmitByte( QScript::OpCode::OP_POP, chunk );
 
-			m_Right->Compile( assembler, options );
+			m_Right->Compile( assembler, COMPILE_EXPRESSION( options ) );
 
 			// Create jump instruction
 			PlaceJump( chunk, endJump, chunk->m_Code.size() - endJump, QScript::OpCode::OP_JUMP_IF_ZERO_SHORT, QScript::OpCode::OP_JUMP_IF_ZERO_LONG );
@@ -299,14 +303,14 @@ namespace Compiler
 		}
 		case NODE_OR:
 		{
-			m_Left->Compile( assembler, options );
+			m_Left->Compile( assembler, COMPILE_EXPRESSION( options ) );
 
 			uint32_t endJump = chunk->m_Code.size();
 
 			// Pop left operand off
 			EmitByte( QScript::OpCode::OP_POP, chunk );
 
-			m_Right->Compile( assembler, options );
+			m_Right->Compile( assembler, COMPILE_EXPRESSION( options ) );
 
 			uint32_t patchSize = PlaceJump( chunk, endJump, chunk->m_Code.size() - endJump, QScript::OpCode::OP_JUMP_SHORT, QScript::OpCode::OP_JUMP_LONG );
 
@@ -315,9 +319,10 @@ namespace Compiler
 		}
 		default:
 		{
-			m_Left->Compile( assembler, options );
-			m_Right->Compile( assembler, options );
+			m_Left->Compile( assembler, COMPILE_EXPRESSION( options ) );
+			m_Right->Compile( assembler, COMPILE_EXPRESSION( options ) );
 
+			// Note: All the opcodes listed here MUST use both left and right hand values
 			std::map< NodeId, QScript::OpCode > singleByte ={
 				{ NODE_ADD, 			QScript::OpCode::OP_ADD },
 				{ NODE_SUB, 			QScript::OpCode::OP_SUB },
@@ -369,18 +374,17 @@ namespace Compiler
 			{ NODE_RETURN, 			QScript::OpCode::OP_RETURN },
 			{ NODE_NOT, 			QScript::OpCode::OP_NOT },
 			{ NODE_NEG, 			QScript::OpCode::OP_NEGATE },
-			{ NODE_POP,				QScript::OpCode::OP_POP },
 		};
 
 		auto opCode = singleByte.find( m_NodeId );
 		if ( opCode != singleByte.end() )
 		{
-			m_Node->Compile( assembler, options );
+			m_Node->Compile( assembler, COMPILE_EXPRESSION( options ) );
 			EmitByte( opCode->second, chunk );
 		}
 		else
 		{
-			throw Exception( "cp_invalid_simple_node", "Unknown simple node: " + std::to_string( m_NodeId ) );
+			throw CompilerException( "cp_invalid_simple_node", "Unknown simple node: " + std::to_string( m_NodeId ), m_LineNr, m_ColNr, m_Token );
 		}
 
 		AddDebugSymbol( chunk, start, m_LineNr, m_ColNr, m_Token );
@@ -415,8 +419,11 @@ namespace Compiler
 		{
 		case NODE_IF:
 		{
+			if ( !IS_STATEMENT( options ) )
+				throw EXPECTED_EXPRESSION;
+
 			// Compile condition, now the result is at the top of the stack
-			m_NodeList[ 0 ]->Compile( assembler, options );
+			m_NodeList[ 0 ]->Compile( assembler, COMPILE_EXPRESSION( options ) );
 
 			// Address of the next instruction from the jump
 			uint32_t thenBodyBegin = chunk->m_Code.size();
@@ -425,7 +432,7 @@ namespace Compiler
 			EmitByte( QScript::OpCode::OP_POP, chunk );
 
 			// Compile body
-			m_NodeList[ 1 ]->Compile( assembler, options );
+			m_NodeList[ 1 ]->Compile( assembler, COMPILE_STATEMENT( options ) );
 
 			uint32_t elseBodyBegin = chunk->m_Code.size();
 
@@ -434,7 +441,7 @@ namespace Compiler
 
 			// Compile optional else-branch
 			if ( m_NodeList[ 2 ] )
-				m_NodeList[ 2 ]->Compile( assembler, options );
+				m_NodeList[ 2 ]->Compile( assembler, COMPILE_STATEMENT( options ) );
 
 			uint32_t elseBodyEnd = chunk->m_Code.size();
 
@@ -447,12 +454,15 @@ namespace Compiler
 		}
 		case NODE_SCOPE:
 		{
+			if ( !IS_STATEMENT( options ) )
+				throw EXPECTED_EXPRESSION;
+
 			if ( m_NodeId == NODE_SCOPE )
 				assembler.PushScope();
 
 			// Compile each statement in scope body
 			for ( auto node : m_NodeList )
-				node->Compile( assembler, options );
+				node->Compile( assembler, COMPILE_STATEMENT( options ) );
 
 			if ( m_NodeId == NODE_SCOPE )
 			{
@@ -463,6 +473,47 @@ namespace Compiler
 				assembler.PopScope();
 			}
 
+			break;
+		}
+		case NODE_VAR:
+		{
+			// Target must be assignable
+			RequireAssignability( m_NodeList[ 0 ] );
+
+			auto& varName = static_cast< ValueNode* >( m_NodeList[ 0 ] )->GetValue();
+
+			if ( m_NodeList[ 1 ] )
+			{
+				// Assign variable at declaration
+				m_NodeList[ 1 ]->Compile( assembler, COMPILE_EXPRESSION( options ) );
+
+				if ( assembler.StackDepth() > 0 )
+					assembler.CreateLocal( AS_STRING( varName )->GetString() );
+				else
+					m_NodeList[ 0 ]->Compile( assembler, COMPILE_ASSIGN_TARGET( options ) );
+			}
+			else
+			{
+				if ( !IS_STATEMENT( options ) )
+					throw EXPECTED_EXPRESSION;
+
+				// Empty variable
+				EmitByte( QScript::OpCode::OP_LOAD_NULL, chunk );
+
+				if ( assembler.StackDepth() == 0 )
+				{
+					// Global variable
+					EmitConstant( chunk, varName, QScript::OpCode::OP_SET_GLOBAL_SHORT, QScript::OpCode::OP_SET_GLOBAL_LONG, assembler );
+					EmitByte( QScript::OpCode::OP_POP, chunk );
+				}
+				else
+				{
+					// Local variable
+					assembler.CreateLocal( AS_STRING( varName )->GetString() );
+				}
+			}
+			break;
+		}
 			break;
 		}
 		default:

@@ -33,18 +33,22 @@ namespace Compiler
 		NODE_NOT,
 		NODE_NOTEQUALS,
 		NODE_OR,
-		NODE_POP,
 		NODE_PRINT,
 		NODE_RETURN,
 		NODE_SCOPE,
 		NODE_SUB,
 		NODE_VAR,
+		NODE_WHILE,
 	};
 
 	enum CompileOptions : uint32_t
 	{
 		CO_NONE					= ( 0 << 0 ),
 		CO_ASSIGN				= ( 1 << 0 ),
+
+		// Expressions produce values, inform subsequent nodes that they should compile
+		// an expression.
+		CO_EXPRESSION			= ( 1 << 1 ),
 	};
 
 	class BaseNode

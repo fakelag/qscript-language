@@ -61,38 +61,23 @@ namespace Compiler
 
 				if ( headNode )
 				{
-					bool isExpressionStatement = true;
-
 					switch ( headNode->Id() )
 					{
-					case NODE_SCOPE:
-					case NODE_PRINT:
-					case NODE_RETURN:
-					case NODE_ASSIGN:
-					case NODE_VAR:
-					case NODE_IF:
+					case NODE_NAME:
 					{
-						isExpressionStatement = false;
-						break;
+						throw CompilerException( "ir_unknown_symbol", "Unknown symbol \"" + headNode->Token() + "\"", headNode->LineNr(), headNode->ColNr(), headNode->Token() );
 					}
 					default:
 						break;
 					}
 
-					if ( isExpressionStatement )
-					{
-						// Pop the intermediate value off stack
-						headNode = parserState.AllocateNode< SimpleNode >( headNode->LineNr(),
-							headNode->ColNr(), headNode->Token(), NODE_POP, headNode );
-					}
-
-					if ( headNode->Id() == NODE_IF )
+					if ( headNode->Id() == NODE_IF || headNode->Id() == NODE_WHILE )
 					{
 						auto currentToken = parserState.CurrentBuilder()->m_Token.m_Token;
 						if ( currentToken != TOK_BRACE_RIGHT && currentToken != TOK_SCOLON )
 						{
 							auto builder = parserState.CurrentBuilder();
-							throw CompilerException( "ir_expect", "Expected end of if-statement", builder->m_Token.m_LineNr,
+							throw CompilerException( "ir_expect", "Expected end of if/while-statement", builder->m_Token.m_LineNr,
 								builder->m_Token.m_ColNr, builder->m_Token.m_String );
 						}
 
@@ -198,22 +183,21 @@ namespace Compiler
 
 					if ( !varName->IsString() )
 					{
-						auto builder = parserState.CurrentBuilder();
-						throw CompilerException( "ir_variable_name", "Invalid variable name: \"" + builder->m_Token.m_String + "\"",
-							builder->m_Token.m_LineNr, builder->m_Token.m_ColNr, builder->m_Token.m_String );
+						throw CompilerException( "ir_variable_name", "Invalid variable name: \"" + varName->Token() + "\"",
+							varName->LineNr(), varName->ColNr(), varName->Token() );
 					}
 
 					if ( parserState.CurrentBuilder()->m_Token.m_Token == TOK_EQUALS )
 					{
 						parserState.NextBuilder();
 
-						return parserState.AllocateNode< ComplexNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-							irBuilder.m_Token.m_String, NODE_VAR, varName, nextExpression( BP_ASSIGN ) );
+						return parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+							irBuilder.m_Token.m_String, NODE_VAR, std::vector< BaseNode* >{ varName, nextExpression( BP_ASSIGN ) } );
 					}
 					else
 					{
-						return parserState.AllocateNode< ComplexNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-							irBuilder.m_Token.m_String, NODE_VAR, varName, ( BaseNode* ) NULL );
+						return parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+							irBuilder.m_Token.m_String, NODE_VAR, std::vector< BaseNode* >{ varName, ( BaseNode* ) NULL } );
 					}
 				};
 				break;
@@ -297,9 +281,9 @@ namespace Compiler
 					std::vector< BaseNode* > chain;
 
 					// condition
-					chain.push_back( nextExpression() );
+					chain.push_back( nextExpression( irBuilder.m_Token.m_LBP ) );
 
-					auto body = nextExpression();
+					auto body = nextExpression( irBuilder.m_Token.m_LBP );
 					if ( body->Id() != NODE_SCOPE )
 					{
 						body = parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
@@ -310,7 +294,7 @@ namespace Compiler
 
 					// optional else block
 					if ( parserState.Match( TOK_ELSE ) )
-						chain.push_back( nextExpression() );
+						chain.push_back( nextExpression( irBuilder.m_Token.m_LBP ) );
 					else
 						chain.push_back( NULL );
 
@@ -323,7 +307,10 @@ namespace Compiler
 			{
 				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder ) -> BaseNode*
 				{
-					return nextExpression();
+					return nextExpression( irBuilder.m_Token.m_LBP );
+				};
+				break;
+			}
 				};
 				break;
 			}
