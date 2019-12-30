@@ -12,8 +12,15 @@ bool testsPassed = true; \
 try {
 
 #define UTEST_END() \
-} catch ( const Exception& exception ) { \
-	exceptionLines.push_back( "\t\033[31m" + std::string( exception.describe() ) + "\033[39m " ); \
+} catch ( const RuntimeException& exception ) { \
+	exceptionLines.push_back( "\t\033[31m[Runtime Exception]" + std::string( exception.describe() ) + "\033[39m " ); \
+} \
+catch ( const std::vector< CompilerException >& exceptions ) { \
+	for ( auto exception : exceptions ) \
+		exceptionLines.push_back( "\t\033[31m[Compiler Exception]" + std::string( exception.describe() ) + "\033[39m " ); \
+} \
+catch ( const Exception& exception ) { \
+	exceptionLines.push_back( "\t\033[31m[Generic Exception]" + std::string( exception.describe() ) + "\033[39m " ); \
 } \
 catch ( const std::exception& exception ) { \
 	exceptionLines.push_back( "\t\033[31m[Exception]\033[39m " + std::string( exception.what() ) ); \
