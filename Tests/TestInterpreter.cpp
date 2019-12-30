@@ -229,5 +229,38 @@ bool Tests::TestInterpreter()
 		UTEST_CASE_CLOSED();
 	}( );
 
+	UTEST_CASE( "while clause" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "var g1 = 4;			\
+			var g2 = 8;											\
+			var g3 = 100000;									\
+			while ( g1 < g3 ) {									\
+				var l1 = g1;									\
+				{												\
+					var l2 = l1 + 1 * 2;						\
+					var l3 = l2 - 1;							\
+					{											\
+						var l4 = l3 + 1;						\
+						l3 = l4;								\
+					}											\
+					g1 = l3;									\
+				}												\
+			}													\
+			return g1;", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 100000 );
+
+		UTEST_ASSERT( TestUtils::RunVM( "var g1 = 0;			\
+				while ((g1 = g1 + 1) < 40) {}						\
+			return g1;", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 40.0 );
+
+		UTEST_CASE_CLOSED();
+	}( );
+
 	UTEST_END();
 }
