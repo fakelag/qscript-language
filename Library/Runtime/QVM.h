@@ -47,6 +47,10 @@ struct VM_t
 	FORCEINLINE QScript::Value Pop()
 	{
 		--m_StackTop;
+
+		if ( m_StackTop < m_Stack )
+			throw RuntimeException( "rt_stack_underflow", "Stack underflow", -1, -1, "" );
+
 		return *m_StackTop;
 	}
 
