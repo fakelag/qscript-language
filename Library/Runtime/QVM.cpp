@@ -144,14 +144,12 @@ namespace QVM
 			{
 				auto constant = READ_CONST_SHORT( vm );
 				vm.m_Globals[ AS_STRING( constant )->GetString() ].From( vm.Peek( 0 ) );
-				vm.Pop();
 				break;
 			}
 			case QScript::OP_SET_GLOBAL_LONG:
 			{
 				READ_CONST_LONG( vm, constant );
 				vm.m_Globals[ AS_STRING( constant )->GetString() ].From( vm.Peek( 0 ) );
-				vm.Pop();
 				break;
 			}
 			case QScript::OP_LOAD_LOCAL_SHORT: vm.Push( vm.m_Stack[ READ_BYTE( vm ) ] ); break;
@@ -166,6 +164,13 @@ namespace QVM
 			{
 				READ_LONG( vm, offset );
 				vm.m_Stack[ offset ].From( vm.Peek( 0 ) );
+				break;
+			}
+			case QScript::OP_JUMP_BACK_SHORT: vm.m_IP -= ( READ_BYTE( vm ) + 2 ); break;
+			case QScript::OP_JUMP_BACK_LONG:
+			{
+				READ_LONG( vm, offset );
+				vm.m_IP -= ( offset + 5 );
 				break;
 			}
 			case QScript::OP_JUMP_SHORT: vm.m_IP += READ_BYTE( vm ); break;

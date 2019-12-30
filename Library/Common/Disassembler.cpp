@@ -118,21 +118,21 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32_t of
 	break; \
 }
 
-#define JMP_INST_LONG( inst, name ) case QScript::OpCode::inst: { \
+#define JMP_INST_LONG( inst, name, backwards ) case QScript::OpCode::inst: { \
 	uint32_t value = DECODE_LONG( chunk.m_Code[ offset + 1 ], chunk.m_Code[ offset + 2 ], chunk.m_Code[ offset + 3 ], chunk.m_Code[ offset + 4 ] ); \
 	instString = name + std::string( " " ) \
 		+ std::to_string( value ) \
-		+ " [to " + std::to_string( offset + 5 + value ) + "]" \
+		+ " [to " + std::to_string( backwards ? ( offset - value ) : ( offset + 5 + value ) ) + "]" \
 		+ " (LONG)"; \
 	instOffset = offset + InstructionSize( QScript::OpCode::inst ); \
 	break; \
 }
 
-#define JMP_INST_SHORT( inst, name ) case QScript::OpCode::inst: { \
+#define JMP_INST_SHORT( inst, name, backwards ) case QScript::OpCode::inst: { \
 	uint8_t value = chunk.m_Code[ offset + 1 ]; \
 	instString = name + std::string( " " ) \
 		+ std::to_string( value ) \
-		+ " [to " + std::to_string( offset + 2 + value ) + "]" \
+		+ " [to " + std::to_string( backwards ? ( offset - value ) : ( offset + 2 + value ) ) + "]" \
 		+ " (SHORT)"; \
 	instOffset = offset + InstructionSize( QScript::OpCode::inst ); \
 	break; \
@@ -165,10 +165,12 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32_t of
 	INST_LONG( OP_LOAD_LOCAL_LONG, "LOAD_LOCAL" );
 	INST_SHORT( OP_SET_LOCAL_SHORT, "SET_LOCAL" );
 	INST_LONG( OP_SET_LOCAL_LONG, "SET_LOCAL" );
-	JMP_INST_SHORT( OP_JUMP_IF_ZERO_SHORT, "JUMP_IF_ZERO" );
-	JMP_INST_LONG( OP_JUMP_IF_ZERO_LONG, "JUMP_IF_ZERO" );
-	JMP_INST_SHORT( OP_JUMP_SHORT, "JUMP" );
-	JMP_INST_LONG( OP_JUMP_LONG, "JUMP" );
+	JMP_INST_SHORT( OP_JUMP_IF_ZERO_SHORT, "JUMP_IF_ZERO", false );
+	JMP_INST_LONG( OP_JUMP_IF_ZERO_LONG, "JUMP_IF_ZERO", false );
+	JMP_INST_SHORT( OP_JUMP_SHORT, "JUMP", false );
+	JMP_INST_LONG( OP_JUMP_LONG, "JUMP", false );
+	JMP_INST_SHORT( OP_JUMP_BACK_SHORT, "JUMP_BACK", true );
+	JMP_INST_LONG( OP_JUMP_BACK_LONG, "JUMP_BACK", true );
 	SIMPLE_INST( OP_ADD, "ADD" );
 	SIMPLE_INST( OP_SUB, "SUB" );
 	SIMPLE_INST( OP_DIV, "DIV" );
@@ -224,6 +226,8 @@ int Compiler::InstructionSize( uint8_t inst )
 	case QScript::OpCode::OP_JUMP_IF_ZERO_LONG: return 5;
 	case QScript::OpCode::OP_JUMP_SHORT: return 2;
 	case QScript::OpCode::OP_JUMP_LONG: return 5;
+	case QScript::OpCode::OP_JUMP_BACK_SHORT: return 2;
+	case QScript::OpCode::OP_JUMP_BACK_LONG: return 5;
 	case QScript::OpCode::OP_ADD: return 1;
 	case QScript::OpCode::OP_SUB: return 1;
 	case QScript::OpCode::OP_DIV: return 1;
