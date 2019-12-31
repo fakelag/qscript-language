@@ -262,5 +262,58 @@ bool Tests::TestInterpreter()
 		UTEST_CASE_CLOSED();
 	}( );
 
+	UTEST_CASE( "do-while clause" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "var f = 100; do { f = f - 1; } while (f > 50); return f;", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 50 );
+
+		UTEST_ASSERT( TestUtils::RunVM( "var g = 0;		\
+			var g1 = 0;									\
+			while ( g < 10 ) {							\
+				var l0 = 0;								\
+				var l1 = 25;							\
+				do {									\
+					l0 = l0 + l1;						\
+				} while ( l0 < 100 );					\
+				{										\
+					var l2 = l0;						\
+					do {								\
+						l2 = l2 * 2;					\
+					} while ( l2 < 150 ); 				\
+					var l3 = l2 + 50;					\
+					g1 = g1 + l3;						\
+					g = g + 1;							\
+				}										\
+			}											\
+			return g1 - g; ", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 2490.0 );
+
+		UTEST_ASSERT( TestUtils::RunVM( "var g0 = -1;		\
+			var g1 = -1;									\
+			do {											\
+				g0 = 0;										\
+				g1 = 1;										\
+			} while ( g0 == -1 || g1 == -1 );				\
+			{												\
+				var iter = 0;								\
+				do {										\
+					var sum = g0 + g1;						\
+					g0 = g1;								\
+					g1 = sum;								\
+				} while ( ( iter = iter + 1 ) < 50 );		\
+			}												\
+			return g1; ", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 20365011074.0 );
+
+		UTEST_CASE_CLOSED();
+	}( );
+
 	UTEST_END();
 }
