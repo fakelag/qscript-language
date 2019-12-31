@@ -13,9 +13,9 @@ Compiler 			cp_expected_statement		 		Expected a statement, got: %tokenString% (
 IRGenerator 		ir_expect_lvalue_or_statement		Expected a left-value or statement
 IRGenerator 		ir_expect_rvalue					Expected a right-value
 IRGenerator			ir_unknown_token					Unknown token id: %tokenId% "%tokenString%"
-IRGenerator			ir_missing_rparen					Expected an end of expression, got: "%currToken%"
+IRGenerator			ir_missing_rparen					Expected an end of expression, got: "%tokenString%"
 IRGenerator 		ir_invalid_token 					Invalid token: "%tokenString%"
-IRGenerator 		ir_expect							Expected end of expression
+IRGenerator 		ir_expect							Expected end of expression, got: "%tokenString%" | Expected "while" after do <block>, got: "%tokenString%"
 IRGenerator			ir_parsing_past_eof					Parsing past end of file
 IRGenerator 		ir_variable_name 					Invalid variable name: %tokenString%
 Disassembler		disasm_invalid_value				Invalid value type: %valueType%
