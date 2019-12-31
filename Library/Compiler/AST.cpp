@@ -10,8 +10,8 @@
 
 #define IS_STATEMENT( options ) (!(options & CO_EXPRESSION))
 
-#define EXPECTED_EXPRESSION CompilerException( "cp_expected_expression", "Expected an expression, got: + \"" + m_Token + "\" (statement)", m_LineNr, m_ColNr, m_Token );
-#define EXPECTED_STATEMENT CompilerException( "cp_expected_statement", "Expected a statement, got: + \"" + m_Token + "\" (expression)", m_LineNr, m_ColNr, m_Token );
+#define EXPECTED_EXPRESSION CompilerException( "cp_expected_expression", "Expected an expression, got: \"" + m_Token + "\" (statement)", m_LineNr, m_ColNr, m_Token );
+#define EXPECTED_STATEMENT CompilerException( "cp_expected_statement", "Expected a statement, got: \"" + m_Token + "\" (expression)", m_LineNr, m_ColNr, m_Token );
 
 namespace Compiler
 {
@@ -222,9 +222,6 @@ namespace Compiler
 					EmitConstant( chunk, m_Value, QScript::OpCode::OP_LOAD_GLOBAL_SHORT, QScript::OpCode::OP_LOAD_GLOBAL_LONG, assembler );
 			}
 
-			if ( IS_STATEMENT( options ) && ( options & CO_ASSIGN ) )
-				EmitByte( QScript::OpCode::OP_POP, chunk );
-
 			break;
 		}
 		default:
@@ -323,6 +320,7 @@ namespace Compiler
 			m_Right->Compile( assembler, COMPILE_EXPRESSION( options ) );
 
 			// Note: All the opcodes listed here MUST use both left and right hand values
+			// and produce a new value on the stack (stack effect = -1)
 			std::map< NodeId, QScript::OpCode > singleByte ={
 				{ NODE_ADD, 			QScript::OpCode::OP_ADD },
 				{ NODE_SUB, 			QScript::OpCode::OP_SUB },
@@ -345,6 +343,9 @@ namespace Compiler
 			break;
 		}
 		}
+
+		if ( IS_STATEMENT( options ) )
+			EmitByte( QScript::OpCode::OP_POP, chunk );
 
 		AddDebugSymbol( chunk, start, m_LineNr, m_ColNr, m_Token );
 	}
@@ -417,6 +418,47 @@ namespace Compiler
 
 		switch ( m_NodeId )
 		{
+		case NODE_DO:
+		{
+			// Jump over wrapper to pop conditional value
+			uint32_t condWrapperJump = chunk->m_Code.size();
+
+			// Pop condition value
+			EmitByte( QScript::OpCode::OP_POP, chunk );
+
+			// Jump over wrapper on first iteration
+			uint32_t condWrapperBegin = condWrapperJump;
+			condWrapperBegin += PlaceJump( chunk, condWrapperJump, chunk->m_Code.size() - condWrapperJump,
+				QScript::OpCode::OP_JUMP_SHORT, QScript::OpCode::OP_JUMP_LONG );
+
+			// Address to loop back to
+			uint32_t bodyBegin = chunk->m_Code.size();
+
+			// Loop body
+			m_NodeList[ 0 ]->Compile( assembler, COMPILE_STATEMENT( options ) );
+
+			// Loop condition
+			m_NodeList[ 1 ]->Compile( assembler, COMPILE_EXPRESSION( options ) );
+
+			uint32_t backJumpAddress = chunk->m_Code.size();
+			uint32_t backJumpSize = backJumpAddress - condWrapperBegin;
+
+			// Jump back to top
+			uint32_t backJumpPatchSize = PlaceJump( chunk, chunk->m_Code.size(), backJumpSize,
+				QScript::OpCode::OP_JUMP_BACK_SHORT, QScript::OpCode::OP_JUMP_BACK_LONG );
+
+			// Skipping jump if condition is false
+			uint32_t overJumpPatchSize = PlaceJump( chunk, chunk->m_Code.size() - backJumpPatchSize, backJumpPatchSize,
+				QScript::OpCode::OP_JUMP_IF_ZERO_SHORT, QScript::OpCode::OP_JUMP_IF_ZERO_LONG );
+
+			// Correct backjump offset
+			PatchJump( chunk, backJumpAddress + overJumpPatchSize, backJumpSize + overJumpPatchSize,
+				QScript::OpCode::OP_JUMP_BACK_SHORT, QScript::OpCode::OP_JUMP_BACK_LONG );
+
+			// Pop condition value
+			EmitByte( QScript::OpCode::OP_POP, chunk );
+			break;
+		}
 		case NODE_IF:
 		{
 			if ( !IS_STATEMENT( options ) )
@@ -490,7 +532,12 @@ namespace Compiler
 				if ( assembler.StackDepth() > 0 )
 					assembler.CreateLocal( AS_STRING( varName )->GetString() );
 				else
+				{
 					m_NodeList[ 0 ]->Compile( assembler, COMPILE_ASSIGN_TARGET( options ) );
+
+					if ( IS_STATEMENT( options ) )
+						EmitByte( QScript::OpCode::OP_POP, chunk );
+				}
 			}
 			else
 			{
@@ -504,7 +551,9 @@ namespace Compiler
 				{
 					// Global variable
 					EmitConstant( chunk, varName, QScript::OpCode::OP_SET_GLOBAL_SHORT, QScript::OpCode::OP_SET_GLOBAL_LONG, assembler );
-					EmitByte( QScript::OpCode::OP_POP, chunk );
+
+					if ( IS_STATEMENT( options ) )
+						EmitByte( QScript::OpCode::OP_POP, chunk );
 				}
 				else
 				{

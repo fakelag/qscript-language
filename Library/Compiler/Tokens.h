@@ -29,6 +29,7 @@ namespace Compiler
 		TOK_BRACE_LEFT,
 		TOK_BRACE_RIGHT,
 		TOK_DBL,
+		TOK_DO,
 		TOK_ELSE,
 		TOK_EQUALS,
 		TOK_FALSE,

@@ -329,6 +329,29 @@ namespace Compiler
 				};
 				break;
 			}
+			case TOK_DO:
+			{
+				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder ) -> BaseNode*
+				{
+					auto body = nextExpression( irBuilder.m_Token.m_LBP );
+					if ( body->Id() != NODE_SCOPE )
+					{
+						body = parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+							irBuilder.m_Token.m_String, NODE_SCOPE, std::vector< BaseNode* >{ body } );
+					}
+
+					// Skip over terminating token (either ; or })
+					parserState.NextBuilder();
+
+					parserState.Expect( TOK_WHILE, "Expected \"while\" after do <block>, got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
+
+					auto condition = nextExpression( irBuilder.m_Token.m_LBP );
+
+					return parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+						irBuilder.m_Token.m_String, NODE_DO, std::vector< BaseNode* >{ body, condition } );
+				};
+				break;
+			}
 			case TOK_BRACE_LEFT:
 			{
 				builder->m_Nud = [ &parserState, &nextStatement ]( const IrBuilder_t& irBuilder ) -> BaseNode*
