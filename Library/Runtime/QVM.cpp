@@ -46,7 +46,7 @@ namespace QVM
 
 				for( ;; )
 				{
-					std::cout << "Action (s/j/r/ds/dc/dcnst/dg/help/q): ";
+					std::cout << "Action (s/j/r/ds/dc/dcnst/dg/ip/help/q): ";
 					std::getline( std::cin, input );
 
 					if ( input == "r" )
@@ -91,7 +91,14 @@ namespace QVM
 						break;
 					}
 					else if ( input == "s" )
+					{
+						runTill = NULL;
 						break;
+					}
+					else if ( input == "ip" )
+					{
+						std::cout << "IP: " << ( vm.m_IP - &vm.m_Chunk->m_Code[ 0 ] ) << std::endl;
+					}
 					else if ( input == "q" )
 						return true;
 					else
