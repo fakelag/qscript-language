@@ -283,13 +283,7 @@ namespace Compiler
 					// condition
 					chain.push_back( nextExpression( irBuilder.m_Token.m_LBP ) );
 
-					auto body = nextExpression( irBuilder.m_Token.m_LBP );
-					if ( body->Id() != NODE_SCOPE )
-					{
-						body = parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-							irBuilder.m_Token.m_String, NODE_SCOPE, std::vector< BaseNode* >{ body } );
-					}
-					
+					auto body = parserState.ToScope( nextExpression( irBuilder.m_Token.m_LBP ) );
 					chain.push_back( body );
 
 					// optional else block
@@ -317,12 +311,7 @@ namespace Compiler
 				{
 					auto condition = nextExpression( irBuilder.m_Token.m_LBP );
 
-					auto body = nextExpression( irBuilder.m_Token.m_LBP );
-					if ( body->Id() != NODE_SCOPE )
-					{
-						body = parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-							irBuilder.m_Token.m_String, NODE_SCOPE, std::vector< BaseNode* >{ body } );
-					}
+					auto body = parserState.ToScope( nextExpression( irBuilder.m_Token.m_LBP ) );
 
 					return parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
 						irBuilder.m_Token.m_String, NODE_WHILE, std::vector< BaseNode* >{ condition, body } );
@@ -333,12 +322,7 @@ namespace Compiler
 			{
 				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder ) -> BaseNode*
 				{
-					auto body = nextExpression( irBuilder.m_Token.m_LBP );
-					if ( body->Id() != NODE_SCOPE )
-					{
-						body = parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-							irBuilder.m_Token.m_String, NODE_SCOPE, std::vector< BaseNode* >{ body } );
-					}
+					auto body = parserState.ToScope( nextExpression( irBuilder.m_Token.m_LBP ) );
 
 					// Skip over terminating token (either ; or })
 					parserState.NextBuilder();
@@ -396,13 +380,7 @@ namespace Compiler
 						}
 					}
 
-					auto body = nextExpression( irBuilder.m_Token.m_LBP );
-					if ( body->Id() != NODE_SCOPE )
-					{
-						body = parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-							irBuilder.m_Token.m_String, NODE_SCOPE, std::vector< BaseNode* >{ body } );
-					}
-
+					auto body = parserState.ToScope( nextExpression( irBuilder.m_Token.m_LBP ) );
 					forStatement.push_back( body );
 
 					return parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,

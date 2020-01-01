@@ -117,6 +117,17 @@ namespace Compiler
 			}
 		}
 
+		BaseNode*						ToScope( BaseNode* node )
+		{
+			if ( node->Id() != NODE_SCOPE )
+			{
+				return AllocateNode< ListNode >( node->LineNr(), node->ColNr(), node->Token(),
+					NODE_SCOPE, std::vector< BaseNode* >{ node } );
+			}
+
+			return node;
+		}
+
 		template <typename T, class... Args>
 		T* 								AllocateNode(Args&& ... args)
 		{
