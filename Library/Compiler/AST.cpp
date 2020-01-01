@@ -461,6 +461,66 @@ namespace Compiler
 		}
 		case NODE_FOR:
 		{
+			if ( !IS_STATEMENT( options ) )
+				throw EXPECTED_EXPRESSION;
+
+			assembler.PushScope();
+
+			// Compile initializer
+			if ( m_NodeList[ 0 ] )
+				m_NodeList[ 0 ]->Compile( assembler, COMPILE_STATEMENT( options ) );
+
+			uint32_t loopConditionBegin = chunk->m_Code.size();
+
+			// Compile condition
+			if ( m_NodeList[ 1 ] )
+				m_NodeList[ 1 ]->Compile( assembler, COMPILE_EXPRESSION( options ) );
+
+			// Jump to loop end
+			uint32_t loopSkipJump = chunk->m_Code.size();
+
+			// Pop condition value
+			EmitByte( QScript::OpCode::OP_POP, chunk );
+
+			uint32_t loopIncrementBegin = chunk->m_Code.size();
+
+			// Increment statement
+			if ( m_NodeList[ 2 ] )
+				m_NodeList[ 2 ]->Compile( assembler, COMPILE_STATEMENT( options ) );
+
+			// Jump to condition (must be patched)
+			uint32_t loopConditionJump = chunk->m_Code.size();
+			uint32_t jumpToConditionSize = PlaceJump( chunk, loopConditionJump, loopConditionJump - loopConditionBegin + 5,
+				QScript::OpCode::OP_JUMP_BACK_SHORT, QScript::OpCode::OP_JUMP_BACK_LONG );
+
+			// Compile loop body
+			if ( m_NodeList[ 3 ] )
+				m_NodeList[ 3 ]->Compile( assembler, COMPILE_STATEMENT( options ) );
+
+			// Jump to increment statement
+			uint32_t jumpToIncrement = PlaceJump( chunk, chunk->m_Code.size(), chunk->m_Code.size() - loopIncrementBegin,
+				QScript::OpCode::OP_JUMP_BACK_SHORT, QScript::OpCode::OP_JUMP_BACK_LONG );
+
+			// Jump over increment on first fall through
+			uint32_t jumpToBodyOnFirstSize = PlaceJump( chunk, loopIncrementBegin, ( loopConditionJump - loopIncrementBegin ) + jumpToConditionSize,
+				QScript::OpCode::OP_JUMP_SHORT, QScript::OpCode::OP_JUMP_LONG );
+
+			// Jump to loop end
+			uint32_t jumpToLoopEndSize = PlaceJump( chunk, loopSkipJump, chunk->m_Code.size() - loopSkipJump,
+				QScript::OpCode::OP_JUMP_IF_ZERO_SHORT, QScript::OpCode::OP_JUMP_IF_ZERO_LONG );
+			
+			// Pop condition value
+			EmitByte( QScript::OpCode::OP_POP, chunk );
+
+			PatchJump( chunk, loopConditionJump + jumpToLoopEndSize + jumpToBodyOnFirstSize,
+				( loopConditionJump + jumpToBodyOnFirstSize + jumpToLoopEndSize ) - loopConditionBegin,
+				QScript::OpCode::OP_JUMP_BACK_SHORT, QScript::OpCode::OP_JUMP_BACK_LONG );
+
+			// Clear stack
+			for ( int i = assembler.LocalsInCurrentScope() - 1; i >= 0; --i )
+				EmitByte( QScript::OpCode::OP_POP, assembler.CurrentChunk() );
+
+			assembler.PopScope();
 			break;
 		}
 		case NODE_IF:
@@ -492,10 +552,13 @@ namespace Compiler
 			uint32_t elseBodyEnd = chunk->m_Code.size();
 
 			// Jump over else branch
-			elseBodyBegin += PlaceJump( chunk, elseBodyBegin, elseBodyEnd - elseBodyBegin, QScript::OpCode::OP_JUMP_SHORT, QScript::OpCode::OP_JUMP_LONG );
+			elseBodyBegin += PlaceJump( chunk, elseBodyBegin, elseBodyEnd - elseBodyBegin,
+				QScript::OpCode::OP_JUMP_SHORT, QScript::OpCode::OP_JUMP_LONG );
 
 			// Create jump instruction
-			PlaceJump( chunk, thenBodyBegin, elseBodyBegin - thenBodyBegin, QScript::OpCode::OP_JUMP_IF_ZERO_SHORT, QScript::OpCode::OP_JUMP_IF_ZERO_LONG );
+			PlaceJump( chunk, thenBodyBegin, elseBodyBegin - thenBodyBegin,
+				QScript::OpCode::OP_JUMP_IF_ZERO_SHORT, QScript::OpCode::OP_JUMP_IF_ZERO_LONG );
+
 			break;
 		}
 		case NODE_SCOPE:
@@ -503,21 +566,17 @@ namespace Compiler
 			if ( !IS_STATEMENT( options ) )
 				throw EXPECTED_EXPRESSION;
 
-			if ( m_NodeId == NODE_SCOPE )
-				assembler.PushScope();
+			assembler.PushScope();
 
 			// Compile each statement in scope body
 			for ( auto node : m_NodeList )
 				node->Compile( assembler, COMPILE_STATEMENT( options ) );
 
-			if ( m_NodeId == NODE_SCOPE )
-			{
-				// Clear stack
-				for ( int i = assembler.LocalsInCurrentScope() - 1; i >= 0; --i )
-					EmitByte( QScript::OpCode::OP_POP, assembler.CurrentChunk() );
+			// Clear stack
+			for ( int i = assembler.LocalsInCurrentScope() - 1; i >= 0; --i )
+				EmitByte( QScript::OpCode::OP_POP, assembler.CurrentChunk() );
 
-				assembler.PopScope();
-			}
+			assembler.PopScope();
 
 			break;
 		}
@@ -585,11 +644,14 @@ namespace Compiler
 			m_NodeList[ 1 ]->Compile( assembler, COMPILE_STATEMENT( options ) );
 
 			uint32_t firstJumpSize = chunk->m_Code.size() - loopBodyBegin;
-			PlaceJump( chunk, loopBodyBegin, firstJumpSize + 5, QScript::OpCode::OP_JUMP_IF_ZERO_SHORT, QScript::OpCode::OP_JUMP_IF_ZERO_LONG );
+			PlaceJump( chunk, loopBodyBegin, firstJumpSize + 5,
+				QScript::OpCode::OP_JUMP_IF_ZERO_SHORT, QScript::OpCode::OP_JUMP_IF_ZERO_LONG );
 
-			uint32_t patchSize = PlaceJump( chunk, chunk->m_Code.size(), chunk->m_Code.size() - loopConditionBegin, QScript::OpCode::OP_JUMP_BACK_SHORT, QScript::OpCode::OP_JUMP_BACK_LONG );
+			uint32_t patchSize = PlaceJump( chunk, chunk->m_Code.size(), chunk->m_Code.size() - loopConditionBegin,
+				QScript::OpCode::OP_JUMP_BACK_SHORT, QScript::OpCode::OP_JUMP_BACK_LONG );
 
-			PatchJump( chunk, loopBodyBegin, firstJumpSize + patchSize, QScript::OpCode::OP_JUMP_IF_ZERO_SHORT, QScript::OpCode::OP_JUMP_IF_ZERO_LONG );
+			PatchJump( chunk, loopBodyBegin, firstJumpSize + patchSize,
+				QScript::OpCode::OP_JUMP_IF_ZERO_SHORT, QScript::OpCode::OP_JUMP_IF_ZERO_LONG );
 
 			EmitByte( QScript::OpCode::OP_POP, chunk );
 			break;
