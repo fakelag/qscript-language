@@ -498,7 +498,7 @@ namespace Compiler
 				m_NodeList[ 3 ]->Compile( assembler, COMPILE_STATEMENT( options ) );
 
 			// Jump to increment statement
-			uint32_t jumpToIncrement = PlaceJump( chunk, chunk->m_Code.size(), chunk->m_Code.size() - loopIncrementBegin,
+			PlaceJump( chunk, chunk->m_Code.size(), chunk->m_Code.size() - loopIncrementBegin,
 				QScript::OpCode::OP_JUMP_BACK_SHORT, QScript::OpCode::OP_JUMP_BACK_LONG );
 
 			// Jump over increment on first fall through
