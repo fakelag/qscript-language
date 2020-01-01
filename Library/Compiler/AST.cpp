@@ -444,7 +444,7 @@ namespace Compiler
 			uint32_t backJumpSize = backJumpAddress - condWrapperBegin;
 
 			// Jump back to top
-			uint32_t backJumpPatchSize = PlaceJump( chunk, chunk->m_Code.size(), backJumpSize,
+			uint32_t backJumpPatchSize = PlaceJump( chunk, chunk->m_Code.size(), backJumpSize + 5,
 				QScript::OpCode::OP_JUMP_BACK_SHORT, QScript::OpCode::OP_JUMP_BACK_LONG );
 
 			// Skipping jump if condition is false
