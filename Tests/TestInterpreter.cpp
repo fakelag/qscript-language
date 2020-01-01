@@ -10,6 +10,15 @@ using namespace Tests;
 
 bool Tests::TestInterpreter()
 {
+	// Generate a body of more than 255 instructions
+	auto largeBodyOfCode = TestUtils::GenerateSequence( 516, []( int iter ) {
+		return "_tmp = _tmp+" + std::to_string( iter ) + std::string( ".00;" );
+	}, "var _tmp = 0;" );
+
+	auto largeExpression = TestUtils::GenerateSequence( 516, []( int iter ) {
+		return "0.00" + std::string( iter == 515 ? "" : "+" );
+	} );
+
 	UTEST_BEGIN( "Interpreter Tests" );
 
 	UTEST_CASE( "Simple number addition" )
@@ -126,7 +135,7 @@ bool Tests::TestInterpreter()
 		UTEST_CASE_CLOSED();
 	}( );
 
-	UTEST_CASE( "If-else clause" )
+	UTEST_CASE( "If-else clause", &largeBodyOfCode )
 	{
 		QScript::Value exitCode;
 		UTEST_ASSERT( TestUtils::RunVM( "var global = 50;	\
@@ -192,11 +201,6 @@ bool Tests::TestInterpreter()
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 4 );
-
-		// Generate a body of more than 255 instructions
-		auto largeBodyOfCode = TestUtils::GenerateSequence( 1024, []( int iter ) {
-			return "_tmp = _tmp+" + std::to_string( iter ) + std::string( ".00;" );
-		}, "var _tmp = 0;" );
 
 		UTEST_ASSERT( TestUtils::RunVM( "var x = 0;								\
 				if (x) { " + largeBodyOfCode + " }								\
@@ -311,6 +315,47 @@ bool Tests::TestInterpreter()
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 20365011074.0 );
+
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "for clause", &largeExpression, &largeBodyOfCode )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "var g = 0;		\
+			for ( var i = 1; i <= 10; i = i + 1 )		\
+				g = g + i;								\
+		return g; ", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 55 );
+
+		UTEST_ASSERT( TestUtils::RunVM( "var res;				\
+			var g0 = 2;											\
+			var g1 = 2;											\
+			{													\
+				var l0 = 10;									\
+				for ( ; g0 != 0;) {								\
+					g0 = 0;										\
+				}												\
+				for ( var i = 0; 1 && i < l0; i = i + 1 ) {		\
+					g0 = g0 + 1;								\
+				}												\
+				res = g0;										\
+			}													\
+			return res; ", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 10 );
+
+		UTEST_ASSERT( TestUtils::RunVM( "var g = 1;																			\
+			for ( var i = " + largeExpression + "; i < 10 +" + largeExpression + "; i = i + 1 + " + largeExpression	+ ") {	\
+				" + largeBodyOfCode + " g = i + 1;																			\
+			} \
+			return g;", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 10 );
 
 		UTEST_CASE_CLOSED();
 	}( );

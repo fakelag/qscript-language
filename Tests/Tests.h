@@ -48,9 +48,9 @@ if ( exceptionLines.size() > 0 ) \
 } \
 return testsPassed;
 
-#define UTEST_CASE( description ) \
+#define UTEST_CASE( description, ... ) \
 testResults.push_back( { description, false } ); \
-[&testResults]() -> void
+[&testResults, __VA_ARGS__]() -> void
 
 #define UTEST_CASE_CLOSED() \
 testResults[ testResults.size() - 1 ].m_Passed = true;
