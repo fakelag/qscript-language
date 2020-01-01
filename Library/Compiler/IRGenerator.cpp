@@ -71,9 +71,9 @@ namespace Compiler
 						break;
 					}
 
-					if ( headNode->Id() == NODE_IF || headNode->Id() == NODE_WHILE )
+					if ( headNode->Id() == NODE_IF || headNode->Id() == NODE_WHILE || headNode->Id() == NODE_FOR )
 					{
-						auto currentToken = parserState.CurrentBuilder()->m_Token.m_Token;
+						auto currentToken = parserState.CurrentBuilder()->m_Token.m_Id;
 						if ( currentToken != TOK_BRACE_RIGHT && currentToken != TOK_SCOLON )
 						{
 							auto builder = parserState.CurrentBuilder();
@@ -113,7 +113,7 @@ namespace Compiler
 		{
 			IrBuilder_t* builder = new IrBuilder_t( token );
 
-			switch ( token.m_Token )
+			switch ( token.m_Id )
 			{
 			case TOK_NULL:
 			case TOK_FALSE:
@@ -126,7 +126,7 @@ namespace Compiler
 				{
 					QScript::Value value;
 
-					switch ( irBuilder.m_Token.m_Token )
+					switch ( irBuilder.m_Token.m_Id )
 					{
 						case TOK_STR:
 							value.From( MAKE_STRING( irBuilder.m_Token.m_String ) );
@@ -187,7 +187,7 @@ namespace Compiler
 							varName->LineNr(), varName->ColNr(), varName->Token() );
 					}
 
-					if ( parserState.CurrentBuilder()->m_Token.m_Token == TOK_EQUALS )
+					if ( parserState.CurrentBuilder()->m_Token.m_Id == TOK_EQUALS )
 					{
 						parserState.NextBuilder();
 
@@ -234,7 +234,7 @@ namespace Compiler
 					};
 
 					return parserState.AllocateNode< ComplexNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-						irBuilder.m_Token.m_String, map[ irBuilder.m_Token.m_Token ], left, nextExpression( irBuilder.m_Token.m_LBP ) );
+						irBuilder.m_Token.m_String, map[ irBuilder.m_Token.m_Id ], left, nextExpression( irBuilder.m_Token.m_LBP ) );
 				};
 				break;
 			}
@@ -270,7 +270,7 @@ namespace Compiler
 					};
 
 					return parserState.AllocateNode< ComplexNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-						irBuilder.m_Token.m_String, map[ irBuilder.m_Token.m_Token ], left, nextExpression( irBuilder.m_Token.m_LBP ) );
+						irBuilder.m_Token.m_String, map[ irBuilder.m_Token.m_Id ], left, nextExpression( irBuilder.m_Token.m_LBP ) );
 				};
 				break;
 			}
@@ -352,13 +352,71 @@ namespace Compiler
 				};
 				break;
 			}
+			case TOK_FOR:
+			{
+				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder ) -> BaseNode*
+				{
+					std::vector< BaseNode* > forStatement;
+
+					parserState.Expect( TOK_LPAREN, "Expected \"(\" after \"for\", got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
+
+					// for( expr; ;
+
+					for ( int i = 0; i < 4; ++i )
+					{
+						if ( parserState.MatchCurrent( TOK_RPAREN ) )
+						{
+							if ( forStatement.size() == 0 )
+							{
+								auto builder = parserState.CurrentBuilder();
+								throw CompilerException( "ir_empty_forloop", "Empty forloop. Expected a list of expressions", builder->m_Token.m_LineNr,
+									builder->m_Token.m_ColNr, builder->m_Token.m_String );
+							}
+
+							// If the last parsed expression was null, add a NULL for the increment clause as well
+							if ( forStatement[ forStatement.size() - 1 ] == NULL )
+								forStatement.push_back( NULL );
+
+							// If only 2 expressions were parsed, add a NULL for the increment clause as well
+							if ( forStatement.size() == 2 )
+								forStatement.push_back( NULL );
+
+							break;
+						}
+						else if ( parserState.MatchCurrent( TOK_SCOLON ) )
+						{
+							forStatement.push_back( NULL );
+						}
+						else
+						{
+							forStatement.push_back( nextExpression( irBuilder.m_Token.m_LBP ) );
+
+							if ( i < 2 )
+								parserState.Expect( TOK_SCOLON, "Expected end of expression" );
+						}
+					}
+
+					auto body = nextExpression( irBuilder.m_Token.m_LBP );
+					if ( body->Id() != NODE_SCOPE )
+					{
+						body = parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+							irBuilder.m_Token.m_String, NODE_SCOPE, std::vector< BaseNode* >{ body } );
+					}
+
+					forStatement.push_back( body );
+
+					return parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+						irBuilder.m_Token.m_String, NODE_FOR, forStatement );
+				};
+				break;
+			}
 			case TOK_BRACE_LEFT:
 			{
 				builder->m_Nud = [ &parserState, &nextStatement ]( const IrBuilder_t& irBuilder ) -> BaseNode*
 				{
 					std::vector< BaseNode* > scopeExpressions;
 
-					while ( !parserState.IsFinished() && parserState.CurrentBuilder()->m_Token.m_Token != TOK_BRACE_RIGHT )
+					while ( !parserState.IsFinished() && parserState.CurrentBuilder()->m_Token.m_Id != TOK_BRACE_RIGHT )
 					{
 						auto headNode = nextStatement();
 
@@ -383,7 +441,7 @@ namespace Compiler
 
 					auto expression = nextExpression();
 
-					if ( parserState.NextBuilder()->m_Token.m_Token != TOK_RPAREN )
+					if ( parserState.NextBuilder()->m_Token.m_Id != TOK_RPAREN )
 					{
 						auto curBuilder = parserState.CurrentBuilder();
 						throw Exception( "ir_missing_rparen",
@@ -405,7 +463,7 @@ namespace Compiler
 			}
 			default:
 				throw Exception( "ir_unknown_token", std::string( "Unknown token id: " )
-					+ std::to_string( token.m_Token )
+					+ std::to_string( token.m_Id )
 					+ " \"" +  token.m_String  + "\"" );
 			}
 

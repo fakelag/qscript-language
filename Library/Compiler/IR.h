@@ -59,7 +59,7 @@ namespace Compiler
 		void 							Expect( Token token, const std::string desc )
 		{
 			auto builder = CurrentBuilder();
-			if ( builder->m_Token.m_Token != token )
+			if ( builder->m_Token.m_Id != token )
 			{
 				throw CompilerException( "ir_expect", desc, builder->m_Token.m_LineNr,
 					builder->m_Token.m_ColNr, builder->m_Token.m_String );
@@ -70,15 +70,29 @@ namespace Compiler
 
 		bool 							Match( Token token )
 		{
-			if ( IsFinished() )
+			if ( ( size_t ) m_CurrentBuilder + 1 >= m_Builders.size() )
 				return false;
 
-			if ( m_Builders[ m_CurrentBuilder + 1 ]->m_Token.m_Token == token )
+			if ( m_Builders[ m_CurrentBuilder + 1 ]->m_Token.m_Id == token )
 			{
 				NextBuilder();
 				return true;
 			}
 			
+			return false;
+		}
+
+		bool 							MatchCurrent( Token token )
+		{
+			if ( IsFinished() )
+				return false;
+
+			if ( m_Builders[ m_CurrentBuilder ]->m_Token.m_Id == token )
+			{
+				NextBuilder();
+				return true;
+			}
+
 			return false;
 		}
 
@@ -88,7 +102,7 @@ namespace Compiler
 
 			while ( !IsFinished() )
 			{
-				switch ( m_Builders[ m_CurrentBuilder ]->m_Token.m_Token )
+				switch ( m_Builders[ m_CurrentBuilder ]->m_Token.m_Id )
 				{
 				case Compiler::TOK_SCOLON:
 				case Compiler::TOK_BRACE_RIGHT:

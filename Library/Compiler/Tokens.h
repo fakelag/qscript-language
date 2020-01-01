@@ -33,6 +33,7 @@ namespace Compiler
 		TOK_ELSE,
 		TOK_EQUALS,
 		TOK_FALSE,
+		TOK_FOR,
 		TOK_GREATEREQUAL,
 		TOK_GREATERTHAN,
 		TOK_IF,
@@ -59,7 +60,7 @@ namespace Compiler
 
 	struct Token_t
 	{
-		Token				m_Token;
+		Token				m_Id;
 		int 				m_LBP;
 		int					m_LineNr;
 		int					m_ColNr;

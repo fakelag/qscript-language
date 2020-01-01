@@ -42,6 +42,7 @@ namespace Compiler
 		{ TOK_DO,			{ TOK_DO,			"do",		BP_NONE,					true } },
 		{ TOK_ELSE,			{ TOK_ELSE,			"else",		BP_NONE,					true } },
 		{ TOK_FALSE,		{ TOK_FALSE, 		"false", 	BP_NONE,					true } },
+		{ TOK_FOR,			{ TOK_FOR, 			"for", 		BP_NONE,					true } },
 		{ TOK_IF,			{ TOK_IF,			"if",		BP_NONE,					true } },
 		{ TOK_NULL,			{ TOK_NULL, 		"null", 	BP_NONE,					true } },
 		{ TOK_RETURN,		{ TOK_RETURN, 		"return", 	BP_NONE,					true } },

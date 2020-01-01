@@ -459,6 +459,10 @@ namespace Compiler
 			EmitByte( QScript::OpCode::OP_POP, chunk );
 			break;
 		}
+		case NODE_FOR:
+		{
+			break;
+		}
 		case NODE_IF:
 		{
 			if ( !IS_STATEMENT( options ) )
