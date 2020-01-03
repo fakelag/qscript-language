@@ -2,6 +2,7 @@
 #include "Chunk.h"
 
 QScript::Object::StringAllocatorFn QScript::Object::AllocateString = NULL;
+QScript::Object::FunctionAllocatorFn QScript::Object::AllocateFunction = NULL;
 
 QScript::Chunk_t* QScript::AllocChunk()
 {

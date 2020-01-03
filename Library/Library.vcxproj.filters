@@ -74,5 +74,8 @@
     <ClInclude Include="Common\Value.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="Common\Object.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

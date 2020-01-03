@@ -283,6 +283,13 @@ namespace QVM
 		VirtualMachine->m_Objects.push_back( ( QScript::Object* ) stringObject );
 		return stringObject;
 	}
+
+	QScript::FunctionObject* AllocateFunction( const std::string& name, int arity )
+	{
+		auto functionObject = new QScript::FunctionObject( new QScript::Function_t( name, arity ) );
+		VirtualMachine->m_Objects.push_back( ( QScript::Object* ) functionObject );
+		return functionObject;
+	}
 }
 
 void QScript::Interpret( const Chunk_t& chunk, Value* out )
@@ -292,6 +299,7 @@ void QScript::Interpret( const Chunk_t& chunk, Value* out )
 	// Setup allocators
 	QVM::VirtualMachine = &vm;
 	QScript::Object::AllocateString = &QVM::AllocateString;
+	QScript::Object::AllocateFunction = &QVM::AllocateFunction;
 
 	auto exitCode = QVM::Run( vm );
 
@@ -303,6 +311,7 @@ void QScript::Interpret( const Chunk_t& chunk, Value* out )
 
 	// Clear allocators
 	QScript::Object::AllocateString = NULL;
+	QScript::Object::AllocateFunction = NULL;
 }
 
 void QScript::Interpret( VM_t& vm, Value* out )
@@ -310,6 +319,7 @@ void QScript::Interpret( VM_t& vm, Value* out )
 	// Setup allocators
 	QVM::VirtualMachine = &vm;
 	QScript::Object::AllocateString = &QVM::AllocateString;
+	QScript::Object::AllocateFunction = &QVM::AllocateFunction;
 
 	auto exitCode = QVM::Run( vm );
 
@@ -318,4 +328,5 @@ void QScript::Interpret( VM_t& vm, Value* out )
 
 	// Clear allocators
 	QScript::Object::AllocateString = NULL;
+	QScript::Object::AllocateFunction = NULL;
 }

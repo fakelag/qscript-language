@@ -9,6 +9,7 @@ namespace QScript
 	Chunk_t* Compile( const std::string& source, int flags )
 	{
 		Object::AllocateString = &Compiler::AllocateString;
+		Object::AllocateFunction = &Compiler::AllocateFunction;
 
 		Chunk_t* chunk = AllocChunk();
 
@@ -51,6 +52,7 @@ namespace QScript
 
 		// Reset allocators
 		Object::AllocateString = NULL;
+		Object::AllocateFunction = NULL;
 
 		// Return compiled code
 		return chunk;
@@ -80,6 +82,13 @@ namespace Compiler
 		auto stringObject = new QScript::StringObject( string );
 		ObjectList.push_back( ( QScript::Object* ) stringObject );
 		return stringObject;
+	}
+
+	QScript::FunctionObject* AllocateFunction( const std::string& name, int arity )
+	{
+		auto functionObject = new QScript::FunctionObject( new QScript::Function_t( name, arity ) );
+		ObjectList.push_back( ( QScript::Object* ) functionObject );
+		return functionObject;
 	}
 
 	void GarbageCollect( const QScript::Chunk_t* chunk )

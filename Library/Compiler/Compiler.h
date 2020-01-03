@@ -27,6 +27,7 @@ namespace Compiler
 
 	// Object allocation
 	QScript::StringObject* AllocateString( const std::string& string );
+	QScript::FunctionObject* AllocateFunction( const std::string& name, int arity );
 	void GarbageCollect( const QScript::Chunk_t* chunk );
 
 	class Assembler

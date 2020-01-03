@@ -152,6 +152,7 @@
     <ClInclude Include="..\Includes\QLibPCH.h" />
     <ClInclude Include="..\Includes\QScript.h" />
     <ClInclude Include="Common\Chunk.h" />
+    <ClInclude Include="Common\Object.h" />
     <ClInclude Include="Common\Value.h" />
     <ClInclude Include="Compiler\AST.h" />
     <ClInclude Include="Compiler\Compiler.h" />

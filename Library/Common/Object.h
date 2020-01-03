@@ -2,12 +2,15 @@
 
 namespace QScript
 {
+	class StringObject;
+	class FunctionObject;
+	struct Function_t;
+
 	enum ObjectType
 	{
 		OT_STRING,
+		OT_FUNCTION,
 	};
-
-	class StringObject;
 
 	class Object
 	{
@@ -16,8 +19,10 @@ namespace QScript
 		ObjectType m_Type;
 
 		using StringAllocatorFn = StringObject*(*)( const std::string& string );
+		using FunctionAllocatorFn = FunctionObject * ( *)( const std::string& name, int arity );
 
 		static StringAllocatorFn AllocateString;
+		static FunctionAllocatorFn AllocateFunction;
 	};
 
 	class StringObject : public Object
@@ -27,17 +32,34 @@ namespace QScript
 		{
 			m_Type = OT_STRING;
 			m_String = string;
-			// std::cout << "StringObject created: " + string << std::endl;
 		}
 
 		~StringObject()
 		{
-			// std::cout << "StringObject destroyed: " + m_String << std::endl;
 		}
 
 		FORCEINLINE std::string& GetString() { return m_String; }
 
 	private:
 		std::string		m_String;
+	};
+
+	class FunctionObject : public Object
+	{
+	public:
+		FORCEINLINE FunctionObject( const Function_t* function )
+		{
+			m_Type = OT_FUNCTION;
+			m_Function = function;
+		}
+
+		~FunctionObject()
+		{
+		}
+
+		FORCEINLINE		const Function_t* GetProperties() const { return m_Function; }
+
+	private:
+		const Function_t* m_Function;
 	};
 }
