@@ -33,32 +33,36 @@ bool FindDebugSymbol( const QScript::Chunk_t& chunk, uint32_t offset, QScript::C
 
 std::string Compiler::ValueToString( const QScript::Value& value )
 {
+	std::string valueType;
+
+	std::map< QScript::ValueType, std::string > typeStrings ={
+		{ QScript::ValueType::VT_NULL,		"null" },
+		{ QScript::ValueType::VT_NUMBER,	"number" },
+		{ QScript::ValueType::VT_BOOL,		"bool" },
+	};
+
 	switch ( value.m_Type )
 	{
-		case QScript::VT_NUMBER:
-		{
-			char result[ 32 ];
-			snprintf( result, sizeof( result ), "%.2f", AS_NUMBER( value ) );
-			return std::string( "(number, " ) + result + ")";
-		}
-		case QScript::VT_BOOL:
-			return std::string( "(bool, " ) + ( AS_BOOL( value ) ? "true" : "false" ) + ")";
-		case QScript::VT_NULL:
-			return "(null)";
-		case QScript::VT_OBJECT:
-		{
-			auto object = AS_OBJECT( value );
-			switch ( object->m_Type )
-			{
-				case QScript::OT_STRING:
-					return "(string, \"" + static_cast< QScript::StringObject* >( object )->GetString() + "\")";
-				default:
-					throw Exception( "disasm_invalid_value_object", "Invalid object type: " + std::to_string( object->m_Type ) );
-			}
-		}
-		default:
+	case QScript::ValueType::VT_OBJECT:
+	{
+		if ( IS_STRING( value ) )
+			valueType = "string";
+		else if ( IS_STRING( value ) )
+			valueType = "function";
+
+		break;
+	}
+	default:
+	{
+		auto string =  typeStrings.find( value.m_Type );
+		if ( string != typeStrings.end() )
+			valueType = string->second;
+		else
 			throw Exception( "disasm_invalid_value", "Invalid value type: " + std::to_string( value.m_Type ) );
 	}
+	}
+
+	return "(" + valueType + ", " + value.ToString() + ")";
 }
 
 void Compiler::DisassembleChunk( const QScript::Chunk_t& chunk, const std::string& identifier, unsigned int ip )
