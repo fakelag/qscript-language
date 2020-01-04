@@ -66,7 +66,7 @@ namespace QVM
 
 				for( ;; )
 				{
-					std::cout << "Action (s/r/ds/dc/dcnst/dg/ip/help/q): ";
+					std::cout << "Action (s/r/ds/dc/dca/dcnst/dg/ip/help/q): ";
 					std::getline( std::cin, input );
 
 					if ( input == "r" )
@@ -83,6 +83,21 @@ namespace QVM
 					{
 						Compiler::DisassembleChunk( *frame->m_Function->m_Chunk, frame->m_Function->m_Name,
 							( unsigned int ) ( frame->m_IP - ( uint8_t* ) &frame->m_Function->m_Chunk->m_Code[ 0 ] ) );
+						continue;
+					}
+					else if ( input == "dca" )
+					{
+						Compiler::DisassembleChunk( *frame->m_Function->m_Chunk, frame->m_Function->m_Name,
+							( unsigned int ) ( frame->m_IP - ( uint8_t* ) &frame->m_Function->m_Chunk->m_Code[ 0 ] ) );
+
+						for ( auto constant : frame->m_Function->m_Chunk->m_Constants )
+						{
+							if ( !IS_FUNCTION( constant ) )
+								continue;
+
+							auto function = AS_FUNCTION( constant )->GetProperties();
+							Compiler::DisassembleChunk( *function->m_Chunk, function->m_Name );
+						}
 						continue;
 					}
 					else if ( input == "dcnst" )
