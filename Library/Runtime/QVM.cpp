@@ -174,18 +174,18 @@ namespace QVM
 				vm.m_Globals[ AS_STRING( constant )->GetString() ].From( vm.Peek( 0 ) );
 				break;
 			}
-			case QScript::OP_LOAD_LOCAL_SHORT: vm.Push( frame->m_Stack[ READ_BYTE( vm ) ] ); break;
+			case QScript::OP_LOAD_LOCAL_SHORT: vm.Push( frame->m_Base[ READ_BYTE( vm ) ] ); break;
 			case QScript::OP_LOAD_LOCAL_LONG:
 			{
 				READ_LONG( vm, offset );
-				vm.Push( frame->m_Stack[ offset ] );
+				vm.Push( frame->m_Base[ offset ] );
 				break;
 			}
-			case QScript::OP_SET_LOCAL_SHORT: frame->m_Stack[ READ_BYTE( vm ) ].From( vm.Peek( 0 ) ); break;
+			case QScript::OP_SET_LOCAL_SHORT: frame->m_Base[ READ_BYTE( vm ) ].From( vm.Peek( 0 ) ); break;
 			case QScript::OP_SET_LOCAL_LONG:
 			{
 				READ_LONG( vm, offset );
-				frame->m_Stack[ offset ].From( vm.Peek( 0 ) );
+				frame->m_Base[ offset ].From( vm.Peek( 0 ) );
 				break;
 			}
 			case QScript::OP_JUMP_BACK_SHORT: frame->m_IP -= ( READ_BYTE( vm ) + 2 ); break;

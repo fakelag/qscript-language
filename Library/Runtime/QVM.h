@@ -2,15 +2,15 @@
 
 struct Frame_t
 {
-	Frame_t( const QScript::Function_t* function, QScript::Value* stack, uint8_t* ip )
+	Frame_t( const QScript::Function_t* function, QScript::Value* stackFrame, uint8_t* ip )
 	{
 		m_Function = function;
-		m_Stack = stack;
+		m_Base = stackFrame;
 		m_IP = ip;
 	}
 
 	const QScript::Function_t*		m_Function;
-	QScript::Value*					m_Stack;
+	QScript::Value*					m_Base;
 	uint8_t*						m_IP;
 };
 
@@ -57,8 +57,8 @@ struct VM_t
 			// Relocate call frame stack pointers
 			for ( auto frame : m_Frames )
 			{
-				int stackIndex = frame.m_Stack - m_Stack;
-				frame.m_Stack = &newStack[ stackIndex ];
+				int stackIndex = frame.m_Base - m_Stack;
+				frame.m_Base = &newStack[ stackIndex ];
 			}
 
 			m_StackTop = newStack + m_StackCapacity;
