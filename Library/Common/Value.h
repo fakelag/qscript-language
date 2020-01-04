@@ -5,6 +5,7 @@
 #define AS_NUMBER( value ) ((value).m_Data.m_Number)
 #define AS_OBJECT( value ) ((value).m_Data.m_Object)
 #define AS_STRING( value ) ((QScript::StringObject*)((value).m_Data.m_Object))
+#define AS_FUNCTION( value ) ((QScript::FunctionObject*)((value).m_Data.m_Object))
 
 #define MAKE_NULL (QScript::Value())
 #define MAKE_BOOL( value ) (QScript::Value( ((bool)(value) )))
@@ -113,24 +114,7 @@ namespace QScript
 			return IS_OBJECT( *this ) && m_Data.m_Object->m_Type == Type;
 		}
 
-		FORCEINLINE std::string ToString() const
-		{
-			if ( IS_STRING( *this ) )
-				return AS_STRING( *this )->GetString();
-
-			switch ( m_Type )
-			{
-			case VT_NUMBER:
-			{
-				char result[ 32 ];
-				snprintf( result, sizeof( result ), "%.2f", AS_NUMBER( *this ) );
-				return std::string( result );
-			}
-			case VT_BOOL: return AS_BOOL( *this ) ? "True" : "False";
-			case VT_NULL: return "[[null]]";
-			default: return "[[object]]";
-			}
-		}
+		std::string ToString() const;
 
 		FORCEINLINE operator bool()
 		{

@@ -139,6 +139,7 @@
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">QLibPCH.h</PrecompiledHeaderFile>
     </ClCompile>
     <ClCompile Include="Common\Chunk.cpp" />
+    <ClCompile Include="Common\Value.cpp" />
     <ClCompile Include="Compiler\AST.cpp" />
     <ClCompile Include="Compiler\Compiler.cpp" />
     <ClCompile Include="Compiler\IRGenerator.cpp" />

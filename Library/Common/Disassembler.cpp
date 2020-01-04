@@ -5,7 +5,7 @@
 #include "../Compiler/Compiler.h"
 #include "../Runtime/QVM.h"
 
-bool FindDebugSymbol( const QScript::Chunk_t& chunk, uint32_t offset, QScript::Chunk_t::Debug_t* out )
+bool Compiler::FindDebugSymbol( const QScript::Chunk_t& chunk, uint32_t offset, QScript::Chunk_t::Debug_t* out )
 {
 	bool found = false;
 	QScript::Chunk_t::Debug_t symbol;
@@ -47,7 +47,7 @@ std::string Compiler::ValueToString( const QScript::Value& value )
 	{
 		if ( IS_STRING( value ) )
 			valueType = "string";
-		else if ( IS_STRING( value ) )
+		else if ( IS_FUNCTION( value ) )
 			valueType = "function";
 
 		break;

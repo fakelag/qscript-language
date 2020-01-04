@@ -6,7 +6,7 @@
 
 namespace QScript
 {
-	Chunk_t* Compile( const std::string& source, int flags )
+	Function_t* Compile( const std::string& source, int flags )
 	{
 		Object::AllocateString = &Compiler::AllocateString;
 		Object::AllocateFunction = &Compiler::AllocateFunction;
@@ -55,7 +55,7 @@ namespace QScript
 		Object::AllocateFunction = NULL;
 
 		// Return compiled code
-		return chunk;
+		return assembler.CurrentFunction();
 	}
 }
 
@@ -111,14 +111,22 @@ namespace Compiler
 
 	Assembler::Assembler( QScript::Chunk_t* chunk, int optimizationFlags )
 	{
-		m_Chunk = chunk;
 		m_Stack.m_CurrentDepth = 0;
 		m_OptimizationFlags = optimizationFlags;
+
+		// Main code
+		m_Function = new QScript::Function_t( "<main>", 0, chunk );
+		CreateLocal( "" );
 	}
 
 	QScript::Chunk_t* Assembler::CurrentChunk()
 	{
-		return m_Chunk;
+		return m_Function->m_Chunk;
+	}
+
+	QScript::Function_t* Assembler::CurrentFunction()
+	{
+		return m_Function;
 	}
 
 	uint32_t Assembler::CreateLocal( const std::string& name )

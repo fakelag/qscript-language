@@ -39,6 +39,9 @@
     <ClCompile Include="Common\Chunk.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="Common\Value.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Compiler\AST.h">

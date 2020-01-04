@@ -14,6 +14,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <type_traits>
+#include <stack>
 
 #include "QScript.h"
 #include "Exception.h"

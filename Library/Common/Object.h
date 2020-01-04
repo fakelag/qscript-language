@@ -57,7 +57,7 @@ namespace QScript
 		{
 		}
 
-		FORCEINLINE		const Function_t* GetProperties() const { return m_Function; }
+		FORCEINLINE	const Function_t* GetProperties() const { return m_Function; }
 
 	private:
 		const Function_t* m_Function;

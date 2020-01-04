@@ -13,9 +13,10 @@ int main()
 
 		try
 		{
-			QScript::Chunk_t* chunk = QScript::Compile( command );
-			QScript::Interpret( *chunk, NULL );
-			QScript::FreeChunk( chunk );
+			QScript::Function_t* function = QScript::Compile( command );
+			QScript::Interpret( *function, NULL );
+
+			QScript::FreeFunction( function );
 		}
 		catch ( std::vector< CompilerException >& exceptions )
 		{

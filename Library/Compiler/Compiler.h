@@ -23,6 +23,7 @@ namespace Compiler
 	void DumpConstants( const QScript::Chunk_t& chunk );
 	void DumpGlobals( const VM_t& vm );
 	void DumpStack( const VM_t& vm );
+	bool FindDebugSymbol( const QScript::Chunk_t& chunk, uint32_t offset, QScript::Chunk_t::Debug_t* out );
 	std::string ValueToString( const QScript::Value& value );
 
 	// Object allocation
@@ -41,16 +42,17 @@ namespace Compiler
 
 		Assembler( QScript::Chunk_t* chunk, int optimizationFlags );
 
-		QScript::Chunk_t*	CurrentChunk();
-		Local_t*			GetLocal( int local );
-		uint32_t			CreateLocal( const std::string& name );
-		bool				FindLocal( const std::string& name, uint32_t* out );
-		int					StackDepth();
-		int					LocalsInCurrentScope();
-		void				PushScope();
-		void				PopScope();
+		QScript::Chunk_t*		CurrentChunk();
+		QScript::Function_t*	CurrentFunction();
+		Local_t*				GetLocal( int local );
+		uint32_t				CreateLocal( const std::string& name );
+		bool					FindLocal( const std::string& name, uint32_t* out );
+		int						StackDepth();
+		int						LocalsInCurrentScope();
+		void					PushScope();
+		void					PopScope();
 
-		int					OptimizationFlags() const;
+		int						OptimizationFlags() const;
 
 	private:
 		struct Stack_t
@@ -59,8 +61,9 @@ namespace Compiler
 			uint32_t				m_CurrentDepth;
 		};
 
-		Stack_t				m_Stack;
-		QScript::Chunk_t*	m_Chunk;
-		int					m_OptimizationFlags;
+		QScript::Function_t*		m_Function;
+
+		Stack_t						m_Stack;
+		int							m_OptimizationFlags;
 	};
 };

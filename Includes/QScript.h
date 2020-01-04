@@ -15,6 +15,7 @@ struct VM_t;
 namespace QScript
 {
 	struct Chunk_t;
+	struct Function_t;
 	struct Value;
 
 	enum OptimizationFlags
@@ -25,9 +26,10 @@ namespace QScript
 
 	Chunk_t* AllocChunk();
 	void FreeChunk( Chunk_t* chunk );
+	void FreeFunction( Function_t* function );
 
-	Chunk_t* Compile( const std::string& source, int flags = OF_NONE );
+	Function_t* Compile( const std::string& source, int flags = OF_NONE );
 
-	void Interpret( const Chunk_t& chunk, Value* exitCode );
+	void Interpret( const Function_t& function, Value* exitCode );
 	void Interpret( VM_t& vm, Value* out );
 }

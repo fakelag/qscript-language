@@ -25,10 +25,18 @@ namespace QScript
 		{
 			m_Name = name;
 			m_Arity = arity;
+			m_Chunk = NULL;
+		}
+
+		Function_t( const std::string name, int arity, Chunk_t* chunk )
+		{
+			m_Name = name;
+			m_Arity = arity;
+			m_Chunk = chunk;
 		}
 
 		std::string				m_Name;
 		int						m_Arity;
-		Chunk_t					m_Chunk;
+		Chunk_t*				m_Chunk;
 	};
 }

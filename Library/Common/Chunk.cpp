@@ -21,3 +21,11 @@ void QScript::FreeChunk( QScript::Chunk_t* chunk )
 
 	delete chunk;
 }
+
+void QScript::FreeFunction( QScript::Function_t* function )
+{
+	if ( function->m_Chunk )
+		FreeChunk( function->m_Chunk );
+
+	delete function;
+}
