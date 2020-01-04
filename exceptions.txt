@@ -16,9 +16,10 @@ IRGenerator			ir_unknown_token					Unknown token id: %tokenId% "%tokenString%"
 IRGenerator			ir_missing_rparen					Expected an end of expression, got: "%tokenString%"
 IRGenerator 		ir_invalid_token 					Invalid token: "%tokenString%"
 IRGenerator 		ir_empty_forloop					Empty forloop. Expected a list of expressions
-IRGenerator 		ir_expect							Expected end of expression, got: "%tokenString%" | Expected "while" after do <block>, got: "%tokenString%" | "Expected "(" after "for", got: "%tokenString" | "Expected ")", got: "%tokenString"
+IRGenerator 		ir_expect							Expected end of expression, got: "%tokenString%" | Expected "while" after "do <block>", got: "%tokenString%" | "Expected "(" after "for", got: "%tokenString" | "Expected ")", got: "%tokenString" | Expected "=" after "function <name>", got: "%tokenString%" | Expected "(" after "function <name> =", got: "%tokenString%" | Expected ")" after "function <name> = (...", got: "%tokenString%"
 IRGenerator			ir_parsing_past_eof					Parsing past end of file
 IRGenerator 		ir_variable_name 					Invalid variable name: %tokenString%
+IRGenerator 		ir_function_name					Invalid function name: %tokenString%
 Disassembler		disasm_invalid_value				Invalid value type: %valueType%
 Disassembler 		disasm_invalid_value_object			Invalid object type: %objectType%
 Runtime				rt_invalid_operand_type				Both operands of "%op%" operation must be numbers | Negation operand must be of number type | Not operand must be of boolean type | Operands of + operation must be numbers or strings | Operand must be of string type
