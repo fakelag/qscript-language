@@ -29,7 +29,7 @@ namespace Compiler
 	// Object allocation
 	QScript::StringObject* AllocateString( const std::string& string );
 	QScript::FunctionObject* AllocateFunction( const std::string& name, int arity );
-	void GarbageCollect( const QScript::Chunk_t* chunk );
+	void GarbageCollect( const std::vector< QScript::Function_t* >& functions );
 
 	class Assembler
 	{
@@ -40,30 +40,39 @@ namespace Compiler
 			uint32_t		m_Depth;
 		};
 
-		Assembler( QScript::Chunk_t* chunk, int optimizationFlags );
-
-		QScript::Chunk_t*		CurrentChunk();
-		QScript::Function_t*	CurrentFunction();
-		Local_t*				GetLocal( int local );
-		uint32_t				CreateLocal( const std::string& name );
-		bool					FindLocal( const std::string& name, uint32_t* out );
-		int						StackDepth();
-		int						LocalsInCurrentScope();
-		void					PushScope();
-		void					PopScope();
-
-		int						OptimizationFlags() const;
-
-	private:
 		struct Stack_t
 		{
+			Stack_t()
+			{
+				m_CurrentDepth = 0;
+			}
+
 			std::vector< Local_t >	m_Locals;
 			uint32_t				m_CurrentDepth;
 		};
 
-		QScript::Function_t*		m_Function;
+		Assembler( QScript::Chunk_t* chunk, int optimizationFlags );
 
-		Stack_t						m_Stack;
-		int							m_OptimizationFlags;
+		QScript::Function_t*						CreateFunction( const std::string& name, int arity, QScript::Chunk_t* chunk );
+		uint32_t									CreateLocal( const std::string& name );
+		QScript::Chunk_t*							CurrentChunk();
+		QScript::Function_t*						CurrentFunction();
+		Stack_t*									CurrentStack();
+		bool										FindLocal( const std::string& name, uint32_t* out );
+		QScript::FunctionObject*					FinishFunction();
+		std::vector< QScript::Function_t* >			Finish();
+		Local_t*									GetLocal( int local );
+		int											LocalsInCurrentScope();
+		void										PopScope();
+		void										PushScope();
+		int											StackDepth();
+
+		int											OptimizationFlags() const;
+
+	private:
+		std::vector< std::pair< QScript::Function_t*, Stack_t* > >		m_Functions;
+		int																m_OptimizationFlags;
+
+		std::vector< QScript::Function_t* >								m_Compiled;
 	};
 };

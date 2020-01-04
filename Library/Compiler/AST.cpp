@@ -29,7 +29,7 @@ namespace Compiler
 		} );
 	}
 
-	void EmitConstant( QScript::Chunk_t* chunk, const QScript::Value& value, QScript::OpCode shortOpCode, QScript::OpCode longOpCode, Compiler::Assembler& assembler )
+	uint32_t EmitConstant( QScript::Chunk_t* chunk, const QScript::Value& value, QScript::OpCode shortOpCode, QScript::OpCode longOpCode, Compiler::Assembler& assembler )
 	{
 		uint32_t constant = 0;
 
@@ -67,6 +67,8 @@ namespace Compiler
 			EmitByte( shortOpCode, chunk );
 			EmitByte( ( uint8_t ) constant, chunk );
 		}
+
+		return constant;
 	}
 
 	void RelocateDebugSymbols( QScript::Chunk_t* chunk, uint32_t from, uint32_t patchSize )
@@ -516,11 +518,43 @@ namespace Compiler
 				( loopConditionJump + jumpToBodyOnFirstSize + jumpToLoopEndSize ) - loopConditionBegin,
 				QScript::OpCode::OP_JUMP_BACK_SHORT, QScript::OpCode::OP_JUMP_BACK_LONG );
 
-			// Clear stack
-			for ( int i = assembler.LocalsInCurrentScope() - 1; i >= 0; --i )
-				EmitByte( QScript::OpCode::OP_POP, assembler.CurrentChunk() );
-
 			assembler.PopScope();
+			break;
+		}
+		case NODE_FUNC:
+		{
+			if ( !IS_STATEMENT( options ) )
+				throw EXPECTED_EXPRESSION;
+
+			auto argNode = static_cast< ListNode* >( m_NodeList[ 1 ] );
+
+			auto functionName = AS_STRING( static_cast< ValueNode* >( m_NodeList[ 0 ] )->GetValue() )->GetString();
+			auto functionArity = argNode->m_NodeList.size();
+
+			// Allocate chunk & create function
+			auto function = assembler.CreateFunction( functionName, functionArity, QScript::AllocChunk() );
+			assembler.PushScope();
+
+			// Create args in scope
+			for ( auto arg : argNode->m_NodeList )
+				assembler.CreateLocal( AS_STRING( static_cast< ValueNode* >( arg )->GetValue() )->GetString() );
+
+			// Compile function body
+			m_NodeList[ 2 ]->Compile( assembler, COMPILE_STATEMENT( options ) );
+
+			// Remove body scope
+			auto functionObject = assembler.FinishFunction();
+
+			// Create a constant (function) in enclosing chunk
+			EmitConstant( chunk, QScript::Value( functionObject ), QScript::OpCode::OP_LOAD_CONSTANT_SHORT,
+				QScript::OpCode::OP_LOAD_CONSTANT_LONG, assembler );
+			
+			// Create a constant + global (function name) in enclosing chunk
+			EmitConstant( chunk, static_cast< ValueNode* >( m_NodeList[ 0 ] )->GetValue(), QScript::OpCode::OP_SET_GLOBAL_SHORT,
+				QScript::OpCode::OP_SET_GLOBAL_LONG, assembler );
+
+			// Pop function off stack
+			EmitByte( QScript::OpCode::OP_POP, chunk );
 			break;
 		}
 		case NODE_IF:
@@ -572,12 +606,7 @@ namespace Compiler
 			for ( auto node : m_NodeList )
 				node->Compile( assembler, COMPILE_STATEMENT( options ) );
 
-			// Clear stack
-			for ( int i = assembler.LocalsInCurrentScope() - 1; i >= 0; --i )
-				EmitByte( QScript::OpCode::OP_POP, assembler.CurrentChunk() );
-
 			assembler.PopScope();
-
 			break;
 		}
 		case NODE_VAR:
