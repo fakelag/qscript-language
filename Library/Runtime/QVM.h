@@ -1,24 +1,43 @@
 #pragma once
 
+struct Frame_t
+{
+	Frame_t( const QScript::Function_t* function, QScript::Value* stack, uint8_t* ip )
+	{
+		m_Function = function;
+		m_Stack = stack;
+		m_IP = ip;
+	}
+
+	const QScript::Function_t*		m_Function;
+	QScript::Value*					m_Stack;
+	uint8_t*						m_IP;
+};
+
 struct VM_t
 {
 	static const int s_InitStackSize = 256;
 
-	VM_t( const QScript::Chunk_t* chunk )
+	VM_t( const QScript::Function_t* function )
 	{
-		Init( chunk );
+		Init( function );
 	}
 
-	void Init( const QScript::Chunk_t* chunk )
+	void Init( const QScript::Function_t* function )
 	{
-		m_Chunk = chunk;
-		m_IP = &chunk->m_Code[ 0 ];
 		m_Objects.clear();
 		m_Globals.clear();
 
 		m_Stack = new QScript::Value[ s_InitStackSize ];
 		m_StackCapacity = s_InitStackSize;
 		m_StackTop = &m_Stack[ 0 ];
+
+		// Create initial call frame
+		m_Frames.emplace_back( function, m_Stack, &function->m_Chunk->m_Code[ 0 ] );
+
+		// Push main function to stack slot 0. This is directly allocated, so
+		// the VM garbage collection won't ever release it
+		Push( QScript::Value( new QScript::FunctionObject( function ) ) );
 	}
 
 	FORCEINLINE void Push( QScript::Value value )
@@ -34,6 +53,13 @@ struct VM_t
 
 			// Free previous stack space
 			delete[] m_Stack;
+
+			// Relocate call frame stack pointers
+			for ( auto frame : m_Frames )
+			{
+				int stackIndex = frame.m_Stack - m_Stack;
+				frame.m_Stack = &newStack[ stackIndex ];
+			}
 
 			m_StackTop = newStack + m_StackCapacity;
 			m_Stack = newStack;
@@ -76,8 +102,8 @@ struct VM_t
 		m_Objects.clear();
 	}
 
-	const QScript::Chunk_t* 							m_Chunk;
-	const uint8_t*										m_IP;
+	// Call frames
+	std::vector< Frame_t >								m_Frames;
 
 	// Keep track of allocated objects in the VM
 	std::vector< QScript::Object* >						m_Objects;
