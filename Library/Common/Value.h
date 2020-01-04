@@ -11,7 +11,7 @@
 #define MAKE_BOOL( value ) (QScript::Value( ((bool)(value) )))
 #define MAKE_NUMBER( value ) (QScript::Value( ((double)(value) )))
 #define MAKE_STRING( string ) ((QScript::Value( QScript::Object::AllocateString( string ) )))
-#define MAKE_FUNCTION( name, arity ) ((QScript::Value( QScript::Object::AllocateFunction( name, arity ) )))
+// #define MAKE_FUNCTION( name, arity ) ((QScript::Value( QScript::Object::AllocateFunction( name, arity ) )))
 
 #define IS_NULL( value ) ((value).m_Type == QScript::VT_NULL)
 #define IS_BOOL( value ) ((value).m_Type == QScript::VT_BOOL)
