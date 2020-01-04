@@ -17,7 +17,7 @@ namespace Compiler
 	void EmitByte( uint8_t byte, QScript::Chunk_t* chunk );
 
 	// Disassembler
-	void DisassembleChunk( const QScript::Chunk_t& chunk, const std::string& identifier, unsigned int ip = 0 );
+	void DisassembleChunk( const QScript::Chunk_t& chunk, const std::string& identifier, int ip = -1 );
 	int DisassembleInstruction( const QScript::Chunk_t& chunk, uint32_t offset, bool isIp );
 	int InstructionSize( uint8_t inst );
 	void DumpConstants( const QScript::Chunk_t& chunk );

@@ -49,6 +49,8 @@ std::string Compiler::ValueToString( const QScript::Value& value )
 			valueType = "string";
 		else if ( IS_FUNCTION( value ) )
 			valueType = "function";
+		else
+			throw Exception( "disasm_invalid_value_object", "Invalid object type: " + std::to_string( AS_OBJECT( value )->m_Type ) );
 
 		break;
 	}
@@ -65,14 +67,14 @@ std::string Compiler::ValueToString( const QScript::Value& value )
 	return "(" + valueType + ", " + value.ToString() + ")";
 }
 
-void Compiler::DisassembleChunk( const QScript::Chunk_t& chunk, const std::string& identifier, unsigned int ip )
+void Compiler::DisassembleChunk( const QScript::Chunk_t& chunk, const std::string& identifier, int ip )
 {
 	// Show identifier of the current chunk
 	std::cout << "=== " + identifier + " ===" << std::endl;
 
 	// Print each instruction and their operands
 	for ( size_t offset = 0; offset < chunk.m_Code.size(); )
-		offset = DisassembleInstruction( chunk, offset, offset == ip );
+		offset = DisassembleInstruction( chunk, offset, ip != -1 && offset == ( size_t ) ip );
 }
 
 int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32_t offset, bool isIp )
