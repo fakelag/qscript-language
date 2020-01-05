@@ -55,7 +55,7 @@ struct VM_t
 			delete[] m_Stack;
 
 			// Relocate call frame stack pointers
-			for ( auto frame : m_Frames )
+			for ( auto& frame : m_Frames )
 			{
 				int stackIndex = frame.m_Base - m_Stack;
 				frame.m_Base = &newStack[ stackIndex ];
@@ -111,6 +111,7 @@ struct VM_t
 	// Global scope
 	std::unordered_map< std::string, QScript::Value >	m_Globals;
 
+	// Stack
 	QScript::Value*										m_StackTop;
 	QScript::Value* 									m_Stack;
 	int													m_StackCapacity;
