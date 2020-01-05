@@ -20,6 +20,7 @@ namespace Compiler
 		NODE_AND,
 		NODE_ARGUMENTS,
 		NODE_ASSIGN,
+		NODE_CALL,
 		NODE_CONSTANT,
 		NODE_DIV,
 		NODE_DO,
@@ -132,6 +133,7 @@ namespace Compiler
 
 		void Release() override;
 		void Compile( Assembler& assembler, uint32_t options = CO_NONE ) override;
+		const std::vector< BaseNode* >& GetList() const;
 
 	private:
 		std::vector< BaseNode* >		m_NodeList;

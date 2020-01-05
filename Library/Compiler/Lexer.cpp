@@ -31,8 +31,8 @@ namespace Compiler
 		{ TOK_AND,			{ TOK_AND, 			"&&", 		BP_LOGIC, 					false } },
 		{ TOK_OR,			{ TOK_OR, 			"||", 		BP_LOGIC, 					false } },
 
-		{ TOK_LPAREN,		{ TOK_LPAREN, 		"(", 		BP_OPENPAREN,				false } },
-		{ TOK_RPAREN,		{ TOK_RPAREN, 		")", 		BP_NONE,					false } },
+		{ TOK_PAREN_LEFT,	{ TOK_PAREN_LEFT, 	"(", 		BP_OPENPAREN,				false } },
+		{ TOK_PAREN_RIGHT,	{ TOK_PAREN_RIGHT, 	")", 		BP_NONE,					false } },
 
 		{ TOK_SCOLON,		{ TOK_SCOLON, 		";", 		BP_NONE,					false } },
 		{ TOK_BANG, 		{ TOK_BANG, 		"!", 		BP_LOGIC_NOT,				false } },

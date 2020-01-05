@@ -300,6 +300,16 @@ namespace Compiler
 			PlaceJump( chunk, endJump, chunk->m_Code.size() - endJump, QScript::OpCode::OP_JUMP_IF_ZERO_SHORT, QScript::OpCode::OP_JUMP_IF_ZERO_LONG );
 			break;
 		}
+		case NODE_CALL:
+		{
+			auto args = static_cast< ListNode* >( m_Right )->GetList();
+
+			if ( args.size() > 255 )
+				throw CompilerException( "cp_too_many_args", "Too many arguments for a function call", m_LineNr, m_ColNr, m_Token );
+
+			throw CompilerException( "TODO", "TODO", m_LineNr, m_ColNr, m_Token );
+			break;
+		}
 		case NODE_OR:
 		{
 			m_Left->Compile( assembler, COMPILE_EXPRESSION( options ) );
@@ -411,6 +421,11 @@ namespace Compiler
 		}
 
 		m_NodeList.clear();
+	}
+
+	const std::vector< BaseNode* >& ListNode::GetList() const
+	{
+		return m_NodeList;
 	}
 
 	void ListNode::Compile( Assembler& assembler, uint32_t options )
