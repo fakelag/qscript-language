@@ -91,7 +91,7 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 25.00 );
 
 		UTEST_ASSERT( TestUtils::RunVM( "var g = 5; g = 10; { var z = g + 1; var x; x = z + 2; g = x * 2; } return g;", &exitCode ) );
-		
+
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 26.00 );
 
@@ -135,7 +135,7 @@ bool Tests::TestInterpreter()
 		UTEST_CASE_CLOSED();
 	}( );
 
-	UTEST_CASE( "If-else clause", &largeBodyOfCode )
+	UTEST_CASE_1( "If-else clause", &largeBodyOfCode )
 	{
 		QScript::Value exitCode;
 		UTEST_ASSERT( TestUtils::RunVM( "var global = 50;	\
@@ -319,7 +319,7 @@ bool Tests::TestInterpreter()
 		UTEST_CASE_CLOSED();
 	}( );
 
-	UTEST_CASE( "for clause", &largeExpression, &largeBodyOfCode )
+	UTEST_CASE_2( "for clause", &largeExpression, &largeBodyOfCode )
 	{
 		QScript::Value exitCode;
 		UTEST_ASSERT( TestUtils::RunVM( "var g = 0;		\
