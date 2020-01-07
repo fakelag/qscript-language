@@ -157,6 +157,8 @@ namespace Compiler
 		auto function = new QScript::Function_t( name, 0, chunk );
 
 		m_Functions.push_back( { function, new Assembler::Stack_t() } );
+
+		CreateLocal( name );
 		return function;
 	}
 
@@ -235,7 +237,7 @@ namespace Compiler
 
 		--stack->m_CurrentDepth;
 	}
-	
+
 	int Assembler::LocalsInCurrentScope()
 	{
 		auto stack = CurrentStack();
