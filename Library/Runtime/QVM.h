@@ -80,10 +80,12 @@ struct VM_t
 		return *m_StackTop;
 	}
 
-	FORCEINLINE QScript::Value& Peek( uint32_t offset )
+	FORCEINLINE QScript::Value& Peek( int offset )
 	{
-		return *( m_StackTop + offset - 1 );
+		return m_StackTop[ -1 - offset ];
 	}
+
+	void Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target );
 
 	void Release( QScript::Value* exitCode )
 	{

@@ -39,7 +39,7 @@ namespace QVM
 
 		QScript::Chunk_t::Debug_t debug;
 
-		if ( Compiler::FindDebugSymbol( *frame->m_Function->m_Chunk, frame->m_IP - &frame->m_Function->m_Chunk->m_Code[ 0 ], &debug ) )
+		if ( frame && Compiler::FindDebugSymbol( *frame->m_Function->m_Chunk, frame->m_IP - &frame->m_Function->m_Chunk->m_Code[ 0 ], &debug ) )
 		{
 			token = debug.m_Token;
 			lineNr = debug.m_Line;
@@ -231,6 +231,13 @@ namespace QVM
 					frame->m_IP += offset;
 				break;
 			}
+			case QScript::OP_CALL:
+			{
+				uint8_t numArgs = READ_BYTE( vm );
+				vm.Call( frame, numArgs, vm.Peek( numArgs ) );
+				frame = &vm.m_Frames.back();
+				break;
+			}
 			case QScript::OP_NOT:
 			{
 				auto value = vm.Pop();
@@ -319,6 +326,24 @@ namespace QVM
 		auto functionObject = new QScript::FunctionObject( new QScript::Function_t( name, arity ) );
 		VirtualMachine->m_Objects.push_back( ( QScript::Object* ) functionObject );
 		return functionObject;
+	}
+}
+
+void VM_t::Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target )
+{
+	if ( !IS_OBJECT( target ) )
+		QVM::RuntimeError( frame, "rt_invalid_call_target", "Call value was not object type" );
+
+	switch ( AS_OBJECT( target )->m_Type )
+	{
+	case QScript::ObjectType::OT_FUNCTION:
+	{
+		auto function = AS_FUNCTION( target )->GetProperties();
+		m_Frames.emplace_back( function, m_StackTop - numArgs - 1, &function->m_Chunk->m_Code[ 0 ] );
+		break;
+	}
+	default:
+		QVM::RuntimeError( frame, "rt_invalid_call_target", "Invalid call value object type" );
 	}
 }
 

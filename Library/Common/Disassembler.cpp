@@ -177,6 +177,7 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32_t of
 	JMP_INST_LONG( OP_JUMP_LONG, "JUMP", false );
 	JMP_INST_SHORT( OP_JUMP_BACK_SHORT, "JUMP_BACK", true );
 	JMP_INST_LONG( OP_JUMP_BACK_LONG, "JUMP_BACK", true );
+	INST_SHORT( OP_CALL, "CALL" );
 	SIMPLE_INST( OP_ADD, "ADD" );
 	SIMPLE_INST( OP_SUB, "SUB" );
 	SIMPLE_INST( OP_DIV, "DIV" );
