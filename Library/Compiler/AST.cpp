@@ -307,7 +307,15 @@ namespace Compiler
 			if ( args.size() > 255 )
 				throw CompilerException( "cp_too_many_args", "Too many arguments for a function call", m_LineNr, m_ColNr, m_Token );
 
-			throw CompilerException( "TODO", "TODO", m_LineNr, m_ColNr, m_Token );
+			// Function object
+			m_Left->Compile( assembler, COMPILE_EXPRESSION( options ) );
+
+			// Push arguments to stack
+			for ( auto arg : args )
+				arg->Compile( assembler, COMPILE_EXPRESSION( options ) );
+
+			EmitByte( QScript::OpCode::OP_CALL, chunk );
+			EmitByte( ( uint8_t ) args.size(), chunk );
 			break;
 		}
 		case NODE_OR:
@@ -525,7 +533,7 @@ namespace Compiler
 			// Jump to loop end
 			uint32_t jumpToLoopEndSize = PlaceJump( chunk, loopSkipJump, chunk->m_Code.size() - loopSkipJump,
 				QScript::OpCode::OP_JUMP_IF_ZERO_SHORT, QScript::OpCode::OP_JUMP_IF_ZERO_LONG );
-			
+
 			// Pop condition value
 			EmitByte( QScript::OpCode::OP_POP, chunk );
 
@@ -563,7 +571,7 @@ namespace Compiler
 			// Create a constant (function) in enclosing chunk
 			EmitConstant( chunk, QScript::Value( functionObject ), QScript::OpCode::OP_LOAD_CONSTANT_SHORT,
 				QScript::OpCode::OP_LOAD_CONSTANT_LONG, assembler );
-			
+
 			// Create a constant + global (function name) in enclosing chunk
 			EmitConstant( chunk, static_cast< ValueNode* >( m_NodeList[ 0 ] )->GetValue(), QScript::OpCode::OP_SET_GLOBAL_SHORT,
 				QScript::OpCode::OP_SET_GLOBAL_LONG, assembler );
