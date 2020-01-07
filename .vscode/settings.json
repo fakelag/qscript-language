@@ -62,6 +62,7 @@
 		"vector": "cpp",
 		"iostream": "cpp",
 		"__memory": "cpp",
-		"set": "cpp"
+		"set": "cpp",
+		"__functional_03": "cpp"
 	}
 }
