@@ -360,5 +360,81 @@ bool Tests::TestInterpreter()
 		UTEST_CASE_CLOSED();
 	}( );
 
+	UTEST_CASE_1( "functions 1 (Simple calls, large functions, args, return values)", &largeBodyOfCode )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "var x = 5;				\
+			function abc = () {									\
+				var x = 5;										\
+				var y = x + 50;									\
+				{ var z = y + y; }								\
+				var q = x;										\
+			}													\
+			abc();												\
+			return 1;", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 1 );
+
+		UTEST_ASSERT( TestUtils::RunVM( "var x = 5;				\
+			function abc = (x) {								\
+				var y = x + 50;									\
+				{ " + largeBodyOfCode + " }						\
+				var q = y + x;									\
+				return q;										\
+			}													\
+			" + largeBodyOfCode + "								\
+			x = abc(5);											\
+			return x;", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 60 );
+
+		UTEST_ASSERT( TestUtils::RunVM( "var x = 5;				\
+			function abc = (a, b, c) {							\
+				return a + b + c;								\
+			}													\
+			return abc(7, 9, 2);", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 18 );
+
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "functions 2 (Calling functions bound to variables, recursive functions)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "var x = 0;				\
+			function a = (x) { var y = x + 5; return y + 5; }	\
+			function b = (x) { return a(x) + 5; }				\
+			function c = (x) { return b(x) - 5; }				\
+			x = c(20);											\
+			return x;", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 30 );
+
+		UTEST_ASSERT( TestUtils::RunVM( "						\
+			function fibonacci = (num) {						\
+				if (num <= 1) return 1;							\
+				return fibonacci(num - 1) + fibonacci(num - 2);	\
+			}													\
+			return fibonacci(10);", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 89 );
+
+		UTEST_ASSERT( TestUtils::RunVM( "var x = 0;							\
+			function xxx = (anotherFunc) { return anotherFunc(60, 60); }	\
+			function sum = (a, b) { return a + b; }							\
+			return xxx(sum);", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 120 );
+
+		UTEST_CASE_CLOSED();
+	}( );
+
 	UTEST_END();
 }
