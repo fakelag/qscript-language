@@ -125,7 +125,6 @@ namespace Compiler
 
 		// Main code
 		CreateFunction( "<main>", 0, chunk );
-		CreateLocal( "" );
 	}
 
 	std::vector< QScript::Function_t* > Assembler::Finish()
@@ -158,7 +157,7 @@ namespace Compiler
 
 		m_Functions.push_back( { function, new Assembler::Stack_t() } );
 
-		CreateLocal( name );
+		CreateLocal( name == "<main>" ? "" : name );
 		return function;
 	}
 
@@ -166,8 +165,8 @@ namespace Compiler
 	{
 		auto finishingFunction = CurrentFunction();
 
-		// Release scope
-		PopScope();
+		// Implicit return (null)
+		EmitByte( QScript::OpCode::OP_LOAD_NULL, finishingFunction->m_Chunk );
 		EmitByte( QScript::OpCode::OP_RETURN, finishingFunction->m_Chunk );
 
 		// Finished compiling
