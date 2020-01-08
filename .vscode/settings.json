@@ -63,6 +63,7 @@
 		"iostream": "cpp",
 		"__memory": "cpp",
 		"set": "cpp",
-		"__functional_03": "cpp"
+		"__functional_03": "cpp",
+		"stack": "cpp"
 	}
 }
