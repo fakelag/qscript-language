@@ -294,12 +294,13 @@ namespace QVM
 			case QScript::OP_RETURN:
 			{
 				auto returnValue = vm.Pop();
-				vm.m_Frames.pop_back();
 
-				if ( vm.m_Frames.size() == 0 )
+				if ( vm.m_Frames.size() == 1 )
 					return returnValue;
 
 				vm.m_StackTop = frame->m_Base;
+
+				vm.m_Frames.pop_back();
 
 				vm.Push( returnValue );
 				frame = &vm.m_Frames.back();
