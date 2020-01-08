@@ -239,6 +239,7 @@ int Compiler::InstructionSize( uint8_t inst )
 	case QScript::OpCode::OP_SUB: return 1;
 	case QScript::OpCode::OP_DIV: return 1;
 	case QScript::OpCode::OP_MUL: return 1;
+	case QScript::OpCode::OP_CALL: return 2;
 	case QScript::OpCode::OP_NEGATE: return 1;
 	case QScript::OpCode::OP_NOT: return 1;
 	case QScript::OpCode::OP_EQUALS: return 1;
