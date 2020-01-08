@@ -49,6 +49,8 @@ std::string Compiler::ValueToString( const QScript::Value& value )
 			valueType = "string";
 		else if ( IS_FUNCTION( value ) )
 			valueType = "function";
+		else if ( IS_NATIVE( value ) )
+			valueType = "native";
 		else
 			throw Exception( "disasm_invalid_value_object", "Invalid object type: " + std::to_string( AS_OBJECT( value )->m_Type ) );
 

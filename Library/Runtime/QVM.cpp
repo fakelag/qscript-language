@@ -5,6 +5,8 @@
 #include "QVM.h"
 #include "../Compiler/Compiler.h"
 
+#include "Natives.h"
+
 #define READ_BYTE( vm ) (*frame->m_IP++)
 #define READ_LONG( vm, out ) uint32_t out; { \
 	auto a = READ_BYTE( vm ); \
@@ -325,6 +327,30 @@ namespace QVM
 		VirtualMachine->m_Objects.push_back( ( QScript::Object* ) functionObject );
 		return functionObject;
 	}
+
+	QScript::NativeFunctionObject* AllocateNative( void* nativeFn )
+	{
+		auto nativeObject = new QScript::NativeFunctionObject( ( QScript::NativeFn ) nativeFn );
+		VirtualMachine->m_Objects.push_back( ( QScript::Object* ) nativeObject );
+		return nativeObject;
+	}
+}
+
+void VM_t::Init( const QScript::Function_t* function )
+{
+	m_Objects.clear();
+	m_Globals.clear();
+
+	m_Stack = new QScript::Value[ s_InitStackSize ];
+	m_StackCapacity = s_InitStackSize;
+	m_StackTop = &m_Stack[ 0 ];
+
+	// Create initial call frame
+	m_Frames.emplace_back( function, m_Stack, &function->m_Chunk->m_Code[ 0 ] );
+
+	// Push main function to stack slot 0. This is directly allocated, so
+	// the VM garbage collection won't ever release it
+	Push( QScript::Value( new QScript::FunctionObject( function ) ) );
 }
 
 void VM_t::Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target )
@@ -340,9 +366,30 @@ void VM_t::Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target )
 		m_Frames.emplace_back( function, m_StackTop - numArgs - 1, &function->m_Chunk->m_Code[ 0 ] );
 		break;
 	}
+	case QScript::ObjectType::OT_NATIVE:
+	{
+		auto native = AS_NATIVE( target )->GetNative();
+		auto returnValue = native( m_StackTop - numArgs, numArgs );
+		m_StackTop -= numArgs + 1;
+
+		Push( returnValue );
+		break;
+	}
 	default:
 		QVM::RuntimeError( frame, "rt_invalid_call_target", "Invalid call value object type" );
 	}
+}
+
+void VM_t::ResolveImports()
+{
+	// Add a native for testing
+	CreateNative( "clock", Native::clock );
+}
+
+void VM_t::CreateNative( const std::string name, QScript::NativeFn native )
+{
+	auto global = std::pair<std::string, QScript::Object*>( name, QVM::AllocateNative( ( void* ) native ) );
+	m_Globals.insert( global );
 }
 
 void QScript::Interpret( const Function_t& function, Value* out )
@@ -353,6 +400,9 @@ void QScript::Interpret( const Function_t& function, Value* out )
 	QVM::VirtualMachine = &vm;
 	QScript::Object::AllocateString = &QVM::AllocateString;
 	QScript::Object::AllocateFunction = &QVM::AllocateFunction;
+	QScript::Object::AllocateNative = &QVM::AllocateNative;
+
+	vm.ResolveImports();
 
 	auto exitCode = QVM::Run( vm );
 
@@ -365,6 +415,7 @@ void QScript::Interpret( const Function_t& function, Value* out )
 	// Clear allocators
 	QScript::Object::AllocateString = NULL;
 	QScript::Object::AllocateFunction = NULL;
+	QScript::Object::AllocateNative = NULL;
 }
 
 void QScript::Interpret( VM_t& vm, Value* out )
@@ -373,6 +424,9 @@ void QScript::Interpret( VM_t& vm, Value* out )
 	QVM::VirtualMachine = &vm;
 	QScript::Object::AllocateString = &QVM::AllocateString;
 	QScript::Object::AllocateFunction = &QVM::AllocateFunction;
+	QScript::Object::AllocateNative = &QVM::AllocateNative;
+
+	vm.ResolveImports();
 
 	auto exitCode = QVM::Run( vm );
 
@@ -382,4 +436,5 @@ void QScript::Interpret( VM_t& vm, Value* out )
 	// Clear allocators
 	QScript::Object::AllocateString = NULL;
 	QScript::Object::AllocateFunction = NULL;
+	QScript::Object::AllocateNative = NULL;
 }

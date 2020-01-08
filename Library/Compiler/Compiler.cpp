@@ -10,6 +10,7 @@ namespace QScript
 	{
 		Object::AllocateString = &Compiler::AllocateString;
 		Object::AllocateFunction = &Compiler::AllocateFunction;
+		Object::AllocateNative = &Compiler::AllocateNative;
 
 		Chunk_t* chunk = AllocChunk();
 
@@ -56,6 +57,7 @@ namespace QScript
 		// Reset allocators
 		Object::AllocateString = NULL;
 		Object::AllocateFunction = NULL;
+		Object::AllocateNative = NULL;
 
 		// Return compiled code
 		return functions.back();
@@ -92,6 +94,13 @@ namespace Compiler
 		auto functionObject = new QScript::FunctionObject( new QScript::Function_t( name, arity ) );
 		ObjectList.push_back( ( QScript::Object* ) functionObject );
 		return functionObject;
+	}
+
+	QScript::NativeFunctionObject* AllocateNative( void* nativeFn )
+	{
+		auto nativeObject = new QScript::NativeFunctionObject( ( QScript::NativeFn ) nativeFn );
+		ObjectList.push_back( ( QScript::Object* ) nativeObject );
+		return nativeObject;
 	}
 
 	void GarbageCollect( const std::vector< QScript::Function_t* >& functions )

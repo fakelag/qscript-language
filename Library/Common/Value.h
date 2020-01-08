@@ -58,6 +58,10 @@ FORCEINLINE Value operator op ( const Value& other ) { \
 
 namespace QScript
 {
+	class StringObject;
+	class FunctionObject;
+	class NativeFunctionObject;
+
 	enum ValueType
 	{
 		VT_NULL = 0,
@@ -73,10 +77,6 @@ namespace QScript
 		OT_NATIVE,
 	};
 
-	class StringObject;
-	class FunctionObject;
-	class NativeFunctionObject;
-
 	class Object
 	{
 	public:
@@ -85,9 +85,11 @@ namespace QScript
 
 		using StringAllocatorFn = StringObject*(*)( const std::string& string );
 		using FunctionAllocatorFn = FunctionObject * ( *)( const std::string& name, int arity );
+		using NativeAllocatorFn = NativeFunctionObject * ( *)( void* nativeFn );
 
 		static StringAllocatorFn AllocateString;
 		static FunctionAllocatorFn AllocateFunction;
+		static NativeAllocatorFn AllocateNative;
 	};
 
 	// Value struct -- must be trivially copyable for stack relocations to work

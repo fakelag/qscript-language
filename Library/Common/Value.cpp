@@ -7,6 +7,8 @@ std::string QScript::Value::ToString() const
 		return AS_STRING( *this )->GetString();
 	else if ( IS_FUNCTION( *this ) )
 		return AS_FUNCTION( *this )->GetProperties()->m_Name;
+	else if ( IS_NATIVE( *this ) )
+		return "<native code>";
 
 	switch ( m_Type )
 	{

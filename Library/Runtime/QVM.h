@@ -23,23 +23,6 @@ struct VM_t
 		Init( function );
 	}
 
-	void Init( const QScript::Function_t* function )
-	{
-		m_Objects.clear();
-		m_Globals.clear();
-
-		m_Stack = new QScript::Value[ s_InitStackSize ];
-		m_StackCapacity = s_InitStackSize;
-		m_StackTop = &m_Stack[ 0 ];
-
-		// Create initial call frame
-		m_Frames.emplace_back( function, m_Stack, &function->m_Chunk->m_Code[ 0 ] );
-
-		// Push main function to stack slot 0. This is directly allocated, so
-		// the VM garbage collection won't ever release it
-		Push( QScript::Value( new QScript::FunctionObject( function ) ) );
-	}
-
 	FORCEINLINE void Push( QScript::Value value )
 	{
 		if ( m_StackTop - m_Stack == m_StackCapacity )
@@ -85,7 +68,11 @@ struct VM_t
 		return m_StackTop[ -1 - offset ];
 	}
 
+	void Init( const QScript::Function_t* function );
 	void Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target );
+	void ResolveImports();
+
+	void CreateNative( const std::string name, QScript::NativeFn native );
 
 	void Release( QScript::Value* exitCode )
 	{
