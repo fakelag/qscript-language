@@ -18,12 +18,15 @@ namespace Compiler
 		NODE_INVALID = -1,
 		NODE_ADD,
 		NODE_AND,
+		NODE_ARGUMENTS,
 		NODE_ASSIGN,
+		NODE_CALL,
 		NODE_CONSTANT,
 		NODE_DIV,
 		NODE_DO,
 		NODE_EQUALS,
 		NODE_FOR,
+		NODE_FUNC,
 		NODE_GREATEREQUAL,
 		NODE_GREATERTHAN,
 		NODE_IF,
@@ -130,6 +133,7 @@ namespace Compiler
 
 		void Release() override;
 		void Compile( Assembler& assembler, uint32_t options = CO_NONE ) override;
+		const std::vector< BaseNode* >& GetList() const;
 
 	private:
 		std::vector< BaseNode* >		m_NodeList;

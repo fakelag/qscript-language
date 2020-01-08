@@ -5,7 +5,7 @@
 #include "../Compiler/Compiler.h"
 #include "../Runtime/QVM.h"
 
-bool FindDebugSymbol( const QScript::Chunk_t& chunk, uint32_t offset, QScript::Chunk_t::Debug_t* out )
+bool Compiler::FindDebugSymbol( const QScript::Chunk_t& chunk, uint32_t offset, QScript::Chunk_t::Debug_t* out )
 {
 	bool found = false;
 	QScript::Chunk_t::Debug_t symbol;
@@ -33,42 +33,48 @@ bool FindDebugSymbol( const QScript::Chunk_t& chunk, uint32_t offset, QScript::C
 
 std::string Compiler::ValueToString( const QScript::Value& value )
 {
+	std::string valueType;
+
+	std::map< QScript::ValueType, std::string > typeStrings ={
+		{ QScript::ValueType::VT_NULL,		"null" },
+		{ QScript::ValueType::VT_NUMBER,	"number" },
+		{ QScript::ValueType::VT_BOOL,		"bool" },
+	};
+
 	switch ( value.m_Type )
 	{
-		case QScript::VT_NUMBER:
-		{
-			char result[ 32 ];
-			snprintf( result, sizeof( result ), "%.2f", AS_NUMBER( value ) );
-			return std::string( "(number, " ) + result + ")";
-		}
-		case QScript::VT_BOOL:
-			return std::string( "(bool, " ) + ( AS_BOOL( value ) ? "true" : "false" ) + ")";
-		case QScript::VT_NULL:
-			return "(null)";
-		case QScript::VT_OBJECT:
-		{
-			auto object = AS_OBJECT( value );
-			switch ( object->m_Type )
-			{
-				case QScript::OT_STRING:
-					return "(string, \"" + static_cast< QScript::StringObject* >( object )->GetString() + "\")";
-				default:
-					throw Exception( "disasm_invalid_value_object", "Invalid object type: " + std::to_string( object->m_Type ) );
-			}
-		}
-		default:
+	case QScript::ValueType::VT_OBJECT:
+	{
+		if ( IS_STRING( value ) )
+			valueType = "string";
+		else if ( IS_FUNCTION( value ) )
+			valueType = "function";
+		else
+			throw Exception( "disasm_invalid_value_object", "Invalid object type: " + std::to_string( AS_OBJECT( value )->m_Type ) );
+
+		break;
+	}
+	default:
+	{
+		auto string =  typeStrings.find( value.m_Type );
+		if ( string != typeStrings.end() )
+			valueType = string->second;
+		else
 			throw Exception( "disasm_invalid_value", "Invalid value type: " + std::to_string( value.m_Type ) );
 	}
+	}
+
+	return "(" + valueType + ", " + value.ToString() + ")";
 }
 
-void Compiler::DisassembleChunk( const QScript::Chunk_t& chunk, const std::string& identifier, unsigned int ip )
+void Compiler::DisassembleChunk( const QScript::Chunk_t& chunk, const std::string& identifier, int ip )
 {
 	// Show identifier of the current chunk
 	std::cout << "=== " + identifier + " ===" << std::endl;
 
 	// Print each instruction and their operands
 	for ( size_t offset = 0; offset < chunk.m_Code.size(); )
-		offset = DisassembleInstruction( chunk, offset, offset == ip );
+		offset = DisassembleInstruction( chunk, offset, ip != -1 && offset == ( size_t ) ip );
 }
 
 int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32_t offset, bool isIp )
@@ -171,6 +177,7 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32_t of
 	JMP_INST_LONG( OP_JUMP_LONG, "JUMP", false );
 	JMP_INST_SHORT( OP_JUMP_BACK_SHORT, "JUMP_BACK", true );
 	JMP_INST_LONG( OP_JUMP_BACK_LONG, "JUMP_BACK", true );
+	INST_SHORT( OP_CALL, "CALL" );
 	SIMPLE_INST( OP_ADD, "ADD" );
 	SIMPLE_INST( OP_SUB, "SUB" );
 	SIMPLE_INST( OP_DIV, "DIV" );
@@ -232,6 +239,7 @@ int Compiler::InstructionSize( uint8_t inst )
 	case QScript::OpCode::OP_SUB: return 1;
 	case QScript::OpCode::OP_DIV: return 1;
 	case QScript::OpCode::OP_MUL: return 1;
+	case QScript::OpCode::OP_CALL: return 2;
 	case QScript::OpCode::OP_NEGATE: return 1;
 	case QScript::OpCode::OP_NOT: return 1;
 	case QScript::OpCode::OP_EQUALS: return 1;

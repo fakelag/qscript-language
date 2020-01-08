@@ -5,17 +5,20 @@
 #define AS_NUMBER( value ) ((value).m_Data.m_Number)
 #define AS_OBJECT( value ) ((value).m_Data.m_Object)
 #define AS_STRING( value ) ((QScript::StringObject*)((value).m_Data.m_Object))
+#define AS_FUNCTION( value ) ((QScript::FunctionObject*)((value).m_Data.m_Object))
 
 #define MAKE_NULL (QScript::Value())
 #define MAKE_BOOL( value ) (QScript::Value( ((bool)(value) )))
 #define MAKE_NUMBER( value ) (QScript::Value( ((double)(value) )))
-#define MAKE_STRING( value ) ((QScript::Value( QScript::Object::AllocateString( value ) )))
+#define MAKE_STRING( string ) ((QScript::Value( QScript::Object::AllocateString( string ) )))
+// #define MAKE_FUNCTION( name, arity ) ((QScript::Value( QScript::Object::AllocateFunction( name, arity ) )))
 
 #define IS_NULL( value ) ((value).m_Type == QScript::VT_NULL)
 #define IS_BOOL( value ) ((value).m_Type == QScript::VT_BOOL)
 #define IS_NUMBER( value ) ((value).m_Type == QScript::VT_NUMBER)
 #define IS_OBJECT( value ) ((value).m_Type == QScript::VT_OBJECT)
-#define IS_STRING( value ) ((value).IsString())
+#define IS_STRING( value ) ((value).IsObjectOfType<QScript::ObjectType::OT_STRING>())
+#define IS_FUNCTION( value ) ((value).IsObjectOfType<QScript::ObjectType::OT_FUNCTION>())
 #define IS_ANY( value ) (true)
 
 #define ENCODE_LONG( a, index ) (( uint8_t )( ( a >> ( 8 * index ) ) & 0xFF ))
@@ -105,29 +108,13 @@ namespace QScript
 			m_Data = other.m_Data;
 		}
 
-		FORCEINLINE bool IsString() const
+		template<ObjectType Type>
+		FORCEINLINE bool IsObjectOfType() const
 		{
-			return IS_OBJECT( *this ) && m_Data.m_Object->m_Type == OT_STRING;
+			return IS_OBJECT( *this ) && m_Data.m_Object->m_Type == Type;
 		}
 
-		FORCEINLINE std::string ToString()
-		{
-			if ( IS_STRING( *this ) )
-				return AS_STRING( *this )->GetString();
-
-			switch ( m_Type )
-			{
-				case VT_NUMBER:
-				{
-					char result[ 32 ];
-					snprintf( result, sizeof( result ), "%.2f", AS_NUMBER( *this ) );
-					return std::string( result );
-				}
-				case VT_BOOL: return AS_BOOL( *this ) ? "True" : "False";
-				case VT_NULL: return "[[null]]";
-				default: return "[[object]]";
-			}
-		}
+		std::string ToString() const;
 
 		FORCEINLINE operator bool()
 		{

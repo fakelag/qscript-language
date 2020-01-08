@@ -17,6 +17,20 @@
 			"externalConsole": true,
 			"MIMode": "lldb",
 			"miDebuggerPath": "/Applications/Xcode.app/Contents/Developer/usr/bin/lldb-mi"
+		},
+		{
+			"name": "(lldb) Launch Tests",
+			"type": "cppdbg",
+			"request": "launch",
+			"program": "${workspaceFolder}/OSX/Lib/Tests.o",
+			"internalConsoleOptions": "openOnSessionStart",
+			"args": [],
+			"stopAtEntry": true,
+			"cwd": "${workspaceFolder}",
+			"environment": [],
+			"externalConsole": true,
+			"MIMode": "lldb",
+			"miDebuggerPath": "/Applications/Xcode.app/Contents/Developer/usr/bin/lldb-mi"
 		}
 	]
 }

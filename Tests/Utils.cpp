@@ -18,15 +18,18 @@ std::string TestUtils::GenerateSequence( int length, std::function< std::string(
 
 bool TestUtils::RunVM( const std::string& code, QScript::Value* exitCode )
 {
-	auto chunk = QScript::Compile( code );
+	auto fn = QScript::Compile( code );
 
-	VM_t vm( chunk );
+	VM_t vm( fn );
 	QScript::Interpret( vm, exitCode );
+
+	// Pop (function, <main>)
+	vm.Pop();
 
 	bool vmState = CheckVM( vm );
 
 	vm.Release( exitCode );
-	QScript::FreeChunk( chunk );
+	QScript::FreeFunction( fn );
 
 	return vmState;
 }

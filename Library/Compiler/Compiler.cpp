@@ -6,9 +6,10 @@
 
 namespace QScript
 {
-	Chunk_t* Compile( const std::string& source, int flags )
+	Function_t* Compile( const std::string& source, int flags )
 	{
 		Object::AllocateString = &Compiler::AllocateString;
+		Object::AllocateFunction = &Compiler::AllocateFunction;
 
 		Chunk_t* chunk = AllocChunk();
 
@@ -46,14 +47,18 @@ namespace QScript
 		chunk->m_Code.push_back( QScript::OpCode::OP_RETURN );
 #endif
 
+		// Compiled funtions
+		auto functions = assembler.Finish();
+
 		// Clean up objects created in compilation process
-		Compiler::GarbageCollect( chunk );
+		Compiler::GarbageCollect( functions );
 
 		// Reset allocators
 		Object::AllocateString = NULL;
+		Object::AllocateFunction = NULL;
 
 		// Return compiled code
-		return chunk;
+		return functions.back();
 	}
 }
 
@@ -82,15 +87,29 @@ namespace Compiler
 		return stringObject;
 	}
 
-	void GarbageCollect( const QScript::Chunk_t* chunk )
+	QScript::FunctionObject* AllocateFunction( const std::string& name, int arity )
+	{
+		auto functionObject = new QScript::FunctionObject( new QScript::Function_t( name, arity ) );
+		ObjectList.push_back( ( QScript::Object* ) functionObject );
+		return functionObject;
+	}
+
+	void GarbageCollect( const std::vector< QScript::Function_t* >& functions )
 	{
 		for ( auto object : ObjectList )
 		{
 			bool isReferenced = false;
-			for ( auto value : chunk->m_Constants )
+
+			for ( auto function : functions )
 			{
-				if ( IS_OBJECT( value ) && value.m_Data.m_Object == object )
-					isReferenced = true;
+				for ( auto value : function->m_Chunk->m_Constants )
+				{
+					if ( IS_OBJECT( value ) && value.m_Data.m_Object == object )
+						isReferenced = true;
+				}
+
+				if ( isReferenced )
+					break;
 			}
 
 			if ( !isReferenced )
@@ -102,32 +121,85 @@ namespace Compiler
 
 	Assembler::Assembler( QScript::Chunk_t* chunk, int optimizationFlags )
 	{
-		m_Chunk = chunk;
-		m_Stack.m_CurrentDepth = 0;
 		m_OptimizationFlags = optimizationFlags;
+
+		// Main code
+		CreateFunction( "<main>", 0, chunk );
+	}
+
+	std::vector< QScript::Function_t* > Assembler::Finish()
+	{
+		delete CurrentStack();
+		m_Compiled.push_back( CurrentFunction() );
+		m_Functions.pop_back();
+
+		return m_Compiled;
 	}
 
 	QScript::Chunk_t* Assembler::CurrentChunk()
 	{
-		return m_Chunk;
+		return m_Functions.back().first->m_Chunk;
+	}
+
+	QScript::Function_t* Assembler::CurrentFunction()
+	{
+		return m_Functions.back().first;
+	}
+
+	Assembler::Stack_t* Assembler::CurrentStack()
+	{
+		return m_Functions.back().second;
+	}
+
+	QScript::Function_t* Assembler::CreateFunction( const std::string& name, int arity, QScript::Chunk_t* chunk )
+	{
+		auto function = new QScript::Function_t( name, 0, chunk );
+
+		m_Functions.push_back( { function, new Assembler::Stack_t() } );
+
+		CreateLocal( name == "<main>" ? "" : name );
+		return function;
+	}
+
+	QScript::FunctionObject* Assembler::FinishFunction()
+	{
+		auto finishingFunction = CurrentFunction();
+
+		// Implicit return (null)
+		EmitByte( QScript::OpCode::OP_LOAD_NULL, finishingFunction->m_Chunk );
+		EmitByte( QScript::OpCode::OP_RETURN, finishingFunction->m_Chunk );
+
+		// Finished compiling
+		m_Compiled.push_back( finishingFunction );
+
+		// Free compile-time stack from memory
+		delete CurrentStack();
+		m_Functions.pop_back();
+
+		// Return function object
+		return new QScript::FunctionObject( finishingFunction );
 	}
 
 	uint32_t Assembler::CreateLocal( const std::string& name )
 	{
-		m_Stack.m_Locals.push_back( Assembler::Local_t{ name, m_Stack.m_CurrentDepth } );
-		return ( uint32_t ) m_Stack.m_Locals.size() - 1;
+		auto stack = CurrentStack();
+
+		stack->m_Locals.push_back( Assembler::Local_t{ name, stack->m_CurrentDepth } );
+		return ( uint32_t ) stack->m_Locals.size() - 1;
 	}
 
 	Assembler::Local_t* Assembler::GetLocal( int local )
 	{
-		return &m_Stack.m_Locals[ local ];
+		return &CurrentStack()->m_Locals[ local ];
 	}
 
 	bool Assembler::FindLocal( const std::string& name, uint32_t* out )
 	{
-		for ( int i = ( int ) m_Stack.m_Locals.size() - 1; i >= 0 ; --i )
+		auto stack = CurrentStack();
+
+		for ( int i = ( int ) stack->m_Locals.size() - 1; i >= 0 ; --i )
 		{
-			if ( m_Stack.m_Locals[ i ].m_Name == name )
+			if ( stack->m_Locals[ i ].m_Name == name )
 			{
 				*out = ( uint32_t ) i;
 				return true;
@@ -139,39 +211,46 @@ namespace Compiler
 
 	int Assembler::StackDepth()
 	{
-		return m_Stack.m_CurrentDepth;
+		return CurrentStack()->m_CurrentDepth;
 	}
 
 	void Assembler::PushScope()
 	{
-		++m_Stack.m_CurrentDepth;
+		++CurrentStack()->m_CurrentDepth;
 	}
 
 	void Assembler::PopScope()
 	{
-		for ( int i = ( int ) m_Stack.m_Locals.size() - 1; i >= 0; --i )
+		auto stack = CurrentStack();
+
+		for ( int i = LocalsInCurrentScope() - 1; i >= 0; --i )
+			EmitByte( QScript::OpCode::OP_POP, CurrentChunk() );
+
+		for ( int i = ( int ) stack->m_Locals.size() - 1; i >= 0; --i )
 		{
-			if ( m_Stack.m_Locals[ i ].m_Depth < m_Stack.m_CurrentDepth )
+			if ( stack->m_Locals[ i ].m_Depth < stack->m_CurrentDepth )
 				break;
 
-			m_Stack.m_Locals.erase( m_Stack.m_Locals.begin() + i );
+			stack->m_Locals.erase( stack->m_Locals.begin() + i );
 		}
 
-		--m_Stack.m_CurrentDepth;
+		--stack->m_CurrentDepth;
 	}
-	
+
 	int Assembler::LocalsInCurrentScope()
 	{
+		auto stack = CurrentStack();
+
 		int count = 0;
-		for ( int i = ( int ) m_Stack.m_Locals.size() - 1; i >= 0; --i )
+		for ( int i = ( int ) stack->m_Locals.size() - 1; i >= 0; --i )
 		{
-			if ( m_Stack.m_Locals[ i ].m_Depth < m_Stack.m_CurrentDepth )
+			if ( stack->m_Locals[ i ].m_Depth < stack->m_CurrentDepth )
 				return count;
 
 			++count;
 		}
 
-		return m_Stack.m_Locals.size();
+		return stack->m_Locals.size();
 	}
 
 	int Assembler::OptimizationFlags() const

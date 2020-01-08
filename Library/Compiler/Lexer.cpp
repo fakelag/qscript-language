@@ -31,18 +31,20 @@ namespace Compiler
 		{ TOK_AND,			{ TOK_AND, 			"&&", 		BP_LOGIC, 					false } },
 		{ TOK_OR,			{ TOK_OR, 			"||", 		BP_LOGIC, 					false } },
 
-		{ TOK_LPAREN,		{ TOK_LPAREN, 		"(", 		BP_OPENPAREN,				false } },
-		{ TOK_RPAREN,		{ TOK_RPAREN, 		")", 		BP_NONE,					false } },
+		{ TOK_PAREN_LEFT,	{ TOK_PAREN_LEFT, 	"(", 		BP_OPENPAREN,				false } },
+		{ TOK_PAREN_RIGHT,	{ TOK_PAREN_RIGHT, 	")", 		BP_NONE,					false } },
 
 		{ TOK_SCOLON,		{ TOK_SCOLON, 		";", 		BP_NONE,					false } },
 		{ TOK_BANG, 		{ TOK_BANG, 		"!", 		BP_LOGIC_NOT,				false } },
 		{ TOK_BRACE_LEFT, 	{ TOK_BRACE_LEFT, 	"{", 		BP_NONE,					false } },
 		{ TOK_BRACE_RIGHT, 	{ TOK_BRACE_RIGHT, 	"}", 		BP_NONE,					false } },
+		{ TOK_COMMA, 		{ TOK_COMMA, 		",", 		BP_NONE,					false } },
 
 		{ TOK_DO,			{ TOK_DO,			"do",		BP_NONE,					true } },
 		{ TOK_ELSE,			{ TOK_ELSE,			"else",		BP_NONE,					true } },
 		{ TOK_FALSE,		{ TOK_FALSE, 		"false", 	BP_NONE,					true } },
 		{ TOK_FOR,			{ TOK_FOR, 			"for", 		BP_NONE,					true } },
+		{ TOK_FUNC,			{ TOK_FUNC, 		"function",	BP_NONE,					true } },
 		{ TOK_IF,			{ TOK_IF,			"if",		BP_NONE,					true } },
 		{ TOK_NULL,			{ TOK_NULL, 		"null", 	BP_NONE,					true } },
 		{ TOK_RETURN,		{ TOK_RETURN, 		"return", 	BP_NONE,					true } },

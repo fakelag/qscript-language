@@ -2,6 +2,7 @@
 #include "Chunk.h"
 
 QScript::Object::StringAllocatorFn QScript::Object::AllocateString = NULL;
+QScript::Object::FunctionAllocatorFn QScript::Object::AllocateFunction = NULL;
 
 QScript::Chunk_t* QScript::AllocChunk()
 {
@@ -19,4 +20,12 @@ void QScript::FreeChunk( QScript::Chunk_t* chunk )
 	}
 
 	delete chunk;
+}
+
+void QScript::FreeFunction( QScript::Function_t* function )
+{
+	if ( function->m_Chunk )
+		FreeChunk( function->m_Chunk );
+
+	delete function;
 }

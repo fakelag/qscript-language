@@ -3,6 +3,7 @@ namespace QScript
 	enum OpCode : uint8_t
 	{
 		OP_ADD,
+		OP_CALL,
 		OP_DIV,
 		OP_EQUALS,
 		OP_SET_GLOBAL_LONG,
