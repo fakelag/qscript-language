@@ -1,29 +1,9 @@
 #pragma once
+#include "Value.h"
 
 namespace QScript
 {
-	class StringObject;
-	class FunctionObject;
 	struct Function_t;
-
-	enum ObjectType
-	{
-		OT_STRING,
-		OT_FUNCTION,
-	};
-
-	class Object
-	{
-	public:
-		virtual ~Object() {};
-		ObjectType m_Type;
-
-		using StringAllocatorFn = StringObject*(*)( const std::string& string );
-		using FunctionAllocatorFn = FunctionObject * ( *)( const std::string& name, int arity );
-
-		static StringAllocatorFn AllocateString;
-		static FunctionAllocatorFn AllocateFunction;
-	};
 
 	class StringObject : public Object
 	{
@@ -61,5 +41,20 @@ namespace QScript
 
 	private:
 		const Function_t* m_Function;
+	};
+
+	class NativeFunctionObject : public Object
+	{
+	public:
+		FORCEINLINE NativeFunctionObject( )
+		{
+			m_Type = OT_NATIVE;
+		}
+
+		~NativeFunctionObject()
+		{
+		}
+
+	private:
 	};
 }

@@ -1,17 +1,16 @@
 #pragma once
-#include "Object.h"
 
 #define AS_BOOL( value ) ((value).m_Data.m_Bool)
 #define AS_NUMBER( value ) ((value).m_Data.m_Number)
 #define AS_OBJECT( value ) ((value).m_Data.m_Object)
 #define AS_STRING( value ) ((QScript::StringObject*)((value).m_Data.m_Object))
 #define AS_FUNCTION( value ) ((QScript::FunctionObject*)((value).m_Data.m_Object))
+#define AS_NATIVE( value ) ((QScript::NativeFunctionObject*)((value).m_Data.m_Object))
 
 #define MAKE_NULL (QScript::Value())
 #define MAKE_BOOL( value ) (QScript::Value( ((bool)(value) )))
 #define MAKE_NUMBER( value ) (QScript::Value( ((double)(value) )))
 #define MAKE_STRING( string ) ((QScript::Value( QScript::Object::AllocateString( string ) )))
-// #define MAKE_FUNCTION( name, arity ) ((QScript::Value( QScript::Object::AllocateFunction( name, arity ) )))
 
 #define IS_NULL( value ) ((value).m_Type == QScript::VT_NULL)
 #define IS_BOOL( value ) ((value).m_Type == QScript::VT_BOOL)
@@ -19,6 +18,7 @@
 #define IS_OBJECT( value ) ((value).m_Type == QScript::VT_OBJECT)
 #define IS_STRING( value ) ((value).IsObjectOfType<QScript::ObjectType::OT_STRING>())
 #define IS_FUNCTION( value ) ((value).IsObjectOfType<QScript::ObjectType::OT_FUNCTION>())
+#define IS_NATIVE( value ) ((value).IsObjectOfType<QScript::ObjectType::OT_NATIVE>())
 #define IS_ANY( value ) (true)
 
 #define ENCODE_LONG( a, index ) (( uint8_t )( ( a >> ( 8 * index ) ) & 0xFF ))
@@ -64,6 +64,30 @@ namespace QScript
 		VT_NUMBER,
 		VT_BOOL,
 		VT_OBJECT,
+	};
+
+	enum ObjectType
+	{
+		OT_STRING,
+		OT_FUNCTION,
+		OT_NATIVE,
+	};
+
+	class StringObject;
+	class FunctionObject;
+	class NativeFunctionObject;
+
+	class Object
+	{
+	public:
+		virtual ~Object() {};
+		ObjectType m_Type;
+
+		using StringAllocatorFn = StringObject*(*)( const std::string& string );
+		using FunctionAllocatorFn = FunctionObject * ( *)( const std::string& name, int arity );
+
+		static StringAllocatorFn AllocateString;
+		static FunctionAllocatorFn AllocateFunction;
 	};
 
 	// Value struct -- must be trivially copyable for stack relocations to work

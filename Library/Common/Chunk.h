@@ -1,5 +1,6 @@
 #pragma once
 #include "Value.h"
+#include "Object.h"
 
 namespace QScript
 {
