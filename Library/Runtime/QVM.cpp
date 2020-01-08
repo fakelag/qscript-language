@@ -293,20 +293,17 @@ namespace QVM
 			case QScript::OP_PRINT: std::cout << (vm.Pop().ToString()) << std::endl; break;
 			case QScript::OP_RETURN:
 			{
-#ifdef QVM_DEBUG
-				Compiler::DumpStack( vm );
+				auto returnValue = vm.Pop();
+				vm.m_Frames.pop_back();
 
-				QScript::Value exitCode;
-				exitCode.From( vm.m_StackTop - vm.m_Stack > 0 ? vm.Pop() : MAKE_NULL );
+				if ( vm.m_Frames.size() == 0 )
+					return returnValue;
 
-				std::cout << "Exit: " << Compiler::ValueToString( exitCode ) << std::endl;
-				return exitCode;
-#else
-				QScript::Value exitCode;
-				exitCode.From( vm.m_StackTop - vm.m_Stack > 0 ? vm.Pop() : MAKE_NULL );
+				vm.m_StackTop = frame->m_Base;
 
-				return exitCode;
-#endif
+				vm.Push( returnValue );
+				frame = &vm.m_Frames.back();
+				break;
 			}
 			default:
 				QVM::RuntimeError( frame, "rt_unknown_opcode", "Unknown opcode: " + std::to_string( inst ) );
