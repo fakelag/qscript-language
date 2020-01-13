@@ -240,6 +240,20 @@ namespace QVM
 				frame = &vm.m_Frames.back();
 				break;
 			}
+			case QScript::OP_CALL_0:
+			case QScript::OP_CALL_1:
+			case QScript::OP_CALL_2:
+			case QScript::OP_CALL_3:
+			case QScript::OP_CALL_4:
+			case QScript::OP_CALL_5:
+			case QScript::OP_CALL_6:
+			case QScript::OP_CALL_7:
+			{
+				uint8_t numArgs = inst - QScript::OP_CALL_0;
+				vm.Call( frame, numArgs, vm.Peek( numArgs ) );
+				frame = &vm.m_Frames.back();
+				break;
+			}
 			case QScript::OP_NOT:
 			{
 				auto value = vm.Pop();

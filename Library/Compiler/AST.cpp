@@ -314,8 +314,16 @@ namespace Compiler
 			for ( auto arg : args )
 				arg->Compile( assembler, COMPILE_EXPRESSION( options ) );
 
-			EmitByte( QScript::OpCode::OP_CALL, chunk );
-			EmitByte( ( uint8_t ) args.size(), chunk );
+			if ( args.size() < QScript::OP_CALL_7 - QScript::OP_CALL )
+			{
+				EmitByte( QScript::OP_CALL_0 + args.size(), chunk );
+			}
+			else
+			{
+				EmitByte( QScript::OpCode::OP_CALL, chunk );
+				EmitByte( ( uint8_t ) args.size(), chunk );
+			}
+
 			break;
 		}
 		case NODE_OR:

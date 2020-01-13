@@ -1,9 +1,18 @@
+#pragma once
 namespace QScript
 {
 	enum OpCode : uint8_t
 	{
 		OP_ADD,
 		OP_CALL,
+		OP_CALL_0,
+		OP_CALL_1,
+		OP_CALL_2,
+		OP_CALL_3,
+		OP_CALL_4,
+		OP_CALL_5,
+		OP_CALL_6,
+		OP_CALL_7,
 		OP_DIV,
 		OP_EQUALS,
 		OP_SET_GLOBAL_LONG,
