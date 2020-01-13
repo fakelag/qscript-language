@@ -7,6 +7,19 @@
 
 #include "Natives.h"
 
+#if !defined(QVM_DEBUG) && defined(_OSX)
+#define _INTERP_JMP_PREFIX( opcode ) &&code_##opcode
+#define INTERP_JMPTABLE static void* opcodeTable[] = { QS_OPCODES( _INTERP_JMP_PREFIX ) };
+#define INTERP_SWITCH( inst ) INTERP_DISPATCH;
+#define INTERP_OPCODE( opcode ) code_##opcode
+#define INTERP_DISPATCH goto *opcodeTable[inst = (QScript::OpCode) READ_BYTE( vm )]
+#else
+#define INTERP_JMPTABLE ((void)0)
+#define INTERP_SWITCH( inst ) switch ( inst )
+#define INTERP_OPCODE( opcode ) case QScript::OpCode::opcode
+#define INTERP_DISPATCH break
+#endif
+
 #define READ_BYTE( vm ) (*frame->m_IP++)
 #define READ_LONG( vm, out ) uint32_t out; { \
 	auto a = READ_BYTE( vm ); \
@@ -58,6 +71,8 @@ namespace QVM
 #ifdef QVM_DEBUG
 		const uint8_t* runTill = NULL;
 #endif
+
+		INTERP_JMPTABLE;
 
 		for (;;)
 		{
@@ -137,21 +152,19 @@ namespace QVM
 						std::cout << "Invalid action: " << input << std::endl;
 				}
 			}
-
-			// Compiler::DisassembleInstruction( *vm.m_Chunk, ( int )( vm.m_IP - ( uint8_t* ) &vm.m_Chunk->m_Code[ 0 ] ) );
 #endif
 
-			uint8_t inst = READ_BYTE( vm );
-			switch ( inst )
+			uint8_t inst = 0;
+			INTERP_SWITCH( inst )
 			{
-			case QScript::OP_LOAD_CONSTANT_SHORT: vm.Push( READ_CONST_SHORT( vm ) ); break;
-			case QScript::OP_LOAD_CONSTANT_LONG:
+			INTERP_OPCODE( OP_LOAD_CONSTANT_SHORT ): vm.Push( READ_CONST_SHORT( vm ) ); INTERP_DISPATCH;
+			INTERP_OPCODE( OP_LOAD_CONSTANT_LONG ):
 			{
 				READ_CONST_LONG( vm, constant );
 				vm.Push( constant );
-				break;
+				INTERP_DISPATCH;
 			}
-			case QScript::OP_LOAD_GLOBAL_LONG:
+			INTERP_OPCODE( OP_LOAD_GLOBAL_LONG ):
 			{
 				READ_CONST_LONG( vm, constant );
 				auto global = vm.m_Globals.find( AS_STRING( constant )->GetString() );
@@ -163,9 +176,9 @@ namespace QVM
 				}
 
 				vm.Push( global->second );
-				break;
+				INTERP_DISPATCH;
 			}
-			case QScript::OP_LOAD_GLOBAL_SHORT:
+			INTERP_OPCODE( OP_LOAD_GLOBAL_SHORT ):
 			{
 				auto constant = READ_CONST_SHORT( vm );
 				auto global = vm.m_Globals.find( AS_STRING( constant )->GetString() );
@@ -177,103 +190,103 @@ namespace QVM
 				}
 
 				vm.Push( global->second );
-				break;
+				INTERP_DISPATCH;
 			}
-			case QScript::OP_SET_GLOBAL_SHORT:
+			INTERP_OPCODE( OP_SET_GLOBAL_SHORT ):
 			{
 				auto constant = READ_CONST_SHORT( vm );
 				vm.m_Globals[ AS_STRING( constant )->GetString() ].From( vm.Peek( 0 ) );
-				break;
+				INTERP_DISPATCH;
 			}
-			case QScript::OP_SET_GLOBAL_LONG:
+			INTERP_OPCODE( OP_SET_GLOBAL_LONG ):
 			{
 				READ_CONST_LONG( vm, constant );
 				vm.m_Globals[ AS_STRING( constant )->GetString() ].From( vm.Peek( 0 ) );
-				break;
+				INTERP_DISPATCH;
 			}
-			case QScript::OP_LOAD_LOCAL_SHORT: vm.Push( frame->m_Base[ READ_BYTE( vm ) ] ); break;
-			case QScript::OP_LOAD_LOCAL_LONG:
+			INTERP_OPCODE( OP_LOAD_LOCAL_SHORT ): vm.Push( frame->m_Base[ READ_BYTE( vm ) ] ); INTERP_DISPATCH;
+			INTERP_OPCODE( OP_LOAD_LOCAL_LONG ):
 			{
 				READ_LONG( vm, offset );
 				vm.Push( frame->m_Base[ offset ] );
-				break;
+				INTERP_DISPATCH;
 			}
-			case QScript::OP_SET_LOCAL_SHORT: frame->m_Base[ READ_BYTE( vm ) ].From( vm.Peek( 0 ) ); break;
-			case QScript::OP_SET_LOCAL_LONG:
+			INTERP_OPCODE( OP_SET_LOCAL_SHORT ): frame->m_Base[ READ_BYTE( vm ) ].From( vm.Peek( 0 ) ); INTERP_DISPATCH;
+			INTERP_OPCODE( OP_SET_LOCAL_LONG ):
 			{
 				READ_LONG( vm, offset );
 				frame->m_Base[ offset ].From( vm.Peek( 0 ) );
-				break;
+				INTERP_DISPATCH;
 			}
-			case QScript::OP_JUMP_BACK_SHORT: frame->m_IP -= ( READ_BYTE( vm ) + 2 ); break;
-			case QScript::OP_JUMP_BACK_LONG:
+			INTERP_OPCODE( OP_JUMP_BACK_SHORT ): frame->m_IP -= ( READ_BYTE( vm ) + 2 ); INTERP_DISPATCH;
+			INTERP_OPCODE( OP_JUMP_BACK_LONG ):
 			{
 				READ_LONG( vm, offset );
 				frame->m_IP -= ( offset + 5 );
-				break;
+				INTERP_DISPATCH;
 			}
-			case QScript::OP_JUMP_SHORT: frame->m_IP += READ_BYTE( vm ); break;
-			case QScript::OP_JUMP_LONG:
+			INTERP_OPCODE( OP_JUMP_SHORT ): frame->m_IP += READ_BYTE( vm ); INTERP_DISPATCH;
+			INTERP_OPCODE( OP_JUMP_LONG ):
 			{
 				READ_LONG( vm, offset );
 				frame->m_IP += offset;
-				break;
+				INTERP_DISPATCH;
 			}
-			case QScript::OP_JUMP_IF_ZERO_SHORT:
+			INTERP_OPCODE( OP_JUMP_IF_ZERO_SHORT ):
 			{
 				auto offset = READ_BYTE( vm );
 				if ( ( bool ) ( vm.Peek( 0 ) ) == false )
 					frame->m_IP += offset;
-				break;
+				INTERP_DISPATCH;
 			}
-			case QScript::OP_JUMP_IF_ZERO_LONG:
+			INTERP_OPCODE( OP_JUMP_IF_ZERO_LONG ):
 			{
 				READ_LONG( vm, offset );
 				if ( ( bool ) ( vm.Peek( 0 ) ) == false )
 					frame->m_IP += offset;
-				break;
+				INTERP_DISPATCH;
 			}
-			case QScript::OP_CALL:
+			INTERP_OPCODE( OP_CALL ):
 			{
 				uint8_t numArgs = READ_BYTE( vm );
 				vm.Call( frame, numArgs, vm.Peek( numArgs ) );
 				frame = &vm.m_Frames.back();
-				break;
+				INTERP_DISPATCH;
 			}
-			case QScript::OP_CALL_0:
-			case QScript::OP_CALL_1:
-			case QScript::OP_CALL_2:
-			case QScript::OP_CALL_3:
-			case QScript::OP_CALL_4:
-			case QScript::OP_CALL_5:
-			case QScript::OP_CALL_6:
-			case QScript::OP_CALL_7:
+			INTERP_OPCODE( OP_CALL_0 ):
+			INTERP_OPCODE( OP_CALL_1 ):
+			INTERP_OPCODE( OP_CALL_2 ):
+			INTERP_OPCODE( OP_CALL_3 ):
+			INTERP_OPCODE( OP_CALL_4 ):
+			INTERP_OPCODE( OP_CALL_5 ):
+			INTERP_OPCODE( OP_CALL_6 ):
+			INTERP_OPCODE( OP_CALL_7 ):
 			{
 				uint8_t numArgs = inst - QScript::OP_CALL_0;
 				vm.Call( frame, numArgs, vm.Peek( numArgs ) );
 				frame = &vm.m_Frames.back();
-				break;
+				INTERP_DISPATCH;
 			}
-			case QScript::OP_NOT:
+			INTERP_OPCODE( OP_NOT ):
 			{
 				auto value = vm.Pop();
 				if ( !IS_BOOL( value ) )
 					QVM::RuntimeError( frame, "rt_invalid_operand_type", "Not operand must be of boolean type" );
 
-				vm.Push( MAKE_BOOL( !( bool )( value ) ) ); break;
-				break;
+				vm.Push( MAKE_BOOL( !( bool )( value ) ) );
+				INTERP_DISPATCH;
 			}
-			case QScript::OP_NEGATE:
+			INTERP_OPCODE( OP_NEGATE ):
 			{
 				auto value = vm.Pop();
 				if ( !IS_NUMBER( value ) )
 					QVM::RuntimeError( frame, "rt_invalid_operand_type", "Negation operand must be of number type" );
 
 				vm.Push( MAKE_NUMBER( -AS_NUMBER( value ) ) );
-				break;
+				INTERP_DISPATCH;
 			}
-			case QScript::OP_LOAD_NULL: vm.Push( MAKE_NULL ); break;
-			case QScript::OP_ADD:
+			INTERP_OPCODE( OP_LOAD_NULL ): vm.Push( MAKE_NULL ); INTERP_DISPATCH;
+			INTERP_OPCODE( OP_ADD ):
 			{
 				auto b = vm.Pop();
 				auto a = vm.Pop();
@@ -294,20 +307,20 @@ namespace QVM
 					QVM::RuntimeError( frame, "rt_invalid_operand_type", "Operands of \"+\" operation must be numbers or strings" );
 				}
 
-				break;
+				INTERP_DISPATCH;
 			}
-			case QScript::OP_SUB: BINARY_OP( -, IS_NUMBER ); break;
-			case QScript::OP_MUL: BINARY_OP( *, IS_NUMBER ); break;
-			case QScript::OP_DIV: BINARY_OP( /, IS_NUMBER ); break;
-			case QScript::OP_EQUALS: BINARY_OP( ==, IS_ANY ); break;
-			case QScript::OP_NOT_EQUALS: BINARY_OP( !=, IS_ANY ); break;
-			case QScript::OP_GREATERTHAN: BINARY_OP( >, IS_ANY ); break;
-			case QScript::OP_LESSTHAN: BINARY_OP( <, IS_ANY ); break;
-			case QScript::OP_LESSTHAN_OR_EQUAL: BINARY_OP( <=, IS_ANY ); break;
-			case QScript::OP_GREATERTHAN_OR_EQUAL: BINARY_OP( >=, IS_ANY ); break;
-			case QScript::OP_POP: vm.Pop(); break;
-			case QScript::OP_PRINT: std::cout << (vm.Pop().ToString()) << std::endl; break;
-			case QScript::OP_RETURN:
+			INTERP_OPCODE( OP_SUB ): BINARY_OP( -, IS_NUMBER ); INTERP_DISPATCH;
+			INTERP_OPCODE( OP_MUL ): BINARY_OP( *, IS_NUMBER ); INTERP_DISPATCH;
+			INTERP_OPCODE( OP_DIV ): BINARY_OP( /, IS_NUMBER ); INTERP_DISPATCH;
+			INTERP_OPCODE( OP_EQUALS ): BINARY_OP( ==, IS_ANY ); INTERP_DISPATCH;
+			INTERP_OPCODE( OP_NOT_EQUALS ): BINARY_OP( !=, IS_ANY ); INTERP_DISPATCH;
+			INTERP_OPCODE( OP_GREATERTHAN ): BINARY_OP( >, IS_ANY ); INTERP_DISPATCH;
+			INTERP_OPCODE( OP_LESSTHAN ): BINARY_OP( <, IS_ANY ); INTERP_DISPATCH;
+			INTERP_OPCODE( OP_LESSTHAN_OR_EQUAL ): BINARY_OP( <=, IS_ANY ); INTERP_DISPATCH;
+			INTERP_OPCODE( OP_GREATERTHAN_OR_EQUAL ): BINARY_OP( >=, IS_ANY ); INTERP_DISPATCH;
+			INTERP_OPCODE( OP_POP ): vm.Pop(); INTERP_DISPATCH;
+			INTERP_OPCODE( OP_PRINT ): std::cout << (vm.Pop().ToString()) << std::endl; INTERP_DISPATCH;
+			INTERP_OPCODE( OP_RETURN ):
 			{
 				auto returnValue = vm.Pop();
 
@@ -320,12 +333,14 @@ namespace QVM
 
 				vm.Push( returnValue );
 				frame = &vm.m_Frames.back();
-				break;
+				INTERP_DISPATCH;
 			}
-			default:
-				QVM::RuntimeError( frame, "rt_unknown_opcode", "Unknown opcode: " + std::to_string( inst ) );
+			// default:
+			// 	QVM::RuntimeError( frame, "rt_unknown_opcode", "Unknown opcode: " + std::to_string( inst ) );
 			}
 		}
+
+		return MAKE_NULL;
 	}
 
 	QScript::StringObject* AllocateString( const std::string& string )
