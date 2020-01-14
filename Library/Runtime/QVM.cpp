@@ -20,18 +20,18 @@
 #define INTERP_DISPATCH break
 #endif
 
-#define READ_BYTE( vm ) (*frame->m_IP++)
-#define READ_LONG( vm, out ) uint32_t out; { \
-	auto a = READ_BYTE( vm ); \
-	auto b = READ_BYTE( vm ); \
-	auto c = READ_BYTE( vm ); \
-	auto d = READ_BYTE( vm ); \
+#define READ_BYTE( ) (*ip++)
+#define READ_LONG( out ) uint32_t out; { \
+	auto a = READ_BYTE( ); \
+	auto b = READ_BYTE( ); \
+	auto c = READ_BYTE( ); \
+	auto d = READ_BYTE( ); \
 	out = DECODE_LONG( a, b, c, d ); \
 }
 
-#define READ_CONST_SHORT( vm ) (frame->m_Function->m_Chunk->m_Constants[ READ_BYTE( vm ) ])
-#define READ_CONST_LONG( vm, constant ) QScript::Value constant; { \
-	READ_LONG( vm, cnstIndex ); \
+#define READ_CONST_SHORT() (frame->m_Function->m_Chunk->m_Constants[ READ_BYTE() ])
+#define READ_CONST_LONG( constant ) QScript::Value constant; { \
+	READ_LONG( cnstIndex ); \
 	constant.From( frame->m_Function->m_Chunk->m_Constants[ cnstIndex ] ); \
 }
 #define BINARY_OP( op, require ) { \
@@ -67,6 +67,7 @@ namespace QVM
 	QScript::Value Run( VM_t& vm )
 	{
 		Frame_t* frame = &vm.m_Frames.back();
+		uint8_t* ip = frame->m_IP;
 
 #ifdef QVM_DEBUG
 		const uint8_t* runTill = NULL;
@@ -77,7 +78,7 @@ namespace QVM
 		for (;;)
 		{
 #ifdef QVM_DEBUG
-			if ( !runTill || frame->m_IP > runTill )
+			if ( !runTill || ip > runTill )
 			{
 				std::string input;
 
@@ -99,13 +100,13 @@ namespace QVM
 					else if ( input == "dc" )
 					{
 						Compiler::DisassembleChunk( *frame->m_Function->m_Chunk, frame->m_Function->m_Name,
-							( unsigned int ) ( frame->m_IP - ( uint8_t* ) &frame->m_Function->m_Chunk->m_Code[ 0 ] ) );
+							( unsigned int ) ( ip - ( uint8_t* ) &frame->m_Function->m_Chunk->m_Code[ 0 ] ) );
 						continue;
 					}
 					else if ( input == "dca" )
 					{
 						Compiler::DisassembleChunk( *frame->m_Function->m_Chunk, frame->m_Function->m_Name,
-							( unsigned int ) ( frame->m_IP - ( uint8_t* ) &frame->m_Function->m_Chunk->m_Code[ 0 ] ) );
+							( unsigned int ) ( ip - ( uint8_t* ) &frame->m_Function->m_Chunk->m_Code[ 0 ] ) );
 
 						for ( auto constant : frame->m_Function->m_Chunk->m_Constants )
 						{
@@ -144,7 +145,7 @@ namespace QVM
 					}
 					else if ( input == "ip" )
 					{
-						std::cout << "IP: " << ( frame->m_IP - &frame->m_Function->m_Chunk->m_Code[ 0 ] ) << std::endl;
+						std::cout << "IP: " << ( ip - &frame->m_Function->m_Chunk->m_Code[ 0 ] ) << std::endl;
 					}
 					else if ( input == "q" )
 						return true;
@@ -157,16 +158,16 @@ namespace QVM
 			uint8_t inst = 0;
 			INTERP_SWITCH( inst )
 			{
-			INTERP_OPCODE( OP_LOAD_CONSTANT_SHORT ): vm.Push( READ_CONST_SHORT( vm ) ); INTERP_DISPATCH;
+			INTERP_OPCODE( OP_LOAD_CONSTANT_SHORT ): vm.Push( READ_CONST_SHORT() ); INTERP_DISPATCH;
 			INTERP_OPCODE( OP_LOAD_CONSTANT_LONG ):
 			{
-				READ_CONST_LONG( vm, constant );
+				READ_CONST_LONG( constant );
 				vm.Push( constant );
 				INTERP_DISPATCH;
 			}
 			INTERP_OPCODE( OP_LOAD_GLOBAL_LONG ):
 			{
-				READ_CONST_LONG( vm, constant );
+				READ_CONST_LONG( constant );
 				auto global = vm.m_Globals.find( AS_STRING( constant )->GetString() );
 
 				if ( global == vm.m_Globals.end() )
@@ -180,7 +181,7 @@ namespace QVM
 			}
 			INTERP_OPCODE( OP_LOAD_GLOBAL_SHORT ):
 			{
-				auto constant = READ_CONST_SHORT( vm );
+				auto constant = READ_CONST_SHORT();
 				auto global = vm.m_Globals.find( AS_STRING( constant )->GetString() );
 
 				if ( global == vm.m_Globals.end() )
@@ -194,63 +195,67 @@ namespace QVM
 			}
 			INTERP_OPCODE( OP_SET_GLOBAL_SHORT ):
 			{
-				auto constant = READ_CONST_SHORT( vm );
+				auto constant = READ_CONST_SHORT();
 				vm.m_Globals[ AS_STRING( constant )->GetString() ].From( vm.Peek( 0 ) );
 				INTERP_DISPATCH;
 			}
 			INTERP_OPCODE( OP_SET_GLOBAL_LONG ):
 			{
-				READ_CONST_LONG( vm, constant );
+				READ_CONST_LONG( constant );
 				vm.m_Globals[ AS_STRING( constant )->GetString() ].From( vm.Peek( 0 ) );
 				INTERP_DISPATCH;
 			}
-			INTERP_OPCODE( OP_LOAD_LOCAL_SHORT ): vm.Push( frame->m_Base[ READ_BYTE( vm ) ] ); INTERP_DISPATCH;
+			INTERP_OPCODE( OP_LOAD_LOCAL_SHORT ): vm.Push( frame->m_Base[ READ_BYTE() ] ); INTERP_DISPATCH;
 			INTERP_OPCODE( OP_LOAD_LOCAL_LONG ):
 			{
-				READ_LONG( vm, offset );
+				READ_LONG( offset );
 				vm.Push( frame->m_Base[ offset ] );
 				INTERP_DISPATCH;
 			}
-			INTERP_OPCODE( OP_SET_LOCAL_SHORT ): frame->m_Base[ READ_BYTE( vm ) ].From( vm.Peek( 0 ) ); INTERP_DISPATCH;
+			INTERP_OPCODE( OP_SET_LOCAL_SHORT ): frame->m_Base[ READ_BYTE() ].From( vm.Peek( 0 ) ); INTERP_DISPATCH;
 			INTERP_OPCODE( OP_SET_LOCAL_LONG ):
 			{
-				READ_LONG( vm, offset );
+				READ_LONG( offset );
 				frame->m_Base[ offset ].From( vm.Peek( 0 ) );
 				INTERP_DISPATCH;
 			}
-			INTERP_OPCODE( OP_JUMP_BACK_SHORT ): frame->m_IP -= ( READ_BYTE( vm ) + 2 ); INTERP_DISPATCH;
+			INTERP_OPCODE( OP_JUMP_BACK_SHORT ): { auto _ip = READ_BYTE(); ip -= ( _ip + 2 ); INTERP_DISPATCH; }
 			INTERP_OPCODE( OP_JUMP_BACK_LONG ):
 			{
-				READ_LONG( vm, offset );
-				frame->m_IP -= ( offset + 5 );
+				READ_LONG( offset );
+				ip -= ( offset + 5 );
 				INTERP_DISPATCH;
 			}
-			INTERP_OPCODE( OP_JUMP_SHORT ): frame->m_IP += READ_BYTE( vm ); INTERP_DISPATCH;
+			INTERP_OPCODE( OP_JUMP_SHORT ): { auto _ip = READ_BYTE(); ip += _ip; INTERP_DISPATCH; }
 			INTERP_OPCODE( OP_JUMP_LONG ):
 			{
-				READ_LONG( vm, offset );
-				frame->m_IP += offset;
+				READ_LONG( offset );
+				ip += offset;
 				INTERP_DISPATCH;
 			}
 			INTERP_OPCODE( OP_JUMP_IF_ZERO_SHORT ):
 			{
-				auto offset = READ_BYTE( vm );
+				auto offset = READ_BYTE();
 				if ( ( bool ) ( vm.Peek( 0 ) ) == false )
-					frame->m_IP += offset;
+					ip += offset;
 				INTERP_DISPATCH;
 			}
 			INTERP_OPCODE( OP_JUMP_IF_ZERO_LONG ):
 			{
-				READ_LONG( vm, offset );
+				READ_LONG( offset );
 				if ( ( bool ) ( vm.Peek( 0 ) ) == false )
-					frame->m_IP += offset;
+					ip += offset;
 				INTERP_DISPATCH;
 			}
 			INTERP_OPCODE( OP_CALL ):
 			{
-				uint8_t numArgs = READ_BYTE( vm );
+				uint8_t numArgs = READ_BYTE();
+
+				frame->m_IP = ip;
 				vm.Call( frame, numArgs, vm.Peek( numArgs ) );
+
 				frame = &vm.m_Frames.back();
+				ip = frame->m_IP;
 				INTERP_DISPATCH;
 			}
 			INTERP_OPCODE( OP_CALL_0 ):
@@ -263,8 +268,12 @@ namespace QVM
 			INTERP_OPCODE( OP_CALL_7 ):
 			{
 				uint8_t numArgs = inst - QScript::OP_CALL_0;
+
+				frame->m_IP = ip;
 				vm.Call( frame, numArgs, vm.Peek( numArgs ) );
+
 				frame = &vm.m_Frames.back();
+				ip = frame->m_IP;
 				INTERP_DISPATCH;
 			}
 			INTERP_OPCODE( OP_NOT ):
@@ -333,6 +342,7 @@ namespace QVM
 
 				vm.Push( returnValue );
 				frame = &vm.m_Frames.back();
+				ip = frame->m_IP;
 				INTERP_DISPATCH;
 			}
 			// default:
