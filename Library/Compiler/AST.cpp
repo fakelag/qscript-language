@@ -577,8 +577,8 @@ namespace Compiler
 			auto functionObject = assembler.FinishFunction();
 
 			// Create a constant (function) in enclosing chunk
-			EmitConstant( chunk, QScript::Value( functionObject ), QScript::OpCode::OP_LOAD_CONSTANT_SHORT,
-				QScript::OpCode::OP_LOAD_CONSTANT_LONG, assembler );
+			EmitConstant( chunk, QScript::Value( functionObject ), QScript::OpCode::OP_CLOSURE_SHORT,
+				QScript::OpCode::OP_CLOSURE_LONG, assembler );
 
 			// Create a constant + global (function name) in enclosing chunk
 			EmitConstant( chunk, static_cast< ValueNode* >( m_NodeList[ 0 ] )->GetValue(), QScript::OpCode::OP_SET_GLOBAL_SHORT,

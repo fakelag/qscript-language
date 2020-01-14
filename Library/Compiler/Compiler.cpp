@@ -11,6 +11,7 @@ namespace QScript
 		Object::AllocateString = &Compiler::AllocateString;
 		Object::AllocateFunction = &Compiler::AllocateFunction;
 		Object::AllocateNative = &Compiler::AllocateNative;
+		Object::AllocateClosure = &Compiler::AllocateClosure;
 
 		Chunk_t* chunk = AllocChunk();
 
@@ -101,6 +102,13 @@ namespace Compiler
 		auto nativeObject = new QScript::NativeFunctionObject( ( QScript::NativeFn ) nativeFn );
 		ObjectList.push_back( ( QScript::Object* ) nativeObject );
 		return nativeObject;
+	}
+
+	QScript::ClosureObject* AllocateClosure( QScript::FunctionObject* function )
+	{
+		auto closureObject = new QScript::ClosureObject( function );
+		ObjectList.push_back( ( QScript::Object* ) closureObject );
+		return closureObject;
 	}
 
 	void GarbageCollect( const std::vector< QScript::Function_t* >& functions )

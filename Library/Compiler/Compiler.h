@@ -30,6 +30,7 @@ namespace Compiler
 	QScript::StringObject* AllocateString( const std::string& string );
 	QScript::FunctionObject* AllocateFunction( const std::string& name, int arity );
 	QScript::NativeFunctionObject* AllocateNative( void* nativeFn );
+	QScript::ClosureObject* AllocateClosure( QScript::FunctionObject* function );
 	void GarbageCollect( const std::vector< QScript::Function_t* >& functions );
 
 	class Assembler

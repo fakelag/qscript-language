@@ -44,6 +44,25 @@ namespace QScript
 		const Function_t* m_Function;
 	};
 
+	class ClosureObject : public Object
+	{
+	public:
+		FORCEINLINE ClosureObject( FunctionObject* function )
+		{
+			m_Type = OT_CLOSURE;
+			m_Fn = function;
+		}
+
+		~ClosureObject()
+		{
+		}
+
+		FORCEINLINE	FunctionObject* GetFunction() { return m_Fn; }
+
+	private:
+		FunctionObject* 	m_Fn;
+	};
+
 	class NativeFunctionObject : public Object
 	{
 	public:

@@ -7,6 +7,19 @@
 
 #include "Natives.h"
 
+#define INTERP_INIT \
+QVM::VirtualMachine = &vm; \
+QScript::Object::AllocateString = &QVM::AllocateString; \
+QScript::Object::AllocateFunction = &QVM::AllocateFunction; \
+QScript::Object::AllocateNative = &QVM::AllocateNative; \
+QScript::Object::AllocateClosure = &QVM::AllocateClosure;
+
+#define INTERP_SHUTDOWN \
+QScript::Object::AllocateString = NULL; \
+QScript::Object::AllocateFunction = NULL; \
+QScript::Object::AllocateNative = NULL; \
+QScript::Object::AllocateClosure = NULL;
+
 #if !defined(QVM_DEBUG) && defined(_OSX)
 #define _INTERP_JMP_PREFIX( opcode ) &&code_##opcode
 #define INTERP_JMPTABLE static void* opcodeTable[] = { QS_OPCODES( _INTERP_JMP_PREFIX ) };
@@ -276,6 +289,19 @@ namespace QVM
 				ip = frame->m_IP;
 				INTERP_DISPATCH;
 			}
+			INTERP_OPCODE( OP_CLOSURE_SHORT ):
+			{
+				auto closure = MAKE_CLOSURE( AS_FUNCTION( READ_CONST_SHORT() ) );
+				vm.Push( closure );
+				INTERP_DISPATCH;
+			}
+			INTERP_OPCODE( OP_CLOSURE_LONG ):
+			{
+				READ_CONST_LONG( constant );
+				auto closure = MAKE_CLOSURE( AS_FUNCTION( constant ) );
+				vm.Push( closure );
+				INTERP_DISPATCH;
+			}
 			INTERP_OPCODE( OP_NOT ):
 			{
 				auto value = vm.Pop();
@@ -373,6 +399,13 @@ namespace QVM
 		VirtualMachine->m_Objects.push_back( ( QScript::Object* ) nativeObject );
 		return nativeObject;
 	}
+
+	QScript::ClosureObject* AllocateClosure( QScript::FunctionObject* function )
+	{
+		auto closureObject = new QScript::ClosureObject( function );
+		VirtualMachine->m_Objects.push_back( ( QScript::Object* ) closureObject );
+		return closureObject;
+	}
 }
 
 void VM_t::Init( const QScript::Function_t* function )
@@ -399,9 +432,13 @@ void VM_t::Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target )
 
 	switch ( AS_OBJECT( target )->m_Type )
 	{
-	case QScript::ObjectType::OT_FUNCTION:
+	case QScript::ObjectType::OT_CLOSURE:
 	{
-		auto function = AS_FUNCTION( target )->GetProperties();
+		auto function = AS_CLOSURE( target )->GetFunction()->GetProperties();
+
+		if ( function->m_Arity != numArgs )
+			QVM::RuntimeError( frame, "rt_invalid_call_arity", "Arguments provided is different from what the callee accepts" );
+
 		m_Frames.emplace_back( function, m_StackTop - numArgs - 1, &function->m_Chunk->m_Code[ 0 ] );
 		break;
 	}
@@ -435,11 +472,7 @@ void QScript::Interpret( const Function_t& function, Value* out )
 {
 	VM_t vm( &function );
 
-	// Setup allocators
-	QVM::VirtualMachine = &vm;
-	QScript::Object::AllocateString = &QVM::AllocateString;
-	QScript::Object::AllocateFunction = &QVM::AllocateFunction;
-	QScript::Object::AllocateNative = &QVM::AllocateNative;
+	INTERP_INIT;
 
 	vm.ResolveImports();
 
@@ -451,19 +484,12 @@ void QScript::Interpret( const Function_t& function, Value* out )
 	// Clear allocated objects
 	vm.Release( out );
 
-	// Clear allocators
-	QScript::Object::AllocateString = NULL;
-	QScript::Object::AllocateFunction = NULL;
-	QScript::Object::AllocateNative = NULL;
+	INTERP_SHUTDOWN;
 }
 
 void QScript::Interpret( VM_t& vm, Value* out )
 {
-	// Setup allocators
-	QVM::VirtualMachine = &vm;
-	QScript::Object::AllocateString = &QVM::AllocateString;
-	QScript::Object::AllocateFunction = &QVM::AllocateFunction;
-	QScript::Object::AllocateNative = &QVM::AllocateNative;
+	INTERP_INIT;
 
 	vm.ResolveImports();
 
@@ -472,8 +498,5 @@ void QScript::Interpret( VM_t& vm, Value* out )
 	if ( out )
 		out->From( exitCode );
 
-	// Clear allocators
-	QScript::Object::AllocateString = NULL;
-	QScript::Object::AllocateFunction = NULL;
-	QScript::Object::AllocateNative = NULL;
+	INTERP_SHUTDOWN;
 }

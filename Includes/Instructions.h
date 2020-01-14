@@ -10,6 +10,8 @@ processor(OP_CALL_4), \
 processor(OP_CALL_5), \
 processor(OP_CALL_6), \
 processor(OP_CALL_7), \
+processor(OP_CLOSURE_SHORT), \
+processor(OP_CLOSURE_LONG), \
 processor(OP_DIV), \
 processor(OP_EQUALS), \
 processor(OP_SET_GLOBAL_LONG), \
