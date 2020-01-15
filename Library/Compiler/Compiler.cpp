@@ -170,7 +170,7 @@ namespace Compiler
 
 	QScript::Function_t* Assembler::CreateFunction( const std::string& name, int arity, QScript::Chunk_t* chunk )
 	{
-		auto function = new QScript::Function_t( name, 0, chunk );
+		auto function = new QScript::Function_t( name, arity, chunk );
 
 		m_Functions.push_back( { function, new Assembler::Stack_t() } );
 
