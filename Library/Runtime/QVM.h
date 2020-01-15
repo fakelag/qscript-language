@@ -2,14 +2,14 @@
 
 struct Frame_t
 {
-	Frame_t( const QScript::Function_t* function, QScript::Value* stackFrame, uint8_t* ip )
+	Frame_t( QScript::ClosureObject* closure, QScript::Value* stackFrame, uint8_t* ip )
 	{
-		m_Function = function;
+		m_Closure = closure;
 		m_Base = stackFrame;
 		m_IP = ip;
 	}
 
-	const QScript::Function_t*		m_Function;
+	QScript::ClosureObject*			m_Closure;
 	QScript::Value*					m_Base;
 	uint8_t*						m_IP;
 };

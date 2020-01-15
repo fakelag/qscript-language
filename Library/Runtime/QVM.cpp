@@ -25,7 +25,7 @@ QScript::Object::AllocateClosure = NULL;
 #define INTERP_JMPTABLE static void* opcodeTable[] = { QS_OPCODES( _INTERP_JMP_PREFIX ) };
 #define INTERP_SWITCH( inst ) INTERP_DISPATCH;
 #define INTERP_OPCODE( opcode ) code_##opcode
-#define INTERP_DISPATCH goto *opcodeTable[inst = (QScript::OpCode) READ_BYTE( vm )]
+#define INTERP_DISPATCH goto *opcodeTable[inst = (QScript::OpCode) READ_BYTE( )]
 #else
 #define INTERP_JMPTABLE ((void)0)
 #define INTERP_SWITCH( inst ) switch ( inst )
@@ -42,10 +42,16 @@ QScript::Object::AllocateClosure = NULL;
 	out = DECODE_LONG( a, b, c, d ); \
 }
 
-#define READ_CONST_SHORT() (frame->m_Function->m_Chunk->m_Constants[ READ_BYTE() ])
+#define RESTORE_FRAME( ) \
+frame = &vm.m_Frames.back(); \
+ip = frame->m_IP; \
+function = frame->m_Closure->GetFunction()->GetProperties(); \
+chunk = function->m_Chunk \
+
+#define READ_CONST_SHORT() (chunk->m_Constants[ READ_BYTE() ])
 #define READ_CONST_LONG( constant ) QScript::Value constant; { \
 	READ_LONG( cnstIndex ); \
-	constant.From( frame->m_Function->m_Chunk->m_Constants[ cnstIndex ] ); \
+	constant.From( chunk->m_Constants[ cnstIndex ] ); \
 }
 #define BINARY_OP( op, require ) { \
 	auto b = vm.Pop(); auto a = vm.Pop(); \
@@ -67,7 +73,9 @@ namespace QVM
 
 		QScript::Chunk_t::Debug_t debug;
 
-		if ( frame && Compiler::FindDebugSymbol( *frame->m_Function->m_Chunk, frame->m_IP - &frame->m_Function->m_Chunk->m_Code[ 0 ], &debug ) )
+		auto function = frame->m_Closure->GetFunction()->GetProperties();
+		if ( frame && Compiler::FindDebugSymbol( *function->m_Chunk,
+			frame->m_IP - &function->m_Chunk->m_Code[ 0 ], &debug ) )
 		{
 			token = debug.m_Token;
 			lineNr = debug.m_Line;
@@ -81,6 +89,9 @@ namespace QVM
 	{
 		Frame_t* frame = &vm.m_Frames.back();
 		uint8_t* ip = frame->m_IP;
+
+		const QScript::Function_t* function = frame->m_Closure->GetFunction()->GetProperties();
+		QScript::Chunk_t* chunk = function->m_Chunk;
 
 #ifdef QVM_DEBUG
 		const uint8_t* runTill = NULL;
@@ -112,16 +123,16 @@ namespace QVM
 					}
 					else if ( input == "dc" )
 					{
-						Compiler::DisassembleChunk( *frame->m_Function->m_Chunk, frame->m_Function->m_Name,
-							( unsigned int ) ( ip - ( uint8_t* ) &frame->m_Function->m_Chunk->m_Code[ 0 ] ) );
+						Compiler::DisassembleChunk( *function->m_Chunk, function->m_Name,
+							( unsigned int ) ( ip - ( uint8_t* ) &function->m_Chunk->m_Code[ 0 ] ) );
 						continue;
 					}
 					else if ( input == "dca" )
 					{
-						Compiler::DisassembleChunk( *frame->m_Function->m_Chunk, frame->m_Function->m_Name,
-							( unsigned int ) ( ip - ( uint8_t* ) &frame->m_Function->m_Chunk->m_Code[ 0 ] ) );
+						Compiler::DisassembleChunk( *function->m_Chunk, function->m_Name,
+							( unsigned int ) ( ip - ( uint8_t* ) &function->m_Chunk->m_Code[ 0 ] ) );
 
-						for ( auto constant : frame->m_Function->m_Chunk->m_Constants )
+						for ( auto constant : function->m_Chunk->m_Constants )
 						{
 							if ( !IS_FUNCTION( constant ) )
 								continue;
@@ -133,7 +144,7 @@ namespace QVM
 					}
 					else if ( input == "dcnst" )
 					{
-						Compiler::DumpConstants( *frame->m_Function->m_Chunk );
+						Compiler::DumpConstants( *function->m_Chunk );
 						continue;
 					}
 					else if ( input == "dg" )
@@ -143,7 +154,7 @@ namespace QVM
 					}
 					else if ( input.substr( 0, 2 ) == "s " )
 					{
-						runTill = ( &frame->m_Function->m_Chunk->m_Code[ 0 ] ) + std::atoi( input.substr( 2 ).c_str() ) - 1;
+						runTill = ( &function->m_Chunk->m_Code[ 0 ] ) + std::atoi( input.substr( 2 ).c_str() ) - 1;
 						break;
 					}
 					else if ( input == "help" )
@@ -158,7 +169,7 @@ namespace QVM
 					}
 					else if ( input == "ip" )
 					{
-						std::cout << "IP: " << ( ip - &frame->m_Function->m_Chunk->m_Code[ 0 ] ) << std::endl;
+						std::cout << "IP: " << ( ip - &function->m_Chunk->m_Code[ 0 ] ) << std::endl;
 					}
 					else if ( input == "q" )
 						return true;
@@ -267,8 +278,7 @@ namespace QVM
 				frame->m_IP = ip;
 				vm.Call( frame, numArgs, vm.Peek( numArgs ) );
 
-				frame = &vm.m_Frames.back();
-				ip = frame->m_IP;
+				RESTORE_FRAME();
 				INTERP_DISPATCH;
 			}
 			INTERP_OPCODE( OP_CALL_0 ):
@@ -285,8 +295,7 @@ namespace QVM
 				frame->m_IP = ip;
 				vm.Call( frame, numArgs, vm.Peek( numArgs ) );
 
-				frame = &vm.m_Frames.back();
-				ip = frame->m_IP;
+				RESTORE_FRAME();
 				INTERP_DISPATCH;
 			}
 			INTERP_OPCODE( OP_CLOSURE_SHORT ):
@@ -367,8 +376,8 @@ namespace QVM
 				vm.m_Frames.pop_back();
 
 				vm.Push( returnValue );
-				frame = &vm.m_Frames.back();
-				ip = frame->m_IP;
+
+				RESTORE_FRAME();
 				INTERP_DISPATCH;
 			}
 			// default:
@@ -417,12 +426,16 @@ void VM_t::Init( const QScript::Function_t* function )
 	m_StackCapacity = s_InitStackSize;
 	m_StackTop = &m_Stack[ 0 ];
 
+	// Wrap the main function in a closure
+	auto mainFunction = new QScript::FunctionObject( function );
+	auto mainClosure = new QScript::ClosureObject( mainFunction );
+
 	// Create initial call frame
-	m_Frames.emplace_back( function, m_Stack, &function->m_Chunk->m_Code[ 0 ] );
+	m_Frames.emplace_back( mainClosure, m_Stack, &function->m_Chunk->m_Code[ 0 ] );
 
 	// Push main function to stack slot 0. This is directly allocated, so
 	// the VM garbage collection won't ever release it
-	Push( QScript::Value( new QScript::FunctionObject( function ) ) );
+	Push( QScript::Value( mainClosure ) );
 }
 
 void VM_t::Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target )
@@ -434,12 +447,17 @@ void VM_t::Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target )
 	{
 	case QScript::ObjectType::OT_CLOSURE:
 	{
-		auto function = AS_CLOSURE( target )->GetFunction()->GetProperties();
+		auto closure = AS_CLOSURE( target );
+		auto function = closure->GetFunction()->GetProperties();
 
 		if ( function->m_Arity != numArgs )
-			QVM::RuntimeError( frame, "rt_invalid_call_arity", "Arguments provided is different from what the callee accepts" );
+		{
+			QVM::RuntimeError( frame, "rt_invalid_call_arity",
+				"Arguments provided is different from what the callee accepts, got: + " +
+				std::to_string( numArgs ) + " expected: " + std::to_string( function->m_Arity ) );
+		}
 
-		m_Frames.emplace_back( function, m_StackTop - numArgs - 1, &function->m_Chunk->m_Code[ 0 ] );
+		m_Frames.emplace_back( closure, m_StackTop - numArgs - 1, &function->m_Chunk->m_Code[ 0 ] );
 		break;
 	}
 	case QScript::ObjectType::OT_NATIVE:
