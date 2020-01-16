@@ -18,7 +18,7 @@ namespace Compiler
 
 	// Disassembler
 	void DisassembleChunk( const QScript::Chunk_t& chunk, const std::string& identifier, int ip = -1 );
-	int DisassembleInstruction( const QScript::Chunk_t& chunk, uint32_t offset, bool isIp );
+	uint32_t DisassembleInstruction( const QScript::Chunk_t& chunk, uint32_t offset, bool isIp );
 	int InstructionSize( uint8_t inst );
 	void DumpConstants( const QScript::Chunk_t& chunk );
 	void DumpGlobals( const VM_t& vm );
@@ -53,28 +53,43 @@ namespace Compiler
 			uint32_t				m_CurrentDepth;
 		};
 
+		struct Upvalue_t
+		{
+			bool 					m_IsLocal;
+			uint32_t 				m_Index;
+		};
+
+		struct FunctionContext_t
+		{
+			QScript::Function_t*		m_Func;
+			Stack_t*					m_Stack;
+			std::vector< Upvalue_t >	m_Upvalues;
+		};
+
 		Assembler( QScript::Chunk_t* chunk, int optimizationFlags );
 
+		uint32_t 									AddUpvalue( FunctionContext_t* context, uint32_t index, bool isLocal );
 		QScript::Function_t*						CreateFunction( const std::string& name, int arity, QScript::Chunk_t* chunk );
 		uint32_t									CreateLocal( const std::string& name );
 		QScript::Chunk_t*							CurrentChunk();
 		QScript::Function_t*						CurrentFunction();
 		Stack_t*									CurrentStack();
 		bool										FindLocal( const std::string& name, uint32_t* out );
-		QScript::FunctionObject*					FinishFunction();
+		bool 										FindLocalFromStack( Stack_t* stack, const std::string& name, uint32_t* out );
+		void										FinishFunction( QScript::FunctionObject** func, std::vector< Upvalue_t >* upvalues );
 		std::vector< QScript::Function_t* >			Finish();
 		Local_t*									GetLocal( int local );
 		int											LocalsInCurrentScope();
 		void										PopScope();
 		void										PushScope();
+		bool 										RequestUpvalue( const std::string name, uint32_t* out );
 		int											StackDepth();
-
 		int											OptimizationFlags() const;
 
 	private:
-		std::vector< std::pair< QScript::Function_t*, Stack_t* > >		m_Functions;
-		int																m_OptimizationFlags;
+		std::vector< FunctionContext_t >			m_Functions;
+		int											m_OptimizationFlags;
 
-		std::vector< QScript::Function_t* >								m_Compiled;
+		std::vector< QScript::Function_t* >			m_Compiled;
 	};
 };

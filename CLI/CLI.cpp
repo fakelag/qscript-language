@@ -8,12 +8,12 @@ int main()
 	std::string command;
 	for ( ;; )
 	{
-		std::cout << "REPL > ";
-		std::getline( std::cin, command );
+		// std::cout << "REPL > ";
+		// std::getline( std::cin, command );
 
 		try
 		{
-			QScript::Function_t* function = QScript::Compile( command );
+			QScript::Function_t* function = QScript::Compile( "function a = () { var x =4; function b = () { x = 2; } b(); return x; } return a();" ); // command );
 			QScript::Interpret( *function, NULL );
 
 			QScript::FreeFunction( function );

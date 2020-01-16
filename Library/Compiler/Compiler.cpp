@@ -155,46 +155,47 @@ namespace Compiler
 
 	QScript::Chunk_t* Assembler::CurrentChunk()
 	{
-		return m_Functions.back().first->m_Chunk;
+		return m_Functions.back().m_Func->m_Chunk;
 	}
 
 	QScript::Function_t* Assembler::CurrentFunction()
 	{
-		return m_Functions.back().first;
+		return m_Functions.back().m_Func;
 	}
 
 	Assembler::Stack_t* Assembler::CurrentStack()
 	{
-		return m_Functions.back().second;
+		return m_Functions.back().m_Stack;
 	}
 
 	QScript::Function_t* Assembler::CreateFunction( const std::string& name, int arity, QScript::Chunk_t* chunk )
 	{
 		auto function = new QScript::Function_t( name, arity, chunk );
+		auto context = FunctionContext_t{ function, new Assembler::Stack_t() };
 
-		m_Functions.push_back( { function, new Assembler::Stack_t() } );
+		m_Functions.push_back( context );
 
 		CreateLocal( name == "<main>" ? "" : name );
 		return function;
 	}
 
-	QScript::FunctionObject* Assembler::FinishFunction()
+	void Assembler::FinishFunction( QScript::FunctionObject** func, std::vector< Upvalue_t >* upvalues )
 	{
-		auto finishingFunction = CurrentFunction();
+		auto function = &m_Functions.back();
+
+		*func = new QScript::FunctionObject( function->m_Func );
+		*upvalues = function->m_Upvalues;
 
 		// Implicit return (null)
-		EmitByte( QScript::OpCode::OP_LOAD_NULL, finishingFunction->m_Chunk );
-		EmitByte( QScript::OpCode::OP_RETURN, finishingFunction->m_Chunk );
+		EmitByte( QScript::OpCode::OP_LOAD_NULL, function->m_Func->m_Chunk );
+		EmitByte( QScript::OpCode::OP_RETURN, function->m_Func->m_Chunk );
 
 		// Finished compiling
-		m_Compiled.push_back( finishingFunction );
+		m_Compiled.push_back( function->m_Func );
 
 		// Free compile-time stack from memory
 		delete CurrentStack();
 		m_Functions.pop_back();
-
-		// Return function object
-		return new QScript::FunctionObject( finishingFunction );
 	}
 
 	uint32_t Assembler::CreateLocal( const std::string& name )
@@ -210,10 +211,8 @@ namespace Compiler
 		return &CurrentStack()->m_Locals[ local ];
 	}
 
-	bool Assembler::FindLocal( const std::string& name, uint32_t* out )
+	bool Assembler::FindLocalFromStack( Stack_t* stack, const std::string& name, uint32_t* out )
 	{
-		auto stack = CurrentStack();
-
 		for ( int i = ( int ) stack->m_Locals.size() - 1; i >= 0 ; --i )
 		{
 			if ( stack->m_Locals[ i ].m_Name == name )
@@ -224,6 +223,43 @@ namespace Compiler
 		}
 
 		return false;
+	}
+
+	bool Assembler::FindLocal( const std::string& name, uint32_t* out )
+	{
+		return FindLocalFromStack( CurrentStack(), name, out );
+	}
+
+	// 0 outest 	- 2
+	// 1 outer 		- 2->0
+	// 2 outert 	- 0->0
+	// 3 inner 		- 0->0
+
+	// TODO: Unit test this
+	bool Assembler::RequestUpvalue( const std::string name, uint32_t* out )
+	{
+		int thisFunction = m_Functions.size() - 1;
+		for ( int i = thisFunction; i > 0; --i )
+		{
+			uint32_t upValue = 0;
+			if ( !FindLocalFromStack( m_Functions[ i - 1 ].m_Stack, name, &upValue ) )
+				continue;
+
+			// Link upvalue through the closure chain
+			for ( int j = i; j <= thisFunction; ++j )
+				upValue = AddUpvalue( &m_Functions[ j ], upValue, j == i );
+
+			*out = upValue;
+			return true;
+		}
+
+		return false;
+	}
+
+	uint32_t Assembler::AddUpvalue( FunctionContext_t* context, uint32_t index, bool isLocal )
+	{
+		context->m_Upvalues.push_back( Upvalue_t{ isLocal, index } );
+		return ( context->m_Func->m_NumUpvalues = context->m_Upvalues.size() ) - 1;
 	}
 
 	int Assembler::StackDepth()

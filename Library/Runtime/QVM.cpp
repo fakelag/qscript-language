@@ -243,6 +243,22 @@ namespace QVM
 				frame->m_Base[ offset ].From( vm.Peek( 0 ) );
 				INTERP_DISPATCH;
 			}
+			INTERP_OPCODE( OP_SET_UPVALUE_SHORT ):
+			{
+				throw Exception("todo", "todo");
+			}
+			INTERP_OPCODE( OP_SET_UPVALUE_LONG ):
+			{
+				throw Exception("todo", "todo");
+			}
+			INTERP_OPCODE( OP_LOAD_UPVALUE_SHORT ):
+			{
+				throw Exception("todo", "todo");
+			}
+			INTERP_OPCODE( OP_LOAD_UPVALUE_LONG ):
+			{
+				throw Exception("todo", "todo");
+			}
 			INTERP_OPCODE( OP_JUMP_BACK_SHORT ): { auto _ip = READ_BYTE(); ip -= ( _ip + 2 ); INTERP_DISPATCH; }
 			INTERP_OPCODE( OP_JUMP_BACK_LONG ):
 			{
@@ -353,6 +369,7 @@ namespace QVM
 
 				INTERP_DISPATCH;
 			}
+			INTERP_OPCODE( OP_NOP ): INTERP_DISPATCH;
 			INTERP_OPCODE( OP_SUB ): BINARY_OP( -, IS_NUMBER ); INTERP_DISPATCH;
 			INTERP_OPCODE( OP_MUL ): BINARY_OP( *, IS_NUMBER ); INTERP_DISPATCH;
 			INTERP_OPCODE( OP_DIV ): BINARY_OP( /, IS_NUMBER ); INTERP_DISPATCH;
