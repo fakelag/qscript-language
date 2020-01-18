@@ -436,5 +436,178 @@ bool Tests::TestInterpreter()
 		UTEST_CASE_CLOSED();
 	}( );
 
+	UTEST_CASE( "Closures 1 (Simple closures)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "function f = () {		\
+			var l0 = \"initial\";								\
+			function a = ( ) {									\
+				l0 = \"second\";								\
+			}													\
+			a();												\
+			return l0;											\
+		}														\
+		return f();", &exitCode ) );
+
+		UTEST_ASSERT( IS_STRING( exitCode ) );
+		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "second" );
+
+		UTEST_ASSERT( TestUtils::RunVM( "function f = () {		\
+			var l0 = \"returned\";								\
+			function a = ( ) {									\
+				return l0;										\
+			}													\
+			return a();											\
+		}														\
+		return f();", &exitCode ) );
+
+		UTEST_ASSERT( IS_STRING( exitCode ) );
+		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "returned" );
+
+		UTEST_ASSERT( TestUtils::RunVM( "function g = () {		\
+			var a = \"a\";										\
+			var b = \"b\";										\
+			function f = ( ) {									\
+				return a + b;									\
+			}													\
+			return f();											\
+		}														\
+		return g();", &exitCode ) );
+
+		UTEST_ASSERT( IS_STRING( exitCode ) );
+		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "ab" );
+
+		UTEST_ASSERT( TestUtils::RunVM( "var g = null;		\
+		{													\
+			var l0 = 333;									\
+			var l1 = 919191;								\
+			var l2 = 222;									\
+			function l3 = ( ) {								\
+				return l1;									\
+			}												\
+			g = l3;											\
+		}													\
+		return g(); ", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 919191 );
+
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "Closures 2 (Nested closures, Reuse stack slot, Shadowing)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "var g = null;		\
+			function a = ( ) {								\
+			var mmmm;										\
+			var l0 = 1;										\
+			var bbbb;										\
+			function b = ( ) {								\
+				var oooo;									\
+				var l1 = 2;									\
+				var ffff;									\
+				function c = ( ) {							\
+					var xxx;								\
+					var l2 = 3;								\
+					var zzz;								\
+					var ggg;								\
+					function d = ( ) {						\
+						g = l0 + l1 + l2;					\
+						g = g + l0;							\
+					}										\
+					d();									\
+				}											\
+				c();										\
+			}												\
+			b();											\
+		}													\
+		a();												\
+		return g; ", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 7 );
+
+		UTEST_ASSERT( TestUtils::RunVM( "var g = null;			\
+			var g1 = null;										\
+			{													\
+				var l0 = null;									\
+				{												\
+					var a = 1;									\
+					function retA = ( ) { return a; }			\
+					g = retA;									\
+				}												\
+				{												\
+					var b = 2;									\
+					g1 = g();									\
+				}												\
+			} return g1;", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 1 );
+
+		UTEST_ASSERT( TestUtils::RunVM( "var g = \"\";			\
+			function process = ( ) {							\
+			var l0 = \"closure\";								\
+			function l1 = ( ) {									\
+				g = g + l0;										\
+				var l0 = \"shadow\";							\
+				g = g + l0;										\
+			}													\
+			l1();												\
+			g = g + l0;											\
+		}														\
+		process();												\
+		return g; ", &exitCode ) );
+
+		UTEST_ASSERT( IS_STRING( exitCode ) );
+		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "closureshadowclosure" );
+
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "Closures 3 (Unused closure)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "function g = () {		\
+				var a = \"object\";								\
+				if ( false ) { function x = () { return a; } }	\
+			}													\
+			g();												\
+			return 6; ", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 6 );
+
+		UTEST_ASSERT( TestUtils::RunVM( "function g = () {		\
+				var a = \"object\";								\
+				if ( false ) { function x = () { return a; } }	\
+			}													\
+			g();												\
+			return 6; ", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 6 );
+
+		UTEST_ASSERT( TestUtils::RunVM( "var g;							\
+			var g2;														\
+			{															\
+				var a = \"a\";											\
+				{														\
+					var b = \"b\";										\
+					function x = ( ) { return a; }						\
+					g = x;												\
+					if ( false ) { function z = ( ) { return b; } }		\
+				}														\
+				g2 = g();												\
+			}															\
+			return g2; ", &exitCode ) );
+
+		UTEST_ASSERT( IS_STRING( exitCode ) );
+		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "a" );
+
+		UTEST_CASE_CLOSED();
+	}( );
+
 	UTEST_END();
 }
