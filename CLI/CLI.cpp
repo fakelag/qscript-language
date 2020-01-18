@@ -3,18 +3,41 @@
 #include "../Includes/QScript.h"
 #include "../Includes/Exception.h"
 
+std::string ReadFile( const std::string& path )
+{
+	std::string content = "";
+	std::ifstream programFile;
+
+	programFile.open( path );
+
+	if ( programFile.is_open() )
+	{
+		std::string line;
+		while ( std::getline( programFile, line ) )
+			content += line;
+
+		programFile.close();
+	}
+	else
+	{
+		throw Exception( "cli_no_file_found", "File \"" + path + "\" was not found" );
+	}
+
+	return content;
+}
+
 int main()
 {
 	std::string command;
 	for ( ;; )
 	{
-		// std::cout << "REPL > ";
-		// std::getline( std::cin, command );
+		//std::cout << "REPL > ";
+		//std::getline( std::cin, command );
 
 		try
 		{
-			QScript::Function_t* function = QScript::Compile( "function a = () { var x =4; function b = () { x = 2; } b(); return x; } return a();" ); // command );
-			QScript::Interpret( *function, NULL );
+			QScript::Function_t* function = QScript::Compile( ReadFile( "program.qss" ) );
+			QScript::Interpret( *function );
 
 			QScript::FreeFunction( function );
 		}
