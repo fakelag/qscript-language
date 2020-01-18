@@ -12,6 +12,7 @@ namespace QScript
 		Object::AllocateFunction = &Compiler::AllocateFunction;
 		Object::AllocateNative = &Compiler::AllocateNative;
 		Object::AllocateClosure = &Compiler::AllocateClosure;
+		Object::AllocateUpvalue = &Compiler::AllocateUpvalue;
 
 		Chunk_t* chunk = AllocChunk();
 
@@ -59,6 +60,8 @@ namespace QScript
 		Object::AllocateString = NULL;
 		Object::AllocateFunction = NULL;
 		Object::AllocateNative = NULL;
+		Object::AllocateClosure = NULL;
+		Object::AllocateUpvalue = NULL;
 
 		// Return compiled code
 		return functions.back();
@@ -106,9 +109,20 @@ namespace Compiler
 
 	QScript::ClosureObject* AllocateClosure( QScript::FunctionObject* function )
 	{
+		_ASSERT( 1 );
+
 		auto closureObject = new QScript::ClosureObject( function );
 		ObjectList.push_back( ( QScript::Object* ) closureObject );
 		return closureObject;
+	}
+
+	QScript::UpvalueObject* AllocateUpvalue( QScript::Value* valuePtr )
+	{
+		_ASSERT( 1 );
+
+		auto upvalueObject = new QScript::UpvalueObject( valuePtr );
+		ObjectList.push_back( ( QScript::Object* ) upvalueObject );
+		return upvalueObject;
 	}
 
 	void GarbageCollect( const std::vector< QScript::Function_t* >& functions )
@@ -202,7 +216,7 @@ namespace Compiler
 	{
 		auto stack = CurrentStack();
 
-		stack->m_Locals.push_back( Assembler::Local_t{ name, stack->m_CurrentDepth } );
+		stack->m_Locals.push_back( Assembler::Local_t{ name, stack->m_CurrentDepth, false } );
 		return ( uint32_t ) stack->m_Locals.size() - 1;
 	}
 
@@ -245,6 +259,9 @@ namespace Compiler
 			if ( !FindLocalFromStack( m_Functions[ i - 1 ].m_Stack, name, &upValue ) )
 				continue;
 
+			// Capture it
+			m_Functions[ i - 1 ].m_Stack->m_Locals[ upValue ].m_Captured = true;
+
 			// Link upvalue through the closure chain
 			for ( int j = i; j <= thisFunction; ++j )
 				upValue = AddUpvalue( &m_Functions[ j ], upValue, j == i );
@@ -258,6 +275,13 @@ namespace Compiler
 
 	uint32_t Assembler::AddUpvalue( FunctionContext_t* context, uint32_t index, bool isLocal )
 	{
+		for ( uint32_t i = 0; i < context->m_Upvalues.size(); ++i )
+		{
+			auto upvalue = context->m_Upvalues[ i ];
+			if ( upvalue.m_Index == index && upvalue.m_IsLocal == isLocal )
+				return i;
+		}
+
 		context->m_Upvalues.push_back( Upvalue_t{ isLocal, index } );
 		return ( context->m_Func->m_NumUpvalues = context->m_Upvalues.size() ) - 1;
 	}
@@ -276,34 +300,22 @@ namespace Compiler
 	{
 		auto stack = CurrentStack();
 
-		for ( int i = LocalsInCurrentScope() - 1; i >= 0; --i )
-			EmitByte( QScript::OpCode::OP_POP, CurrentChunk() );
-
 		for ( int i = ( int ) stack->m_Locals.size() - 1; i >= 0; --i )
 		{
-			if ( stack->m_Locals[ i ].m_Depth < stack->m_CurrentDepth )
+			auto local = stack->m_Locals[ i ];
+
+			if ( local.m_Depth < stack->m_CurrentDepth )
 				break;
+
+			if ( !local.m_Captured )
+				EmitByte( QScript::OpCode::OP_POP, CurrentChunk() );
+			else
+				EmitByte( QScript::OpCode::OP_CLOSE_UPVALUE, CurrentChunk() );
 
 			stack->m_Locals.erase( stack->m_Locals.begin() + i );
 		}
 
 		--stack->m_CurrentDepth;
-	}
-
-	int Assembler::LocalsInCurrentScope()
-	{
-		auto stack = CurrentStack();
-
-		int count = 0;
-		for ( int i = ( int ) stack->m_Locals.size() - 1; i >= 0; --i )
-		{
-			if ( stack->m_Locals[ i ].m_Depth < stack->m_CurrentDepth )
-				return count;
-
-			++count;
-		}
-
-		return stack->m_Locals.size();
 	}
 
 	int Assembler::OptimizationFlags() const

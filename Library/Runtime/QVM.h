@@ -70,26 +70,12 @@ struct VM_t
 
 	void Init( const QScript::Function_t* function );
 	void Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target );
+	uint8_t* OpenUpvalues( QScript::ClosureObject* closure, Frame_t* frame, uint8_t* ip );
+	void CloseUpvalues( QScript::Value* last );
 	void ResolveImports();
 
 	void CreateNative( const std::string name, QScript::NativeFn native );
-
-	void Release( QScript::Value* exitCode )
-	{
-		for ( auto object : m_Objects )
-		{
-			if ( exitCode && IS_OBJECT( *exitCode ) && AS_OBJECT( *exitCode ) == object )
-				continue;
-
-			delete object;
-		}
-
-		delete[] m_Stack;
-		m_StackCapacity = 0;
-		m_StackTop = NULL;
-
-		m_Objects.clear();
-	}
+	void Release( QScript::Value* exitCode );
 
 	// Call frames
 	std::vector< Frame_t >								m_Frames;
@@ -104,4 +90,7 @@ struct VM_t
 	QScript::Value*										m_StackTop;
 	QScript::Value* 									m_Stack;
 	int													m_StackCapacity;
+
+	// Upvalues in use (not closed over)
+	QScript::UpvalueObject*								m_LivingUpvalues;
 };

@@ -10,6 +10,7 @@ fmt(OP_CALL_4), \
 fmt(OP_CALL_5), \
 fmt(OP_CALL_6), \
 fmt(OP_CALL_7), \
+fmt(OP_CLOSE_UPVALUE), \
 fmt(OP_CLOSURE_SHORT), \
 fmt(OP_CLOSURE_LONG), \
 fmt(OP_DIV), \

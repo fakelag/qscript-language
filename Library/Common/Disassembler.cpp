@@ -47,7 +47,7 @@ std::string Compiler::ValueToString( const QScript::Value& value )
 	{
 		if ( IS_STRING( value ) )
 			valueType = "string";
-		else if ( IS_FUNCTION( value ) )
+		else if ( IS_FUNCTION( value ) || IS_CLOSURE( value ) )
 			valueType = "function";
 		else if ( IS_NATIVE( value ) )
 			valueType = "native";
@@ -192,6 +192,7 @@ uint32_t Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32
 	SIMPLE_INST( OP_CALL_5, "CALL 5" );
 	SIMPLE_INST( OP_CALL_6, "CALL 6" );
 	SIMPLE_INST( OP_CALL_7, "CALL 7" );
+	SIMPLE_INST( OP_CLOSE_UPVALUE, "CLOSE_UPVALUE" );
 	SIMPLE_INST( OP_ADD, "ADD" );
 	SIMPLE_INST( OP_SUB, "SUB" );
 	SIMPLE_INST( OP_DIV, "DIV" );
@@ -302,6 +303,7 @@ int Compiler::InstructionSize( uint8_t inst )
 	case QScript::OpCode::OP_JUMP_LONG: return 5;
 	case QScript::OpCode::OP_JUMP_BACK_SHORT: return 2;
 	case QScript::OpCode::OP_JUMP_BACK_LONG: return 5;
+	case QScript::OpCode::OP_CLOSE_UPVALUE: return 1;
 	case QScript::OpCode::OP_ADD: return 1;
 	case QScript::OpCode::OP_SUB: return 1;
 	case QScript::OpCode::OP_DIV: return 1;

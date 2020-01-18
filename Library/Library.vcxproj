@@ -144,6 +144,7 @@
     <ClCompile Include="Compiler\Compiler.cpp" />
     <ClCompile Include="Compiler\IRGenerator.cpp" />
     <ClCompile Include="Compiler\Lexer.cpp" />
+    <ClCompile Include="Runtime\Natives.cpp" />
     <ClCompile Include="Runtime\QVM.cpp" />
     <ClCompile Include="Common\Disassembler.cpp" />
   </ItemGroup>
@@ -159,6 +160,7 @@
     <ClInclude Include="Compiler\Compiler.h" />
     <ClInclude Include="Compiler\IR.h" />
     <ClInclude Include="Compiler\Tokens.h" />
+    <ClInclude Include="Runtime\Natives.h" />
     <ClInclude Include="Runtime\QVM.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
