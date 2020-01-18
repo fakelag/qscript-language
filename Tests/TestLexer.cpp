@@ -129,5 +129,17 @@ bool Tests::TestLexer()
 		UTEST_CASE_CLOSED();
 	}( );
 
+	UTEST_CASE( "Empty strings" )
+	{
+		auto tokens = Lexer( "\"\";" );
+
+		UTEST_ASSERT( tokens.size() == 2 );
+		UTEST_ASSERT( tokens[ 0 ].m_Id == TOK_STR );
+		UTEST_ASSERT( tokens[ 1 ].m_Id == TOK_SCOLON );
+		UTEST_ASSERT( tokens[ 0 ].m_String == "" );
+
+		UTEST_CASE_CLOSED();
+	}( );
+
 	UTEST_END();
 }

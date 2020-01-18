@@ -98,7 +98,7 @@ namespace Compiler
 		int longestToken = languageSymbols.size() > 0 ? languageSymbols[ 0 ].m_String.length() : 0;
 
 		auto pushToken = [ &currentLineNr, &currentColNr, &stringBuffer, &results, &isInteger, &isDecimal ]( bool isStrCnst = false ) -> void {
-			if ( stringBuffer.length() == 0 )
+			if ( stringBuffer.length() == 0 && !isStrCnst )
 				return;
 
 			Token token = Token::TOK_NAME;
