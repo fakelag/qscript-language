@@ -75,7 +75,7 @@ struct VM_t
 	void ResolveImports();
 
 	void CreateNative( const std::string name, QScript::NativeFn native );
-	void Release( QScript::Value* exitCode );
+	void Release();
 
 	// Call frames
 	std::vector< Frame_t >								m_Frames;

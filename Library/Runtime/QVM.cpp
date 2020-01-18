@@ -620,19 +620,16 @@ void VM_t::CreateNative( const std::string name, QScript::NativeFn native )
 	m_Globals.insert( global );
 }
 
-void VM_t::Release( QScript::Value* exitCode )
+void VM_t::Release()
 {
 	for ( auto object : m_Objects )
 	{
-		if ( exitCode && IS_OBJECT( *exitCode ) && AS_OBJECT( *exitCode ) == object )
-			continue;
-
 		switch ( object->m_Type )
 		{
 		case QScript::ObjectType::OT_FUNCTION:
 		{
-			//delete ( ( QScript::FunctionObject* )( object ) )->GetProperties()->m_Chunk;
-			//delete ( ( QScript::FunctionObject* )( object ) )->GetProperties();
+			delete ( ( QScript::FunctionObject* )( object ) )->GetProperties()->m_Chunk;
+			delete ( ( QScript::FunctionObject* )( object ) )->GetProperties();
 			break;
 		}
 		// case QScript::ObjectType::OT_CLOSURE:
@@ -663,11 +660,8 @@ void QScript::Interpret( const Function_t& function )
 
 	auto exitCode = QVM::Run( vm );
 
-	if ( out )
-		out->From( exitCode );
-
 	// Clear allocated objects
-	vm.Release( out );
+	vm.Release();
 
 	INTERP_SHUTDOWN;
 }
