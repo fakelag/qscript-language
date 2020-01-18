@@ -244,12 +244,6 @@ namespace Compiler
 		return FindLocalFromStack( CurrentStack(), name, out );
 	}
 
-	// 0 outest 	- 2
-	// 1 outer 		- 2->0
-	// 2 outert 	- 0->0
-	// 3 inner 		- 0->0
-
-	// TODO: Unit test this
 	bool Assembler::RequestUpvalue( const std::string name, uint32_t* out )
 	{
 		int thisFunction = m_Functions.size() - 1;
