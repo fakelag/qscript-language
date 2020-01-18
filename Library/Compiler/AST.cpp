@@ -342,7 +342,7 @@ namespace Compiler
 
 			if ( args.size() < QScript::OP_CALL_7 - QScript::OP_CALL )
 			{
-				EmitByte( QScript::OP_CALL_0 + args.size(), chunk );
+				EmitByte( QScript::OP_CALL_0 + ( uint8_t ) args.size(), chunk );
 			}
 			else
 			{
@@ -596,8 +596,9 @@ namespace Compiler
 			for ( auto arg : argNode->m_NodeList )
 				assembler.CreateLocal( AS_STRING( static_cast< ValueNode* >( arg )->GetValue() )->GetString() );
 
-			// Compile function body
-			m_NodeList[ 2 ]->Compile( assembler, COMPILE_STATEMENT( options ) );
+			// Compile function body directly
+			for ( auto node : static_cast< ListNode* >( m_NodeList[ 2 ] )->GetList() )
+				node->Compile( assembler, COMPILE_STATEMENT( options ) );
 
 			QScript::FunctionObject* functionObject;
 			std::vector< Assembler::Upvalue_t > upvalues;
