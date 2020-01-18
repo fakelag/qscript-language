@@ -199,22 +199,31 @@ namespace Compiler
 		{
 		case NODE_NAME:
 		{
-			uint32_t local;
-			if ( assembler.FindLocal( AS_STRING( m_Value )->GetString(), &local ) )
+			uint32_t nameIndex = 0;
+			auto name = AS_STRING( m_Value )->GetString();
+
+			bool nameFound = false;
+			QScript::OpCode opCodeShort = QScript::OpCode::OP_NOP;
+			QScript::OpCode opCodeLong = QScript::OpCode::OP_NOP;
+			QScript::OpCode opCodeShortAssign = QScript::OpCode::OP_NOP;
+			QScript::OpCode opCodeLongAssign = QScript::OpCode::OP_NOP;
+
+			if ( assembler.FindLocal( name, &nameIndex ) )
 			{
-				if ( local > 255 )
-				{
-					EmitByte( ( options & CO_ASSIGN ) ? QScript::OpCode::OP_SET_LOCAL_LONG : QScript::OpCode::OP_LOAD_LOCAL_LONG, chunk );
-					EmitByte( ENCODE_LONG( local, 0 ), chunk );
-					EmitByte( ENCODE_LONG( local, 1 ), chunk );
-					EmitByte( ENCODE_LONG( local, 2 ), chunk );
-					EmitByte( ENCODE_LONG( local, 3 ), chunk );
-				}
-				else
-				{
-					EmitByte( ( options & CO_ASSIGN ) ? QScript::OpCode::OP_SET_LOCAL_SHORT : QScript::OpCode::OP_LOAD_LOCAL_SHORT, chunk );
-					EmitByte( ( uint8_t ) local, chunk );
-				}
+				nameFound = true;
+				opCodeShort = QScript::OpCode::OP_LOAD_LOCAL_SHORT;
+				opCodeLong = QScript::OpCode::OP_LOAD_LOCAL_LONG;
+				opCodeShortAssign = QScript::OpCode::OP_SET_LOCAL_SHORT;
+				opCodeLongAssign = QScript::OpCode::OP_SET_LOCAL_LONG;
+
+			}
+			else if ( assembler.RequestUpvalue( name, &nameIndex ) )
+			{
+				nameFound = true;
+				opCodeShort = QScript::OpCode::OP_LOAD_UPVALUE_SHORT;
+				opCodeLong = QScript::OpCode::OP_LOAD_UPVALUE_LONG;
+				opCodeShortAssign = QScript::OpCode::OP_SET_UPVALUE_SHORT;
+				opCodeLongAssign = QScript::OpCode::OP_SET_UPVALUE_LONG;
 			}
 			else
 			{
@@ -222,6 +231,23 @@ namespace Compiler
 					EmitConstant( chunk, m_Value, QScript::OpCode::OP_SET_GLOBAL_SHORT, QScript::OpCode::OP_SET_GLOBAL_LONG, assembler );
 				else
 					EmitConstant( chunk, m_Value, QScript::OpCode::OP_LOAD_GLOBAL_SHORT, QScript::OpCode::OP_LOAD_GLOBAL_LONG, assembler );
+			}
+
+			if ( nameFound )
+			{
+				if ( nameIndex > 255 )
+				{
+					EmitByte( ( options & CO_ASSIGN ) ? opCodeLongAssign : opCodeLong, chunk );
+					EmitByte( ENCODE_LONG( nameIndex, 0 ), chunk );
+					EmitByte( ENCODE_LONG( nameIndex, 1 ), chunk );
+					EmitByte( ENCODE_LONG( nameIndex, 2 ), chunk );
+					EmitByte( ENCODE_LONG( nameIndex, 3 ), chunk );
+				}
+				else
+				{
+					EmitByte( ( options & CO_ASSIGN ) ? opCodeShortAssign : opCodeShort, chunk );
+					EmitByte( ( uint8_t ) nameIndex, chunk );
+				}
 			}
 
 			break;
@@ -316,7 +342,7 @@ namespace Compiler
 
 			if ( args.size() < QScript::OP_CALL_7 - QScript::OP_CALL )
 			{
-				EmitByte( QScript::OP_CALL_0 + args.size(), chunk );
+				EmitByte( QScript::OP_CALL_0 + ( uint8_t ) args.size(), chunk );
 			}
 			else
 			{
@@ -570,15 +596,29 @@ namespace Compiler
 			for ( auto arg : argNode->m_NodeList )
 				assembler.CreateLocal( AS_STRING( static_cast< ValueNode* >( arg )->GetValue() )->GetString() );
 
-			// Compile function body
-			m_NodeList[ 2 ]->Compile( assembler, COMPILE_STATEMENT( options ) );
+			// Compile function body directly
+			for ( auto node : static_cast< ListNode* >( m_NodeList[ 2 ] )->GetList() )
+				node->Compile( assembler, COMPILE_STATEMENT( options ) );
+
+			QScript::FunctionObject* functionObject;
+			std::vector< Assembler::Upvalue_t > upvalues;
 
 			// Remove body scope
-			auto functionObject = assembler.FinishFunction();
+			assembler.FinishFunction( &functionObject, &upvalues );
 
 			// Create a constant (function) in enclosing chunk
-			EmitConstant( chunk, QScript::Value( functionObject ), QScript::OpCode::OP_LOAD_CONSTANT_SHORT,
-				QScript::OpCode::OP_LOAD_CONSTANT_LONG, assembler );
+			EmitConstant( chunk, QScript::Value( functionObject ), QScript::OpCode::OP_CLOSURE_SHORT,
+				QScript::OpCode::OP_CLOSURE_LONG, assembler );
+
+			// Emit upvalues
+			for ( auto upvalue : upvalues )
+			{
+				EmitByte( upvalue.m_IsLocal ? 1 : 0, chunk );
+				EmitByte( ENCODE_LONG( upvalue.m_Index, 0 ), chunk );
+				EmitByte( ENCODE_LONG( upvalue.m_Index, 1 ), chunk );
+				EmitByte( ENCODE_LONG( upvalue.m_Index, 2 ), chunk );
+				EmitByte( ENCODE_LONG( upvalue.m_Index, 3 ), chunk );
+			}
 
 			// Create a constant + global (function name) in enclosing chunk
 			EmitConstant( chunk, static_cast< ValueNode* >( m_NodeList[ 0 ] )->GetValue(), QScript::OpCode::OP_SET_GLOBAL_SHORT,

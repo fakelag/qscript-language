@@ -30,6 +30,6 @@ namespace QScript
 
 	Function_t* Compile( const std::string& source, int flags = OF_NONE );
 
-	void Interpret( const Function_t& function, Value* exitCode );
-	void Interpret( VM_t& vm, Value* out );
+	void Interpret( const Function_t& function );
+	void Interpret( VM_t& vm, Value* exitCode );
 }

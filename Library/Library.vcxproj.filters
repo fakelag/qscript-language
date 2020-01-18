@@ -42,6 +42,9 @@
     <ClCompile Include="Common\Value.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="Runtime\Natives.cpp">
+      <Filter>Runtime</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Compiler\AST.h">
@@ -79,6 +82,9 @@
     </ClInclude>
     <ClInclude Include="Common\Object.h">
       <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Runtime\Natives.h">
+      <Filter>Runtime</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

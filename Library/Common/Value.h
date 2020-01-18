@@ -6,11 +6,14 @@
 #define AS_STRING( value ) ((QScript::StringObject*)((value).m_Data.m_Object))
 #define AS_FUNCTION( value ) ((QScript::FunctionObject*)((value).m_Data.m_Object))
 #define AS_NATIVE( value ) ((QScript::NativeFunctionObject*)((value).m_Data.m_Object))
+#define AS_CLOSURE( value ) ((QScript::ClosureObject*)((value).m_Data.m_Object))
 
 #define MAKE_NULL (QScript::Value())
 #define MAKE_BOOL( value ) (QScript::Value( ((bool)(value) )))
 #define MAKE_NUMBER( value ) (QScript::Value( ((double)(value) )))
 #define MAKE_STRING( string ) ((QScript::Value( QScript::Object::AllocateString( string ) )))
+#define MAKE_CLOSURE( function ) ((QScript::Value( QScript::Object::AllocateClosure( function ) )))
+#define MAKE_UPVALUE( valuePtr ) ((QScript::Value( QScript::Object::AllocateUpvalue( valuePtr ) )))
 
 #define IS_NULL( value ) ((value).m_Type == QScript::VT_NULL)
 #define IS_BOOL( value ) ((value).m_Type == QScript::VT_BOOL)
@@ -19,6 +22,8 @@
 #define IS_STRING( value ) ((value).IsObjectOfType<QScript::ObjectType::OT_STRING>())
 #define IS_FUNCTION( value ) ((value).IsObjectOfType<QScript::ObjectType::OT_FUNCTION>())
 #define IS_NATIVE( value ) ((value).IsObjectOfType<QScript::ObjectType::OT_NATIVE>())
+#define IS_CLOSURE( value ) ((value).IsObjectOfType<QScript::ObjectType::OT_CLOSURE>())
+#define IS_UPVALUE( value ) ((value).IsObjectOfType<QScript::ObjectType::OT_UPVALUE>())
 #define IS_ANY( value ) (true)
 
 #define ENCODE_LONG( a, index ) (( uint8_t )( ( a >> ( 8 * index ) ) & 0xFF ))
@@ -56,11 +61,22 @@ FORCEINLINE Value operator op ( const Value& other ) { \
 	} \
 }
 
+#if defined( _MSC_VER )
+#define UNREACHABLE() __assume(0)
+#elif (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5))
+#define UNREACHABLE() __builtin_unreachable()
+#else
+#define UNREACHABLE()
+#endif
+
 namespace QScript
 {
+	struct Value;
 	class StringObject;
 	class FunctionObject;
 	class NativeFunctionObject;
+	class ClosureObject;
+	class UpvalueObject;
 
 	enum ValueType
 	{
@@ -75,6 +91,8 @@ namespace QScript
 		OT_STRING,
 		OT_FUNCTION,
 		OT_NATIVE,
+		OT_CLOSURE,
+		OT_UPVALUE,
 	};
 
 	class Object
@@ -86,10 +104,14 @@ namespace QScript
 		using StringAllocatorFn = StringObject*(*)( const std::string& string );
 		using FunctionAllocatorFn = FunctionObject * ( *)( const std::string& name, int arity );
 		using NativeAllocatorFn = NativeFunctionObject * ( *)( void* nativeFn );
+		using ClosureAllocatorFn = ClosureObject* ( *)( FunctionObject* function );
+		using UpvalueAllocatorFn = UpvalueObject * ( *)( Value* valuePtr );
 
 		static StringAllocatorFn AllocateString;
 		static FunctionAllocatorFn AllocateFunction;
 		static NativeAllocatorFn AllocateNative;
+		static ClosureAllocatorFn AllocateClosure;
+		static UpvalueAllocatorFn AllocateUpvalue;
 	};
 
 	// Value struct -- must be trivially copyable for stack relocations to work

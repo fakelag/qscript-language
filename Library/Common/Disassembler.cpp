@@ -47,7 +47,7 @@ std::string Compiler::ValueToString( const QScript::Value& value )
 	{
 		if ( IS_STRING( value ) )
 			valueType = "string";
-		else if ( IS_FUNCTION( value ) )
+		else if ( IS_FUNCTION( value ) || IS_CLOSURE( value ) )
 			valueType = "function";
 		else if ( IS_NATIVE( value ) )
 			valueType = "native";
@@ -79,7 +79,7 @@ void Compiler::DisassembleChunk( const QScript::Chunk_t& chunk, const std::strin
 		offset = DisassembleInstruction( chunk, offset, ip != -1 && offset == ( size_t ) ip );
 }
 
-int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32_t offset, bool isIp )
+uint32_t Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32_t offset, bool isIp )
 {
 #define SIMPLE_INST( inst, name ) case QScript::OpCode::inst: {\
 	instString = name; \
@@ -158,7 +158,7 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32_t of
 		: "-,-,-" ) + "]";
 
 	std::string instString;
-	int instOffset;
+	uint32_t instOffset;
 
 	// Decode current instruction
 	switch ( chunk.m_Code[ offset ] )
@@ -173,6 +173,10 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32_t of
 	INST_LONG( OP_LOAD_LOCAL_LONG, "LOAD_LOCAL" );
 	INST_SHORT( OP_SET_LOCAL_SHORT, "SET_LOCAL" );
 	INST_LONG( OP_SET_LOCAL_LONG, "SET_LOCAL" );
+	INST_SHORT( OP_LOAD_UPVALUE_SHORT, "LOAD_UPVALUE" );
+	INST_LONG( OP_LOAD_UPVALUE_LONG, "LOAD_UPVALUE" );
+	INST_SHORT( OP_SET_UPVALUE_SHORT, "SET_UPVALUE" );
+	INST_LONG( OP_SET_UPVALUE_LONG, "SET_UPVALUE" );
 	JMP_INST_SHORT( OP_JUMP_IF_ZERO_SHORT, "JUMP_IF_ZERO", false );
 	JMP_INST_LONG( OP_JUMP_IF_ZERO_LONG, "JUMP_IF_ZERO", false );
 	JMP_INST_SHORT( OP_JUMP_SHORT, "JUMP", false );
@@ -188,6 +192,7 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32_t of
 	SIMPLE_INST( OP_CALL_5, "CALL 5" );
 	SIMPLE_INST( OP_CALL_6, "CALL 6" );
 	SIMPLE_INST( OP_CALL_7, "CALL 7" );
+	SIMPLE_INST( OP_CLOSE_UPVALUE, "CLOSE_UPVALUE" );
 	SIMPLE_INST( OP_ADD, "ADD" );
 	SIMPLE_INST( OP_SUB, "SUB" );
 	SIMPLE_INST( OP_DIV, "DIV" );
@@ -204,6 +209,55 @@ int Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32_t of
 	SIMPLE_INST( OP_PRINT, "PRINT" );
 	SIMPLE_INST( OP_POP, "POP" );
 	SIMPLE_INST( OP_LOAD_NULL, "LOAD_NULL" );
+	case QScript::OpCode::OP_CLOSURE_SHORT:
+	{
+		uint32_t constant = ( uint32_t ) chunk.m_Code[ offset + 1 ];
+
+		const QScript::Value& function = chunk.m_Constants[ constant ];
+		instString = "CLOSURE " + Compiler::ValueToString( function ) + " (SHORT)";
+
+		auto functionObj = AS_FUNCTION( function );
+
+		for ( int i = 0; i < functionObj->GetProperties()->m_NumUpvalues; ++i )
+		{
+			uint32_t upvalueOffset = offset + InstructionSize( QScript::OpCode::OP_CLOSURE_SHORT ) + ( i * 5 );
+
+			bool isLocal = chunk.m_Code[ upvalueOffset ] == 1;
+			uint32_t upvalue = DECODE_LONG( chunk.m_Code[ upvalueOffset + 1 ], chunk.m_Code[ upvalueOffset + 2 ],
+				chunk.m_Code[ upvalueOffset + 3 ], chunk.m_Code[ upvalueOffset + 4 ]);
+
+			instString += "\n\t Capture: " + std::to_string( upvalue ) + " (" + ( isLocal ? "local" : "upval" ) + ")";
+		}
+
+		instOffset = offset + InstructionSize( QScript::OpCode::OP_CLOSURE_SHORT )
+			+ ( functionObj->GetProperties()->m_NumUpvalues * 5 );
+		break;
+	}
+	case QScript::OpCode::OP_CLOSURE_LONG:
+	{
+		uint32_t constant = DECODE_LONG( chunk.m_Code[ offset + 1 ], chunk.m_Code[ offset + 2 ],
+			chunk.m_Code[ offset + 3 ], chunk.m_Code[ offset + 4 ] );
+
+		const QScript::Value& function = chunk.m_Constants[ constant ];
+		instString = "CLOSURE " + Compiler::ValueToString( function ) + " (LONG)";
+
+		auto functionObj = AS_FUNCTION( function );
+
+		for ( int i = 0; i < functionObj->GetProperties()->m_NumUpvalues; ++i )
+		{
+			uint8_t upvalueOffset = offset + InstructionSize( QScript::OpCode::OP_CLOSURE_LONG ) + ( i * 5 );
+
+			bool isLocal = chunk.m_Code[ upvalueOffset ] == 1;
+			uint32_t upvalue = DECODE_LONG( chunk.m_Code[ upvalueOffset + 1 ], chunk.m_Code[ upvalueOffset + 2 ],
+				chunk.m_Code[ upvalueOffset + 3 ], chunk.m_Code[ upvalueOffset + 4 ]);
+
+			instString += "\n\t Capture: " + std::to_string( upvalue ) + " (" + ( isLocal ? "local" : "upval" ) + ")";
+		}
+
+		instOffset = offset + InstructionSize( QScript::OpCode::OP_CLOSURE_LONG )
+			+ ( functionObj->GetProperties()->m_NumUpvalues * 5 );
+		break;
+	}
 	default:
 		std::cout << "Unknown opcode: " << chunk.m_Code[ offset ] << std::endl;
 		instOffset = offset + 1;
@@ -237,19 +291,26 @@ int Compiler::InstructionSize( uint8_t inst )
 	case QScript::OpCode::OP_LOAD_GLOBAL_LONG: return 5;
 	case QScript::OpCode::OP_LOAD_LOCAL_SHORT: return 2;
 	case QScript::OpCode::OP_LOAD_LOCAL_LONG: return 5;
+	case QScript::OpCode::OP_LOAD_UPVALUE_SHORT: return 2;
+	case QScript::OpCode::OP_LOAD_UPVALUE_LONG: return 5;
 	case QScript::OpCode::OP_SET_LOCAL_SHORT: return 2;
 	case QScript::OpCode::OP_SET_LOCAL_LONG: return 5;
+	case QScript::OpCode::OP_SET_UPVALUE_SHORT: return 2;
+	case QScript::OpCode::OP_SET_UPVALUE_LONG: return 5;
 	case QScript::OpCode::OP_JUMP_IF_ZERO_SHORT: return 2;
 	case QScript::OpCode::OP_JUMP_IF_ZERO_LONG: return 5;
 	case QScript::OpCode::OP_JUMP_SHORT: return 2;
 	case QScript::OpCode::OP_JUMP_LONG: return 5;
 	case QScript::OpCode::OP_JUMP_BACK_SHORT: return 2;
 	case QScript::OpCode::OP_JUMP_BACK_LONG: return 5;
+	case QScript::OpCode::OP_CLOSE_UPVALUE: return 1;
 	case QScript::OpCode::OP_ADD: return 1;
 	case QScript::OpCode::OP_SUB: return 1;
 	case QScript::OpCode::OP_DIV: return 1;
 	case QScript::OpCode::OP_MUL: return 1;
 	case QScript::OpCode::OP_CALL: return 2;
+	case QScript::OpCode::OP_CLOSURE_LONG: return 5;
+	case QScript::OpCode::OP_CLOSURE_SHORT: return 2;
 	case QScript::OpCode::OP_NEGATE: return 1;
 	case QScript::OpCode::OP_NOT: return 1;
 	case QScript::OpCode::OP_EQUALS: return 1;

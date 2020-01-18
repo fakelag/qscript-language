@@ -26,6 +26,7 @@ namespace QScript
 		{
 			m_Name = name;
 			m_Arity = arity;
+			m_NumUpvalues = 0;
 			m_Chunk = NULL;
 		}
 
@@ -33,11 +34,13 @@ namespace QScript
 		{
 			m_Name = name;
 			m_Arity = arity;
+			m_NumUpvalues = 0;
 			m_Chunk = chunk;
 		}
 
 		std::string				m_Name;
 		int						m_Arity;
+		int 					m_NumUpvalues;
 		Chunk_t*				m_Chunk;
 	};
 }

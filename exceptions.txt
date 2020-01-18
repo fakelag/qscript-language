@@ -25,6 +25,7 @@ Disassembler 		disasm_invalid_value_object			Invalid object type: %objectType%
 Runtime				rt_invalid_operand_type				Both operands of "%op%" operation must be numbers | Negation operand must be of number type | Not operand must be of boolean type | Operands of + operation must be numbers or strings | Operand must be of string type
 Runtime 			rt_unknown_opcode					Unknown opcode: %opcode%
 Runtime				rt_unknown_global 					Referring to an unknown global: "%identifierString%"
+Runtime 			rt_invalid_call_arity				Arguments provided is different from what the callee accepts, got: %numArgs% expected: %fnArity%
 Runtime				rt_invalid_call_target				Call value was not object type | Invalid call value object type
 
 Generic Exceptions

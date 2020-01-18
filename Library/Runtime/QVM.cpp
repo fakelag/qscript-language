@@ -7,15 +7,30 @@
 
 #include "Natives.h"
 
+#define INTERP_INIT \
+QVM::VirtualMachine = &vm; \
+QScript::Object::AllocateString = &QVM::AllocateString; \
+QScript::Object::AllocateFunction = &QVM::AllocateFunction; \
+QScript::Object::AllocateNative = &QVM::AllocateNative; \
+QScript::Object::AllocateClosure = &QVM::AllocateClosure; \
+QScript::Object::AllocateUpvalue = &QVM::AllocateUpvalue;
+
+#define INTERP_SHUTDOWN \
+QScript::Object::AllocateString = NULL; \
+QScript::Object::AllocateFunction = NULL; \
+QScript::Object::AllocateNative = NULL; \
+QScript::Object::AllocateClosure = NULL; \
+QScript::Object::AllocateUpvalue = NULL;
+
 #if !defined(QVM_DEBUG) && defined(_OSX)
 #define _INTERP_JMP_PREFIX( opcode ) &&code_##opcode
 #define INTERP_JMPTABLE static void* opcodeTable[] = { QS_OPCODES( _INTERP_JMP_PREFIX ) };
 #define INTERP_SWITCH( inst ) INTERP_DISPATCH;
 #define INTERP_OPCODE( opcode ) code_##opcode
-#define INTERP_DISPATCH goto *opcodeTable[inst = (QScript::OpCode) READ_BYTE( vm )]
+#define INTERP_DISPATCH goto *opcodeTable[inst = ( QScript::OpCode ) READ_BYTE( )]
 #else
 #define INTERP_JMPTABLE ((void)0)
-#define INTERP_SWITCH( inst ) switch ( inst )
+#define INTERP_SWITCH( inst ) switch ( inst = ( QScript::OpCode ) READ_BYTE( ) )
 #define INTERP_OPCODE( opcode ) case QScript::OpCode::opcode
 #define INTERP_DISPATCH break
 #endif
@@ -29,10 +44,16 @@
 	out = DECODE_LONG( a, b, c, d ); \
 }
 
-#define READ_CONST_SHORT() (frame->m_Function->m_Chunk->m_Constants[ READ_BYTE() ])
+#define RESTORE_FRAME( ) \
+frame = &vm.m_Frames.back(); \
+ip = frame->m_IP; \
+function = frame->m_Closure->GetFunction()->GetProperties(); \
+chunk = function->m_Chunk \
+
+#define READ_CONST_SHORT() (chunk->m_Constants[ READ_BYTE() ])
 #define READ_CONST_LONG( constant ) QScript::Value constant; { \
 	READ_LONG( cnstIndex ); \
-	constant.From( frame->m_Function->m_Chunk->m_Constants[ cnstIndex ] ); \
+	constant.From( chunk->m_Constants[ cnstIndex ] ); \
 }
 #define BINARY_OP( op, require ) { \
 	auto b = vm.Pop(); auto a = vm.Pop(); \
@@ -54,7 +75,9 @@ namespace QVM
 
 		QScript::Chunk_t::Debug_t debug;
 
-		if ( frame && Compiler::FindDebugSymbol( *frame->m_Function->m_Chunk, frame->m_IP - &frame->m_Function->m_Chunk->m_Code[ 0 ], &debug ) )
+		auto function = frame->m_Closure->GetFunction()->GetProperties();
+		if ( frame && Compiler::FindDebugSymbol( *function->m_Chunk,
+			frame->m_IP - &function->m_Chunk->m_Code[ 0 ], &debug ) )
 		{
 			token = debug.m_Token;
 			lineNr = debug.m_Line;
@@ -68,6 +91,9 @@ namespace QVM
 	{
 		Frame_t* frame = &vm.m_Frames.back();
 		uint8_t* ip = frame->m_IP;
+
+		const QScript::Function_t* function = frame->m_Closure->GetFunction()->GetProperties();
+		QScript::Chunk_t* chunk = function->m_Chunk;
 
 #ifdef QVM_DEBUG
 		const uint8_t* runTill = NULL;
@@ -99,28 +125,38 @@ namespace QVM
 					}
 					else if ( input == "dc" )
 					{
-						Compiler::DisassembleChunk( *frame->m_Function->m_Chunk, frame->m_Function->m_Name,
-							( unsigned int ) ( ip - ( uint8_t* ) &frame->m_Function->m_Chunk->m_Code[ 0 ] ) );
+						Compiler::DisassembleChunk( *function->m_Chunk, function->m_Name,
+							( unsigned int ) ( ip - ( uint8_t* ) &function->m_Chunk->m_Code[ 0 ] ) );
 						continue;
 					}
 					else if ( input == "dca" )
 					{
-						Compiler::DisassembleChunk( *frame->m_Function->m_Chunk, frame->m_Function->m_Name,
-							( unsigned int ) ( ip - ( uint8_t* ) &frame->m_Function->m_Chunk->m_Code[ 0 ] ) );
+						auto& main = vm.m_Frames[ 0 ];
 
-						for ( auto constant : frame->m_Function->m_Chunk->m_Constants )
+						std::function< void( QScript::FunctionObject* value ) > visitFunction;
+						visitFunction = [ &visitFunction, &ip, &vm ]( QScript::FunctionObject* function ) -> void
 						{
-							if ( !IS_FUNCTION( constant ) )
-								continue;
+							auto props = function->GetProperties();
+							auto isExecuting = vm.m_Frames.back().m_Closure->GetFunction() == function;
 
-							auto function = AS_FUNCTION( constant )->GetProperties();
-							Compiler::DisassembleChunk( *function->m_Chunk, function->m_Name );
-						}
+							Compiler::DisassembleChunk( *props->m_Chunk, props->m_Name,
+								isExecuting ? ( unsigned int ) ( ip - ( uint8_t* ) &props->m_Chunk->m_Code[ 0 ] ) : -1 );
+
+							for ( auto constant : props->m_Chunk->m_Constants )
+							{
+								if ( !IS_FUNCTION( constant ) )
+									continue;
+
+								visitFunction( AS_FUNCTION( constant ) );
+							}
+						};
+
+						visitFunction( main.m_Closure->GetFunction() );
 						continue;
 					}
 					else if ( input == "dcnst" )
 					{
-						Compiler::DumpConstants( *frame->m_Function->m_Chunk );
+						Compiler::DumpConstants( *function->m_Chunk );
 						continue;
 					}
 					else if ( input == "dg" )
@@ -130,7 +166,7 @@ namespace QVM
 					}
 					else if ( input.substr( 0, 2 ) == "s " )
 					{
-						runTill = ( &frame->m_Function->m_Chunk->m_Code[ 0 ] ) + std::atoi( input.substr( 2 ).c_str() ) - 1;
+						runTill = ( &function->m_Chunk->m_Code[ 0 ] ) + std::atoi( input.substr( 2 ).c_str() ) - 1;
 						break;
 					}
 					else if ( input == "help" )
@@ -145,7 +181,7 @@ namespace QVM
 					}
 					else if ( input == "ip" )
 					{
-						std::cout << "IP: " << ( ip - &frame->m_Function->m_Chunk->m_Code[ 0 ] ) << std::endl;
+						std::cout << "IP: " << ( ip - &function->m_Chunk->m_Code[ 0 ] ) << std::endl;
 					}
 					else if ( input == "q" )
 						return true;
@@ -219,6 +255,28 @@ namespace QVM
 				frame->m_Base[ offset ].From( vm.Peek( 0 ) );
 				INTERP_DISPATCH;
 			}
+			INTERP_OPCODE( OP_SET_UPVALUE_SHORT ):
+			{
+				frame->m_Closure->GetUpvalues()[ READ_BYTE() ]->GetValue()->From( vm.Peek( 0 ) );
+				INTERP_DISPATCH;
+			}
+			INTERP_OPCODE( OP_SET_UPVALUE_LONG ):
+			{
+				READ_LONG( index );
+				frame->m_Closure->GetUpvalues()[ index ]->GetValue()->From( vm.Peek( 0 ) );
+				INTERP_DISPATCH;
+			}
+			INTERP_OPCODE( OP_LOAD_UPVALUE_SHORT ):
+			{
+				vm.Push( *frame->m_Closure->GetUpvalues()[ READ_BYTE() ]->GetValue() );
+				INTERP_DISPATCH;
+			}
+			INTERP_OPCODE( OP_LOAD_UPVALUE_LONG ):
+			{
+				READ_LONG( index );
+				vm.Push( *frame->m_Closure->GetUpvalues()[ index ]->GetValue() );
+				INTERP_DISPATCH;
+			}
 			INTERP_OPCODE( OP_JUMP_BACK_SHORT ): { auto _ip = READ_BYTE(); ip -= ( _ip + 2 ); INTERP_DISPATCH; }
 			INTERP_OPCODE( OP_JUMP_BACK_LONG ):
 			{
@@ -254,8 +312,7 @@ namespace QVM
 				frame->m_IP = ip;
 				vm.Call( frame, numArgs, vm.Peek( numArgs ) );
 
-				frame = &vm.m_Frames.back();
-				ip = frame->m_IP;
+				RESTORE_FRAME();
 				INTERP_DISPATCH;
 			}
 			INTERP_OPCODE( OP_CALL_0 ):
@@ -272,8 +329,30 @@ namespace QVM
 				frame->m_IP = ip;
 				vm.Call( frame, numArgs, vm.Peek( numArgs ) );
 
-				frame = &vm.m_Frames.back();
-				ip = frame->m_IP;
+				RESTORE_FRAME();
+				INTERP_DISPATCH;
+			}
+			INTERP_OPCODE( OP_CLOSURE_SHORT ):
+			{
+				auto closure = MAKE_CLOSURE( AS_FUNCTION( READ_CONST_SHORT() ) );
+				vm.Push( closure );
+
+				ip = vm.OpenUpvalues( AS_CLOSURE( closure ), frame, ip );
+				INTERP_DISPATCH;
+			}
+			INTERP_OPCODE( OP_CLOSURE_LONG ):
+			{
+				READ_CONST_LONG( constant );
+				auto closure = MAKE_CLOSURE( AS_FUNCTION( constant ) );
+				vm.Push( closure );
+
+				ip = vm.OpenUpvalues( AS_CLOSURE( closure ), frame, ip );
+				INTERP_DISPATCH;
+			}
+			INTERP_OPCODE( OP_CLOSE_UPVALUE ) :
+			{
+				vm.CloseUpvalues( vm.m_StackTop - 1 );
+				vm.Pop();
 				INTERP_DISPATCH;
 			}
 			INTERP_OPCODE( OP_NOT ):
@@ -318,6 +397,7 @@ namespace QVM
 
 				INTERP_DISPATCH;
 			}
+			INTERP_OPCODE( OP_NOP ): INTERP_DISPATCH;
 			INTERP_OPCODE( OP_SUB ): BINARY_OP( -, IS_NUMBER ); INTERP_DISPATCH;
 			INTERP_OPCODE( OP_MUL ): BINARY_OP( *, IS_NUMBER ); INTERP_DISPATCH;
 			INTERP_OPCODE( OP_DIV ): BINARY_OP( /, IS_NUMBER ); INTERP_DISPATCH;
@@ -333,20 +413,34 @@ namespace QVM
 			{
 				auto returnValue = vm.Pop();
 
+				// Close everything from the exiting stack frame
+				vm.CloseUpvalues( frame->m_Base );
+
 				if ( vm.m_Frames.size() == 1 )
+				{
+#ifdef QVM_DEBUG
+					std::cout << "Exit: " << returnValue.ToString() << std::endl;
+#endif
 					return returnValue;
+				}
 
 				vm.m_StackTop = frame->m_Base;
 
 				vm.m_Frames.pop_back();
 
 				vm.Push( returnValue );
-				frame = &vm.m_Frames.back();
-				ip = frame->m_IP;
+
+				RESTORE_FRAME();
 				INTERP_DISPATCH;
 			}
-			// default:
-			// 	QVM::RuntimeError( frame, "rt_unknown_opcode", "Unknown opcode: " + std::to_string( inst ) );
+			 default:
+			 {
+#ifdef QVM_DEBUG
+				 QVM::RuntimeError( frame, "rt_unknown_opcode", "Unknown opcode: " + std::to_string( inst ) );
+#else
+				 UNREACHABLE();
+#endif
+			 }
 			}
 		}
 
@@ -373,6 +467,20 @@ namespace QVM
 		VirtualMachine->m_Objects.push_back( ( QScript::Object* ) nativeObject );
 		return nativeObject;
 	}
+
+	QScript::ClosureObject* AllocateClosure( QScript::FunctionObject* function )
+	{
+		auto closureObject = new QScript::ClosureObject( function );
+		VirtualMachine->m_Objects.push_back( ( QScript::Object* ) closureObject );
+		return closureObject;
+	}
+
+	QScript::UpvalueObject* AllocateUpvalue( QScript::Value* valueRef )
+	{
+		auto upvalueObject = new QScript::UpvalueObject( valueRef );
+		VirtualMachine->m_Objects.push_back( ( QScript::Object* ) upvalueObject );
+		return upvalueObject;
+	}
 }
 
 void VM_t::Init( const QScript::Function_t* function )
@@ -384,12 +492,18 @@ void VM_t::Init( const QScript::Function_t* function )
 	m_StackCapacity = s_InitStackSize;
 	m_StackTop = &m_Stack[ 0 ];
 
+	// Wrap the main function in a closure
+	auto mainFunction = new QScript::FunctionObject( function );
+	auto mainClosure = new QScript::ClosureObject( mainFunction );
+
 	// Create initial call frame
-	m_Frames.emplace_back( function, m_Stack, &function->m_Chunk->m_Code[ 0 ] );
+	m_Frames.emplace_back( mainClosure, m_Stack, &function->m_Chunk->m_Code[ 0 ] );
 
 	// Push main function to stack slot 0. This is directly allocated, so
 	// the VM garbage collection won't ever release it
-	Push( QScript::Value( new QScript::FunctionObject( function ) ) );
+	Push( QScript::Value( mainClosure ) );
+
+	m_LivingUpvalues = NULL;
 }
 
 void VM_t::Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target )
@@ -399,10 +513,19 @@ void VM_t::Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target )
 
 	switch ( AS_OBJECT( target )->m_Type )
 	{
-	case QScript::ObjectType::OT_FUNCTION:
+	case QScript::ObjectType::OT_CLOSURE:
 	{
-		auto function = AS_FUNCTION( target )->GetProperties();
-		m_Frames.emplace_back( function, m_StackTop - numArgs - 1, &function->m_Chunk->m_Code[ 0 ] );
+		auto closure = AS_CLOSURE( target );
+		auto function = closure->GetFunction()->GetProperties();
+
+		if ( function->m_Arity != numArgs )
+		{
+			QVM::RuntimeError( frame, "rt_invalid_call_arity",
+				"Arguments provided is different from what the callee accepts, got: + " +
+				std::to_string( numArgs ) + " expected: " + std::to_string( function->m_Arity ) );
+		}
+
+		m_Frames.emplace_back( closure, m_StackTop - numArgs - 1, &function->m_Chunk->m_Code[ 0 ] );
 		break;
 	}
 	case QScript::ObjectType::OT_NATIVE:
@@ -419,6 +542,72 @@ void VM_t::Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target )
 	}
 }
 
+uint8_t* VM_t::OpenUpvalues( QScript::ClosureObject* closure, Frame_t* frame, uint8_t* ip )
+{
+	auto function = closure->GetFunction()->GetProperties();
+	auto& upvalues = closure->GetUpvalues();
+
+	upvalues.reserve( function->m_NumUpvalues );
+
+	for ( int i = 0; i < function->m_NumUpvalues; i++ )
+	{
+		bool isLocal = READ_BYTE() == 1;
+		READ_LONG( index );
+
+		if ( isLocal )
+		{
+			QScript::Value* value = frame->m_Base + index;
+
+			QScript::UpvalueObject* previous = NULL;
+			QScript::UpvalueObject* current = m_LivingUpvalues;
+
+			// Check if another upvalue exists that closes over the same variable
+			while ( current && current->GetValue() > value )
+			{
+				previous = current;
+				current = previous->GetNext();
+			}
+
+			if ( current && current->GetValue() == value )
+			{
+				// Upvalue was found on in the list, reference the same variable
+				upvalues.push_back( current );
+				return ip;
+			}
+			else
+			{
+				// No other function closes over this stack slot, create a new upvalue
+				auto upvalue = QScript::Object::AllocateUpvalue( value );
+
+				// Link it to the upvalue chain
+				if ( !previous )
+					m_LivingUpvalues = upvalue;
+				else
+					previous->SetNext( upvalue );
+
+				upvalues.push_back( upvalue );
+			}
+		}
+		else
+		{
+			// Refer to a parent's upvalue
+			upvalues.push_back( frame->m_Closure->GetUpvalues()[ index ] );
+		}
+	}
+
+	return ip;
+}
+
+void VM_t::CloseUpvalues( QScript::Value* last )
+{
+	// Box in every upvalue that lives at the given stack slot (or further)
+	while ( m_LivingUpvalues != NULL && m_LivingUpvalues->GetValue() >= last )
+	{
+		m_LivingUpvalues->Close();
+		m_LivingUpvalues = m_LivingUpvalues->GetNext();
+	}
+}
+
 void VM_t::ResolveImports()
 {
 	// Add a native for testing
@@ -431,39 +620,55 @@ void VM_t::CreateNative( const std::string name, QScript::NativeFn native )
 	m_Globals.insert( global );
 }
 
-void QScript::Interpret( const Function_t& function, Value* out )
+void VM_t::Release()
+{
+	for ( auto object : m_Objects )
+	{
+		switch ( object->m_Type )
+		{
+		case QScript::ObjectType::OT_FUNCTION:
+		{
+			delete ( ( QScript::FunctionObject* )( object ) )->GetProperties()->m_Chunk;
+			delete ( ( QScript::FunctionObject* )( object ) )->GetProperties();
+			break;
+		}
+		// case QScript::ObjectType::OT_CLOSURE:
+		// case QScript::ObjectType::OT_NATIVE:
+		// case QScript::ObjectType::OT_STRING,
+		// case QScript::ObjectType::OT_UPVALUE:
+		default:
+			break;
+		}
+
+		delete object;
+	}
+
+	delete[] m_Stack;
+	m_StackCapacity = 0;
+	m_StackTop = NULL;
+
+	m_Objects.clear();
+}
+
+void QScript::Interpret( const Function_t& function )
 {
 	VM_t vm( &function );
 
-	// Setup allocators
-	QVM::VirtualMachine = &vm;
-	QScript::Object::AllocateString = &QVM::AllocateString;
-	QScript::Object::AllocateFunction = &QVM::AllocateFunction;
-	QScript::Object::AllocateNative = &QVM::AllocateNative;
+	INTERP_INIT;
 
 	vm.ResolveImports();
 
 	auto exitCode = QVM::Run( vm );
 
-	if ( out )
-		out->From( exitCode );
-
 	// Clear allocated objects
-	vm.Release( out );
+	vm.Release();
 
-	// Clear allocators
-	QScript::Object::AllocateString = NULL;
-	QScript::Object::AllocateFunction = NULL;
-	QScript::Object::AllocateNative = NULL;
+	INTERP_SHUTDOWN;
 }
 
 void QScript::Interpret( VM_t& vm, Value* out )
 {
-	// Setup allocators
-	QVM::VirtualMachine = &vm;
-	QScript::Object::AllocateString = &QVM::AllocateString;
-	QScript::Object::AllocateFunction = &QVM::AllocateFunction;
-	QScript::Object::AllocateNative = &QVM::AllocateNative;
+	INTERP_INIT;
 
 	vm.ResolveImports();
 
@@ -472,8 +677,5 @@ void QScript::Interpret( VM_t& vm, Value* out )
 	if ( out )
 		out->From( exitCode );
 
-	// Clear allocators
-	QScript::Object::AllocateString = NULL;
-	QScript::Object::AllocateFunction = NULL;
-	QScript::Object::AllocateNative = NULL;
+	INTERP_SHUTDOWN;
 }
