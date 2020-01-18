@@ -495,7 +495,7 @@ bool Tests::TestInterpreter()
 		UTEST_CASE_CLOSED();
 	}( );
 
-	UTEST_CASE( "Closures 2 (Nested closures, Reuse stack slot, Shadowing)" )
+	UTEST_CASE( "Closures 2 (Nested closures, reuse stack slot, shadowing)" )
 	{
 		QScript::Value exitCode;
 		UTEST_ASSERT( TestUtils::RunVM( "var g = null;		\
@@ -566,7 +566,7 @@ bool Tests::TestInterpreter()
 		UTEST_CASE_CLOSED();
 	}( );
 
-	UTEST_CASE( "Closures 3 (Unused closure)" )
+	UTEST_CASE( "Closures 3 (Unused closure, close over function param, refer to same variable on all closures)" )
 	{
 		QScript::Value exitCode;
 		UTEST_ASSERT( TestUtils::RunVM( "function g = () {		\
@@ -605,6 +605,36 @@ bool Tests::TestInterpreter()
 
 		UTEST_ASSERT( IS_STRING( exitCode ) );
 		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "a" );
+
+		UTEST_ASSERT( TestUtils::RunVM( "var g = null;					\
+			function f = ( arg0 ) {										\
+				function x = ( ) {										\
+					return arg0;										\
+				}														\
+				g = x;													\
+			}															\
+			f( \"hello\" );												\
+			return g(); ", &exitCode ) );
+
+		UTEST_ASSERT( IS_STRING( exitCode ) );
+		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "hello" );
+
+		UTEST_ASSERT( TestUtils::RunVM( "var gAdd;					\
+			var gGet;												\
+			function g = ( ) {										\
+				var v = 0;											\
+				function add = ( ) { v = v + 1; }					\
+				function get = ( ) { return v; }					\
+				gAdd = add;											\
+				gGet = get;											\
+			}														\
+			g();													\
+			gAdd();													\
+			gAdd();													\
+			return gGet(); ", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 2 );
 
 		UTEST_CASE_CLOSED();
 	}( );
