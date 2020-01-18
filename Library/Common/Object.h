@@ -81,9 +81,12 @@ namespace QScript
 		FORCEINLINE void SetNext( UpvalueObject* next ) { m_Next = next; }
 		FORCEINLINE UpvalueObject* GetNext() { return m_Next; }
 		FORCEINLINE void Close() { m_Closed.From( *m_Slot ); m_Slot = &m_Closed; }
+
 	private:
 		Value*				m_Slot;
 		Value				m_Closed;
+
+		// m_Next: Used ONLY by the VM to track open closures
 		UpvalueObject*		m_Next;
 	};
 
