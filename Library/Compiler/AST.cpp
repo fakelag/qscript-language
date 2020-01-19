@@ -202,7 +202,7 @@ namespace Compiler
 			uint32_t nameIndex = 0;
 			auto name = AS_STRING( m_Value )->GetString();
 
-			bool nameFound = false;
+			bool canEmit = false;
 			QScript::OpCode opCodeShort = QScript::OpCode::OP_NOP;
 			QScript::OpCode opCodeLong = QScript::OpCode::OP_NOP;
 			QScript::OpCode opCodeShortAssign = QScript::OpCode::OP_NOP;
@@ -210,7 +210,21 @@ namespace Compiler
 
 			if ( assembler.FindLocal( name, &nameIndex ) )
 			{
-				nameFound = true;
+				if ( options & CO_ASSIGN )
+				{
+					if ( nameIndex < QScript::OP_SET_LOCAL_MAX )
+						EmitByte( QScript::OP_SET_LOCAL_0 + ( uint8_t ) nameIndex, chunk );
+					else
+						canEmit = true;
+				}
+				else
+				{
+					if ( nameIndex < QScript::OP_LOAD_LOCAL_MAX )
+						EmitByte( QScript::OP_LOAD_LOCAL_0 + ( uint8_t ) nameIndex, chunk );
+					else
+						canEmit = true;
+				}
+
 				opCodeShort = QScript::OpCode::OP_LOAD_LOCAL_SHORT;
 				opCodeLong = QScript::OpCode::OP_LOAD_LOCAL_LONG;
 				opCodeShortAssign = QScript::OpCode::OP_SET_LOCAL_SHORT;
@@ -219,7 +233,7 @@ namespace Compiler
 			}
 			else if ( assembler.RequestUpvalue( name, &nameIndex ) )
 			{
-				nameFound = true;
+				canEmit = true;
 				opCodeShort = QScript::OpCode::OP_LOAD_UPVALUE_SHORT;
 				opCodeLong = QScript::OpCode::OP_LOAD_UPVALUE_LONG;
 				opCodeShortAssign = QScript::OpCode::OP_SET_UPVALUE_SHORT;
@@ -233,7 +247,7 @@ namespace Compiler
 					EmitConstant( chunk, m_Value, QScript::OpCode::OP_LOAD_GLOBAL_SHORT, QScript::OpCode::OP_LOAD_GLOBAL_LONG, assembler );
 			}
 
-			if ( nameFound )
+			if ( canEmit )
 			{
 				if ( nameIndex > 255 )
 				{
@@ -340,7 +354,7 @@ namespace Compiler
 			for ( auto arg : args )
 				arg->Compile( assembler, COMPILE_EXPRESSION( options ) );
 
-			if ( args.size() < QScript::OP_CALL_7 - QScript::OP_CALL )
+			if ( args.size() < QScript::OP_CALL_MAX )
 			{
 				EmitByte( QScript::OP_CALL_0 + ( uint8_t ) args.size(), chunk );
 			}

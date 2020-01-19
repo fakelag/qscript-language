@@ -192,6 +192,30 @@ uint32_t Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32
 	SIMPLE_INST( OP_CALL_5, "CALL 5" );
 	SIMPLE_INST( OP_CALL_6, "CALL 6" );
 	SIMPLE_INST( OP_CALL_7, "CALL 7" );
+	SIMPLE_INST( OP_LOAD_LOCAL_0, "LOAD_LOCAL 0" );
+	SIMPLE_INST( OP_LOAD_LOCAL_1, "LOAD_LOCAL 1" );
+	SIMPLE_INST( OP_LOAD_LOCAL_2, "LOAD_LOCAL 2" );
+	SIMPLE_INST( OP_LOAD_LOCAL_3, "LOAD_LOCAL 3" );
+	SIMPLE_INST( OP_LOAD_LOCAL_4, "LOAD_LOCAL 4" );
+	SIMPLE_INST( OP_LOAD_LOCAL_5, "LOAD_LOCAL 5" );
+	SIMPLE_INST( OP_LOAD_LOCAL_6, "LOAD_LOCAL 6" );
+	SIMPLE_INST( OP_LOAD_LOCAL_7, "LOAD_LOCAL 7" );
+	SIMPLE_INST( OP_LOAD_LOCAL_8, "LOAD_LOCAL 8" );
+	SIMPLE_INST( OP_LOAD_LOCAL_9, "LOAD_LOCAL 9" );
+	SIMPLE_INST( OP_LOAD_LOCAL_10, "LOAD_LOCAL 10" );
+	SIMPLE_INST( OP_LOAD_LOCAL_11, "LOAD_LOCAL 11" );
+	SIMPLE_INST( OP_SET_LOCAL_0, "SET_LOCAL 0" );
+	SIMPLE_INST( OP_SET_LOCAL_1, "SET_LOCAL 1" );
+	SIMPLE_INST( OP_SET_LOCAL_2, "SET_LOCAL 2" );
+	SIMPLE_INST( OP_SET_LOCAL_3, "SET_LOCAL 3" );
+	SIMPLE_INST( OP_SET_LOCAL_4, "SET_LOCAL 4" );
+	SIMPLE_INST( OP_SET_LOCAL_5, "SET_LOCAL 5" );
+	SIMPLE_INST( OP_SET_LOCAL_6, "SET_LOCAL 6" );
+	SIMPLE_INST( OP_SET_LOCAL_7, "SET_LOCAL 7" );
+	SIMPLE_INST( OP_SET_LOCAL_8, "SET_LOCAL 8" );
+	SIMPLE_INST( OP_SET_LOCAL_9, "SET_LOCAL 9" );
+	SIMPLE_INST( OP_SET_LOCAL_10, "SET_LOCAL 10" );
+	SIMPLE_INST( OP_SET_LOCAL_11, "SET_LOCAL 11" );
 	SIMPLE_INST( OP_CLOSE_UPVALUE, "CLOSE_UPVALUE" );
 	SIMPLE_INST( OP_ADD, "ADD" );
 	SIMPLE_INST( OP_SUB, "SUB" );
@@ -323,6 +347,41 @@ int Compiler::InstructionSize( uint8_t inst )
 	case QScript::OpCode::OP_PRINT: return 1;
 	case QScript::OpCode::OP_POP: return 1;
 	case QScript::OpCode::OP_LOAD_NULL: return 1;
+	case QScript::OpCode::OP_CALL_0:
+	case QScript::OpCode::OP_CALL_1:
+	case QScript::OpCode::OP_CALL_2:
+	case QScript::OpCode::OP_CALL_3:
+	case QScript::OpCode::OP_CALL_4:
+	case QScript::OpCode::OP_CALL_5:
+	case QScript::OpCode::OP_CALL_6:
+	case QScript::OpCode::OP_CALL_7:
+		return 1;
+	case QScript::OpCode::OP_LOAD_LOCAL_0:
+	case QScript::OpCode::OP_LOAD_LOCAL_1:
+	case QScript::OpCode::OP_LOAD_LOCAL_2:
+	case QScript::OpCode::OP_LOAD_LOCAL_3:
+	case QScript::OpCode::OP_LOAD_LOCAL_4:
+	case QScript::OpCode::OP_LOAD_LOCAL_5:
+	case QScript::OpCode::OP_LOAD_LOCAL_6:
+	case QScript::OpCode::OP_LOAD_LOCAL_7:
+	case QScript::OpCode::OP_LOAD_LOCAL_8:
+	case QScript::OpCode::OP_LOAD_LOCAL_9:
+	case QScript::OpCode::OP_LOAD_LOCAL_10:
+	case QScript::OpCode::OP_LOAD_LOCAL_11:
+		return 1;
+	case QScript::OpCode::OP_SET_LOCAL_0:
+	case QScript::OpCode::OP_SET_LOCAL_1:
+	case QScript::OpCode::OP_SET_LOCAL_2:
+	case QScript::OpCode::OP_SET_LOCAL_3:
+	case QScript::OpCode::OP_SET_LOCAL_4:
+	case QScript::OpCode::OP_SET_LOCAL_5:
+	case QScript::OpCode::OP_SET_LOCAL_6:
+	case QScript::OpCode::OP_SET_LOCAL_7:
+	case QScript::OpCode::OP_SET_LOCAL_8:
+	case QScript::OpCode::OP_SET_LOCAL_9:
+	case QScript::OpCode::OP_SET_LOCAL_10:
+	case QScript::OpCode::OP_SET_LOCAL_11:
+		return 1;
 	default:
 		return 1;
 	}

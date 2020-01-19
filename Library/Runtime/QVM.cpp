@@ -28,11 +28,17 @@ QScript::Object::AllocateUpvalue = NULL;
 #define INTERP_SWITCH( inst ) INTERP_DISPATCH;
 #define INTERP_OPCODE( opcode ) code_##opcode
 #define INTERP_DISPATCH goto *opcodeTable[inst = ( QScript::OpCode ) READ_BYTE( )]
+#define INTERP_DEFAULT ((void)0)
 #else
 #define INTERP_JMPTABLE ((void)0)
 #define INTERP_SWITCH( inst ) switch ( inst = ( QScript::OpCode ) READ_BYTE( ) )
 #define INTERP_OPCODE( opcode ) case QScript::OpCode::opcode
 #define INTERP_DISPATCH break
+#ifdef QVM_DEBUG
+#define INTERP_DEFAULT default: QVM::RuntimeError( frame, "rt_unknown_opcode", "Unknown opcode: " + std::to_string( inst ) );
+#else
+#define INTERP_DEFAULT default: UNREACHABLE();
+#endif
 #endif
 
 #define READ_BYTE( ) (*ip++)
@@ -241,11 +247,45 @@ namespace QVM
 				vm.m_Globals[ AS_STRING( constant )->GetString() ].From( vm.Peek( 0 ) );
 				INTERP_DISPATCH;
 			}
+			INTERP_OPCODE( OP_LOAD_LOCAL_0 ) :
+			INTERP_OPCODE( OP_LOAD_LOCAL_1 ) :
+			INTERP_OPCODE( OP_LOAD_LOCAL_2 ) :
+			INTERP_OPCODE( OP_LOAD_LOCAL_3 ) :
+			INTERP_OPCODE( OP_LOAD_LOCAL_4 ) :
+			INTERP_OPCODE( OP_LOAD_LOCAL_5 ) :
+			INTERP_OPCODE( OP_LOAD_LOCAL_6 ) :
+			INTERP_OPCODE( OP_LOAD_LOCAL_7 ) :
+			INTERP_OPCODE( OP_LOAD_LOCAL_8 ) :
+			INTERP_OPCODE( OP_LOAD_LOCAL_9 ) :
+			INTERP_OPCODE( OP_LOAD_LOCAL_10 ) :
+			INTERP_OPCODE( OP_LOAD_LOCAL_11 ) :
+			{
+				uint8_t offset = inst - QScript::OP_LOAD_LOCAL_0;
+				vm.Push( frame->m_Base[ offset ] );
+				INTERP_DISPATCH;
+			}
 			INTERP_OPCODE( OP_LOAD_LOCAL_SHORT ): vm.Push( frame->m_Base[ READ_BYTE() ] ); INTERP_DISPATCH;
 			INTERP_OPCODE( OP_LOAD_LOCAL_LONG ):
 			{
 				READ_LONG( offset );
 				vm.Push( frame->m_Base[ offset ] );
+				INTERP_DISPATCH;
+			}
+			INTERP_OPCODE( OP_SET_LOCAL_0 ): 
+			INTERP_OPCODE( OP_SET_LOCAL_1 ): 
+			INTERP_OPCODE( OP_SET_LOCAL_2 ): 
+			INTERP_OPCODE( OP_SET_LOCAL_3 ): 
+			INTERP_OPCODE( OP_SET_LOCAL_4 ): 
+			INTERP_OPCODE( OP_SET_LOCAL_5 ): 
+			INTERP_OPCODE( OP_SET_LOCAL_6 ): 
+			INTERP_OPCODE( OP_SET_LOCAL_7 ): 
+			INTERP_OPCODE( OP_SET_LOCAL_8 ): 
+			INTERP_OPCODE( OP_SET_LOCAL_9 ): 
+			INTERP_OPCODE( OP_SET_LOCAL_10 ):
+			INTERP_OPCODE( OP_SET_LOCAL_11 ) :
+			{
+				uint8_t offset = inst - QScript::OP_SET_LOCAL_0;
+				frame->m_Base[ offset ].From( vm.Peek( 0 ) );
 				INTERP_DISPATCH;
 			}
 			INTERP_OPCODE( OP_SET_LOCAL_SHORT ): frame->m_Base[ READ_BYTE() ].From( vm.Peek( 0 ) ); INTERP_DISPATCH;
@@ -433,14 +473,7 @@ namespace QVM
 				RESTORE_FRAME();
 				INTERP_DISPATCH;
 			}
-			 default:
-			 {
-#ifdef QVM_DEBUG
-				 QVM::RuntimeError( frame, "rt_unknown_opcode", "Unknown opcode: " + std::to_string( inst ) );
-#else
-				 UNREACHABLE();
-#endif
-			 }
+			INTERP_DEFAULT;
 			}
 		}
 
