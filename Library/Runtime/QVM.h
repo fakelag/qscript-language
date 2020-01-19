@@ -40,7 +40,7 @@ struct VM_t
 			// Relocate call frame stack pointers
 			for ( auto& frame : m_Frames )
 			{
-				int stackIndex = frame.m_Base - m_Stack;
+				auto stackIndex = ( uint32_t ) ( frame.m_Base - m_Stack );
 				frame.m_Base = &newStack[ stackIndex ];
 			}
 

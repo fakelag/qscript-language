@@ -33,40 +33,41 @@ bool Compiler::FindDebugSymbol( const QScript::Chunk_t& chunk, uint32_t offset, 
 
 std::string Compiler::ValueToString( const QScript::Value& value )
 {
-	std::string valueType;
+	//std::string valueType;
 
-	std::map< QScript::ValueType, std::string > typeStrings ={
-		{ QScript::ValueType::VT_NULL,		"null" },
-		{ QScript::ValueType::VT_NUMBER,	"number" },
-		{ QScript::ValueType::VT_BOOL,		"bool" },
-	};
+	//std::map< QScript::ValueType, std::string > typeStrings ={
+	//	{ QScript::ValueType::VT_NULL,		"null" },
+	//	{ QScript::ValueType::VT_NUMBER,	"number" },
+	//	{ QScript::ValueType::VT_BOOL,		"bool" },
+	//};
 
-	switch ( value.m_Type )
-	{
-	case QScript::ValueType::VT_OBJECT:
-	{
-		if ( IS_STRING( value ) )
-			valueType = "string";
-		else if ( IS_FUNCTION( value ) || IS_CLOSURE( value ) )
-			valueType = "function";
-		else if ( IS_NATIVE( value ) )
-			valueType = "native";
-		else
-			throw Exception( "disasm_invalid_value_object", "Invalid object type: " + std::to_string( AS_OBJECT( value )->m_Type ) );
+	//switch ( value.m_Type )
+	//{
+	//case QScript::ValueType::VT_OBJECT:
+	//{
+	//	if ( IS_STRING( value ) )
+	//		valueType = "string";
+	//	else if ( IS_FUNCTION( value ) || IS_CLOSURE( value ) )
+	//		valueType = "function";
+	//	else if ( IS_NATIVE( value ) )
+	//		valueType = "native";
+	//	else
+	//		throw Exception( "disasm_invalid_value_object", "Invalid object type: " + std::to_string( AS_OBJECT( value )->m_Type ) );
 
-		break;
-	}
-	default:
-	{
-		auto string =  typeStrings.find( value.m_Type );
-		if ( string != typeStrings.end() )
-			valueType = string->second;
-		else
-			throw Exception( "disasm_invalid_value", "Invalid value type: " + std::to_string( value.m_Type ) );
-	}
-	}
+	//	break;
+	//}
+	//default:
+	//{
+	//	auto string =  typeStrings.find( value.m_Type );
+	//	if ( string != typeStrings.end() )
+	//		valueType = string->second;
+	//	else
+	//		throw Exception( "disasm_invalid_value", "Invalid value type: " + std::to_string( value.m_Type ) );
+	//}
+	//}
 
-	return "(" + valueType + ", " + value.ToString() + ")";
+	//return "(" + valueType + ", " + value.ToString() + ")";
+	return value.ToString();
 }
 
 void Compiler::DisassembleChunk( const QScript::Chunk_t& chunk, const std::string& identifier, int ip )
@@ -76,7 +77,7 @@ void Compiler::DisassembleChunk( const QScript::Chunk_t& chunk, const std::strin
 
 	// Print each instruction and their operands
 	for ( size_t offset = 0; offset < chunk.m_Code.size(); )
-		offset = DisassembleInstruction( chunk, offset, ip != -1 && offset == ( size_t ) ip );
+		offset = DisassembleInstruction( chunk, ( uint32_t ) offset, ip != -1 && offset == ( size_t ) ip );
 }
 
 uint32_t Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32_t offset, bool isIp )

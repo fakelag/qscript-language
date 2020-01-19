@@ -83,7 +83,7 @@ namespace QVM
 
 		auto function = frame->m_Closure->GetFunction()->GetProperties();
 		if ( frame && Compiler::FindDebugSymbol( *function->m_Chunk,
-			frame->m_IP - &function->m_Chunk->m_Code[ 0 ], &debug ) )
+			( uint32_t ) ( frame->m_IP - &function->m_Chunk->m_Code[ 0 ] ), &debug ) )
 		{
 			token = debug.m_Token;
 			lineNr = debug.m_Line;
@@ -106,7 +106,7 @@ namespace QVM
 #endif
 
 		INTERP_JMPTABLE;
-
+		// sizeof( QScript::Value );
 		for (;;)
 		{
 #ifdef QVM_DEBUG
@@ -190,7 +190,7 @@ namespace QVM
 						std::cout << "IP: " << ( ip - &function->m_Chunk->m_Code[ 0 ] ) << std::endl;
 					}
 					else if ( input == "q" )
-						return true;
+						return MAKE_BOOL( true );
 					else
 						std::cout << "Invalid action: " << input << std::endl;
 				}
@@ -334,14 +334,14 @@ namespace QVM
 			INTERP_OPCODE( OP_JUMP_IF_ZERO_SHORT ):
 			{
 				auto offset = READ_BYTE();
-				if ( ( bool ) ( vm.Peek( 0 ) ) == false )
+				if ( !vm.Peek( 0 ).IsTruthy() )
 					ip += offset;
 				INTERP_DISPATCH;
 			}
 			INTERP_OPCODE( OP_JUMP_IF_ZERO_LONG ):
 			{
 				READ_LONG( offset );
-				if ( ( bool ) ( vm.Peek( 0 ) ) == false )
+				if ( !vm.Peek( 0 ).IsTruthy() )
 					ip += offset;
 				INTERP_DISPATCH;
 			}
@@ -401,7 +401,7 @@ namespace QVM
 				if ( !IS_BOOL( value ) )
 					QVM::RuntimeError( frame, "rt_invalid_operand_type", "Not operand must be of boolean type" );
 
-				vm.Push( MAKE_BOOL( !( bool )( value ) ) );
+				vm.Push( MAKE_BOOL( !value.IsTruthy() ) );
 				INTERP_DISPATCH;
 			}
 			INTERP_OPCODE( OP_NEGATE ):
@@ -534,7 +534,7 @@ void VM_t::Init( const QScript::Function_t* function )
 
 	// Push main function to stack slot 0. This is directly allocated, so
 	// the VM garbage collection won't ever release it
-	Push( QScript::Value( mainClosure ) );
+	Push( MAKE_OBJECT( mainClosure ) );
 
 	m_LivingUpvalues = NULL;
 }
@@ -649,7 +649,7 @@ void VM_t::ResolveImports()
 
 void VM_t::CreateNative( const std::string name, QScript::NativeFn native )
 {
-	auto global = std::pair<std::string, QScript::Object*>( name, QVM::AllocateNative( ( void* ) native ) );
+	auto global = std::pair<std::string, QScript::Value>( name, MAKE_OBJECT( QVM::AllocateNative( ( void* ) native ) ) );
 	m_Globals.insert( global );
 }
 

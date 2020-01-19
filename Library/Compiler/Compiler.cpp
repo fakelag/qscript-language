@@ -135,7 +135,7 @@ namespace Compiler
 			{
 				for ( auto value : function->m_Chunk->m_Constants )
 				{
-					if ( IS_OBJECT( value ) && value.m_Data.m_Object == object )
+					if ( IS_OBJECT( value ) && AS_OBJECT( value ) == object )
 						isReferenced = true;
 				}
 
@@ -246,7 +246,7 @@ namespace Compiler
 
 	bool Assembler::RequestUpvalue( const std::string name, uint32_t* out )
 	{
-		int thisFunction = m_Functions.size() - 1;
+		int thisFunction = ( int ) m_Functions.size() - 1;
 		for ( int i = thisFunction; i > 0; --i )
 		{
 			uint32_t upValue = 0;
@@ -277,7 +277,7 @@ namespace Compiler
 		}
 
 		context->m_Upvalues.push_back( Upvalue_t{ isLocal, index } );
-		return ( context->m_Func->m_NumUpvalues = context->m_Upvalues.size() ) - 1;
+		return ( context->m_Func->m_NumUpvalues = ( int ) context->m_Upvalues.size() ) - 1;
 	}
 
 	int Assembler::StackDepth()
