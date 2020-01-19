@@ -460,7 +460,7 @@ namespace Compiler
 	}
 
 	ListNode::ListNode( int lineNr, int colNr, const std::string token, NodeId id, const std::vector< BaseNode* >& nodeList )
-		: BaseNode( lineNr, colNr, token, NT_SIMPLE, id )
+		: BaseNode( lineNr, colNr, token, NT_LIST, id )
 	{
 		m_NodeList = nodeList;
 	}
