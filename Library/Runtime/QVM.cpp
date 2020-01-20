@@ -53,8 +53,8 @@ QScript::Object::AllocateUpvalue = NULL;
 #define RESTORE_FRAME( ) \
 frame = &vm.m_Frames.back(); \
 ip = frame->m_IP; \
-function = frame->m_Closure->GetFunction()->GetProperties(); \
-chunk = function->m_Chunk \
+function = frame->m_Closure->GetFunction(); \
+chunk = function->GetChunk() \
 
 #define READ_CONST_SHORT() (chunk->m_Constants[ READ_BYTE() ])
 #define READ_CONST_LONG( constant ) QScript::Value constant; { \
@@ -81,9 +81,9 @@ namespace QVM
 
 		QScript::Chunk_t::Debug_t debug;
 
-		auto function = frame->m_Closure->GetFunction()->GetProperties();
-		if ( frame && Compiler::FindDebugSymbol( *function->m_Chunk,
-			( uint32_t ) ( frame->m_IP - &function->m_Chunk->m_Code[ 0 ] ), &debug ) )
+		auto function = frame->m_Closure->GetFunction();
+		if ( frame && Compiler::FindDebugSymbol( *function->GetChunk(),
+			( uint32_t ) ( frame->m_IP - &function->GetChunk()->m_Code[ 0 ] ), &debug ) )
 		{
 			token = debug.m_Token;
 			lineNr = debug.m_Line;
@@ -98,8 +98,8 @@ namespace QVM
 		Frame_t* frame = &vm.m_Frames.back();
 		uint8_t* ip = frame->m_IP;
 
-		const QScript::Function_t* function = frame->m_Closure->GetFunction()->GetProperties();
-		QScript::Chunk_t* chunk = function->m_Chunk;
+		const QScript::FunctionObject* function = frame->m_Closure->GetFunction();
+		QScript::Chunk_t* chunk = function->GetChunk();
 
 #ifdef QVM_DEBUG
 		const uint8_t* runTill = NULL;
@@ -489,7 +489,9 @@ namespace QVM
 
 	QScript::FunctionObject* AllocateFunction( const std::string& name, int arity )
 	{
-		auto functionObject = new QScript::FunctionObject( new QScript::Function_t( name, arity ) );
+		assert( 0 );
+
+		auto functionObject = new QScript::FunctionObject( name, arity, NULL );
 		VirtualMachine->m_Objects.push_back( ( QScript::Object* ) functionObject );
 		return functionObject;
 	}
@@ -516,7 +518,7 @@ namespace QVM
 	}
 }
 
-void VM_t::Init( const QScript::Function_t* function )
+void VM_t::Init( const QScript::FunctionObject* mainFunction )
 {
 	m_Objects.clear();
 	m_Globals.clear();
@@ -526,11 +528,10 @@ void VM_t::Init( const QScript::Function_t* function )
 	m_StackTop = &m_Stack[ 0 ];
 
 	// Wrap the main function in a closure
-	auto mainFunction = new QScript::FunctionObject( function );
 	auto mainClosure = new QScript::ClosureObject( mainFunction );
 
 	// Create initial call frame
-	m_Frames.emplace_back( mainClosure, m_Stack, &function->m_Chunk->m_Code[ 0 ] );
+	m_Frames.emplace_back( mainClosure, m_Stack, &mainFunction->GetChunk()->m_Code[ 0 ] );
 
 	// Push main function to stack slot 0. This is directly allocated, so
 	// the VM garbage collection won't ever release it
@@ -549,16 +550,16 @@ void VM_t::Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target )
 	case QScript::ObjectType::OT_CLOSURE:
 	{
 		auto closure = AS_CLOSURE( target );
-		auto function = closure->GetFunction()->GetProperties();
+		auto function = closure->GetFunction();
 
-		if ( function->m_Arity != numArgs )
+		if ( function->NumArgs() != numArgs )
 		{
 			QVM::RuntimeError( frame, "rt_invalid_call_arity",
 				"Arguments provided is different from what the callee accepts, got: + " +
-				std::to_string( numArgs ) + " expected: " + std::to_string( function->m_Arity ) );
+				std::to_string( numArgs ) + " expected: " + std::to_string( function->NumArgs() ) );
 		}
 
-		m_Frames.emplace_back( closure, m_StackTop - numArgs - 1, &function->m_Chunk->m_Code[ 0 ] );
+		m_Frames.emplace_back( closure, m_StackTop - numArgs - 1, &function->GetChunk()->m_Code[ 0 ] );
 		break;
 	}
 	case QScript::ObjectType::OT_NATIVE:
@@ -577,12 +578,12 @@ void VM_t::Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target )
 
 uint8_t* VM_t::OpenUpvalues( QScript::ClosureObject* closure, Frame_t* frame, uint8_t* ip )
 {
-	auto function = closure->GetFunction()->GetProperties();
+	auto function = closure->GetFunction();
 	auto& upvalues = closure->GetUpvalues();
 
-	upvalues.reserve( function->m_NumUpvalues );
+	upvalues.reserve( function->NumUpvalues() );
 
-	for ( int i = 0; i < function->m_NumUpvalues; i++ )
+	for ( int i = 0; i < function->NumUpvalues(); i++ )
 	{
 		bool isLocal = READ_BYTE() == 1;
 		READ_LONG( index );
@@ -661,8 +662,8 @@ void VM_t::Release()
 		{
 		case QScript::ObjectType::OT_FUNCTION:
 		{
-			delete ( ( QScript::FunctionObject* )( object ) )->GetProperties()->m_Chunk;
-			delete ( ( QScript::FunctionObject* )( object ) )->GetProperties();
+			delete ( ( QScript::FunctionObject* )( object ) )->GetChunk();
+			delete ( ( QScript::FunctionObject* )( object ) );
 			break;
 		}
 		// case QScript::ObjectType::OT_CLOSURE:
@@ -683,7 +684,7 @@ void VM_t::Release()
 	m_Objects.clear();
 }
 
-void QScript::Interpret( const Function_t& function )
+void QScript::Interpret( const QScript::FunctionObject& function )
 {
 	VM_t vm( &function );
 

@@ -6,7 +6,7 @@
 
 namespace QScript
 {
-	Function_t* Compile( const std::string& source, int flags )
+	FunctionObject* Compile( const std::string& source, int flags )
 	{
 		Object::AllocateString = &Compiler::AllocateString;
 		Object::AllocateFunction = &Compiler::AllocateFunction;
@@ -95,7 +95,7 @@ namespace Compiler
 
 	QScript::FunctionObject* AllocateFunction( const std::string& name, int arity )
 	{
-		auto functionObject = new QScript::FunctionObject( new QScript::Function_t( name, arity ) );
+		auto functionObject = new QScript::FunctionObject( name, arity, NULL );
 		ObjectList.push_back( ( QScript::Object* ) functionObject );
 		return functionObject;
 	}
@@ -125,7 +125,7 @@ namespace Compiler
 		return upvalueObject;
 	}
 
-	void GarbageCollect( const std::vector< QScript::Function_t* >& functions )
+	void GarbageCollect( const std::vector< QScript::FunctionObject* >& functions )
 	{
 		for ( auto object : ObjectList )
 		{
@@ -133,7 +133,7 @@ namespace Compiler
 
 			for ( auto function : functions )
 			{
-				for ( auto value : function->m_Chunk->m_Constants )
+				for ( auto value : function->GetChunk()->m_Constants )
 				{
 					if ( IS_OBJECT( value ) && AS_OBJECT( value ) == object )
 						isReferenced = true;
@@ -158,7 +158,7 @@ namespace Compiler
 		CreateFunction( "<main>", 0, chunk );
 	}
 
-	std::vector< QScript::Function_t* > Assembler::Finish()
+	std::vector< QScript::FunctionObject* > Assembler::Finish()
 	{
 		delete CurrentStack();
 		m_Compiled.push_back( CurrentFunction() );
@@ -169,10 +169,10 @@ namespace Compiler
 
 	QScript::Chunk_t* Assembler::CurrentChunk()
 	{
-		return m_Functions.back().m_Func->m_Chunk;
+		return m_Functions.back().m_Func->GetChunk();
 	}
 
-	QScript::Function_t* Assembler::CurrentFunction()
+	QScript::FunctionObject* Assembler::CurrentFunction()
 	{
 		return m_Functions.back().m_Func;
 	}
@@ -182,9 +182,9 @@ namespace Compiler
 		return m_Functions.back().m_Stack;
 	}
 
-	QScript::Function_t* Assembler::CreateFunction( const std::string& name, int arity, QScript::Chunk_t* chunk )
+	QScript::FunctionObject* Assembler::CreateFunction( const std::string& name, int arity, QScript::Chunk_t* chunk )
 	{
-		auto function = new QScript::Function_t( name, arity, chunk );
+		auto function = new QScript::FunctionObject( name, arity, chunk );
 		auto context = FunctionContext_t{ function, new Assembler::Stack_t() };
 
 		m_Functions.push_back( context );
@@ -197,12 +197,12 @@ namespace Compiler
 	{
 		auto function = &m_Functions.back();
 
-		*func = new QScript::FunctionObject( function->m_Func );
+		*func = function->m_Func;
 		*upvalues = function->m_Upvalues;
 
 		// Implicit return (null)
-		EmitByte( QScript::OpCode::OP_LOAD_NULL, function->m_Func->m_Chunk );
-		EmitByte( QScript::OpCode::OP_RETURN, function->m_Func->m_Chunk );
+		EmitByte( QScript::OpCode::OP_LOAD_NULL, function->m_Func->GetChunk() );
+		EmitByte( QScript::OpCode::OP_RETURN, function->m_Func->GetChunk() );
 
 		// Finished compiling
 		m_Compiled.push_back( function->m_Func );
@@ -277,7 +277,11 @@ namespace Compiler
 		}
 
 		context->m_Upvalues.push_back( Upvalue_t{ isLocal, index } );
-		return ( context->m_Func->m_NumUpvalues = ( int ) context->m_Upvalues.size() ) - 1;
+
+		uint32_t numUpvalues = ( uint32_t ) context->m_Upvalues.size();
+
+		context->m_Func->SetUpvalues( ( int ) numUpvalues );
+		return numUpvalues - 1;
 	}
 
 	int Assembler::StackDepth()

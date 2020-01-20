@@ -10,9 +10,9 @@ std::string QScript::Value::ToString() const
 		switch ( object->m_Type )
 		{
 		case OT_STRING: return AS_STRING( *this )->GetString();
-		case OT_FUNCTION: return AS_FUNCTION( *this )->GetProperties()->m_Name;
+		case OT_FUNCTION: return AS_FUNCTION( *this )->GetName();
 		case OT_NATIVE: return "<native code>";
-		case OT_CLOSURE: return AS_CLOSURE( *this )->GetFunction()->GetProperties()->m_Name;
+		case OT_CLOSURE: return AS_CLOSURE( *this )->GetFunction()->GetName();
 		case OT_UPVALUE: return "<upvalue>";
 		default:
 		{

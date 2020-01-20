@@ -243,7 +243,7 @@ uint32_t Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32
 
 		auto functionObj = AS_FUNCTION( function );
 
-		for ( int i = 0; i < functionObj->GetProperties()->m_NumUpvalues; ++i )
+		for ( int i = 0; i < functionObj->NumUpvalues(); ++i )
 		{
 			uint32_t upvalueOffset = offset + InstructionSize( QScript::OpCode::OP_CLOSURE_SHORT ) + ( i * 5 );
 
@@ -255,7 +255,7 @@ uint32_t Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32
 		}
 
 		instOffset = offset + InstructionSize( QScript::OpCode::OP_CLOSURE_SHORT )
-			+ ( functionObj->GetProperties()->m_NumUpvalues * 5 );
+			+ ( functionObj->NumUpvalues() * 5 );
 		break;
 	}
 	case QScript::OpCode::OP_CLOSURE_LONG:
@@ -268,7 +268,7 @@ uint32_t Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32
 
 		auto functionObj = AS_FUNCTION( function );
 
-		for ( int i = 0; i < functionObj->GetProperties()->m_NumUpvalues; ++i )
+		for ( int i = 0; i < functionObj->NumUpvalues(); ++i )
 		{
 			uint8_t upvalueOffset = offset + InstructionSize( QScript::OpCode::OP_CLOSURE_LONG ) + ( i * 5 );
 
@@ -280,7 +280,7 @@ uint32_t Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32
 		}
 
 		instOffset = offset + InstructionSize( QScript::OpCode::OP_CLOSURE_LONG )
-			+ ( functionObj->GetProperties()->m_NumUpvalues * 5 );
+			+ ( functionObj->NumUpvalues() * 5 );
 		break;
 	}
 	default:

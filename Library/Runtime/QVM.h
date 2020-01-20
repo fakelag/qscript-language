@@ -18,7 +18,7 @@ struct VM_t
 {
 	static const int s_InitStackSize = 256;
 
-	VM_t( const QScript::Function_t* function )
+	VM_t( const QScript::FunctionObject* function )
 	{
 		Init( function );
 	}
@@ -68,7 +68,7 @@ struct VM_t
 		return m_StackTop[ -1 - offset ];
 	}
 
-	void Init( const QScript::Function_t* function );
+	void Init( const QScript::FunctionObject* function );
 	void Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target );
 	uint8_t* OpenUpvalues( QScript::ClosureObject* closure, Frame_t* frame, uint8_t* ip );
 	void CloseUpvalues( QScript::Value* last );

@@ -32,7 +32,7 @@ namespace Compiler
 	QScript::NativeFunctionObject* AllocateNative( void* nativeFn );
 	QScript::ClosureObject* AllocateClosure( QScript::FunctionObject* function );
 	QScript::UpvalueObject* AllocateUpvalue( QScript::Value* valuePtr );
-	void GarbageCollect( const std::vector< QScript::Function_t* >& functions );
+	void GarbageCollect( const std::vector< QScript::FunctionObject* >& functions );
 
 	class Assembler
 	{
@@ -63,7 +63,7 @@ namespace Compiler
 
 		struct FunctionContext_t
 		{
-			QScript::Function_t*		m_Func;
+			QScript::FunctionObject*	m_Func;
 			Stack_t*					m_Stack;
 			std::vector< Upvalue_t >	m_Upvalues;
 		};
@@ -71,15 +71,15 @@ namespace Compiler
 		Assembler( QScript::Chunk_t* chunk, int optimizationFlags );
 
 		uint32_t 									AddUpvalue( FunctionContext_t* context, uint32_t index, bool isLocal );
-		QScript::Function_t*						CreateFunction( const std::string& name, int arity, QScript::Chunk_t* chunk );
+		QScript::FunctionObject*					CreateFunction( const std::string& name, int arity, QScript::Chunk_t* chunk );
 		uint32_t									CreateLocal( const std::string& name );
 		QScript::Chunk_t*							CurrentChunk();
-		QScript::Function_t*						CurrentFunction();
+		QScript::FunctionObject*					CurrentFunction();
 		Stack_t*									CurrentStack();
 		bool										FindLocal( const std::string& name, uint32_t* out );
 		bool 										FindLocalFromStack( Stack_t* stack, const std::string& name, uint32_t* out );
 		void										FinishFunction( QScript::FunctionObject** func, std::vector< Upvalue_t >* upvalues );
-		std::vector< QScript::Function_t* >			Finish();
+		std::vector< QScript::FunctionObject* >		Finish();
 		Local_t*									GetLocal( int local );
 		void										PopScope();
 		void										PushScope();
@@ -91,6 +91,6 @@ namespace Compiler
 		std::vector< FunctionContext_t >			m_Functions;
 		int											m_OptimizationFlags;
 
-		std::vector< QScript::Function_t* >			m_Compiled;
+		std::vector< QScript::FunctionObject* >		m_Compiled;
 	};
 };
