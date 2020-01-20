@@ -109,7 +109,7 @@ namespace Compiler
 
 	QScript::ClosureObject* AllocateClosure( QScript::FunctionObject* function )
 	{
-		_ASSERT( 1 );
+		assert( 0 );
 
 		auto closureObject = new QScript::ClosureObject( function );
 		ObjectList.push_back( ( QScript::Object* ) closureObject );
@@ -118,7 +118,7 @@ namespace Compiler
 
 	QScript::UpvalueObject* AllocateUpvalue( QScript::Value* valuePtr )
 	{
-		_ASSERT( 1 );
+		assert( 0 );
 
 		auto upvalueObject = new QScript::UpvalueObject( valuePtr );
 		ObjectList.push_back( ( QScript::Object* ) upvalueObject );
