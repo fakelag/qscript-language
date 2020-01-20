@@ -31,7 +31,13 @@ QScript::Object::AllocateUpvalue = NULL;
 #define INTERP_DEFAULT ((void)0)
 #else
 #define INTERP_JMPTABLE ((void)0)
+#ifdef QVM_DEBUG
+#define INTERP_SWITCH( inst ) inst = ( QScript::OpCode ) READ_BYTE( ); \
+if (traceExec) Compiler::DisassembleInstruction( *chunk, ip - &chunk->m_Code[ 0 ], false ); \
+switch ( inst )
+#else
 #define INTERP_SWITCH( inst ) switch ( inst = ( QScript::OpCode ) READ_BYTE( ) )
+#endif
 #define INTERP_OPCODE( opcode ) case QScript::OpCode::opcode
 #define INTERP_DISPATCH break
 #ifdef QVM_DEBUG
@@ -103,6 +109,7 @@ namespace QVM
 
 #ifdef QVM_DEBUG
 		const uint8_t* runTill = NULL;
+		bool traceExec = false;
 #endif
 		// std::is_trivially_copyable<QScript::Value>::value;
 		INTERP_JMPTABLE;
@@ -116,13 +123,19 @@ namespace QVM
 
 				for( ;; )
 				{
-					std::cout << "Action (s/r/ds/dc/dca/dcnst/dg/ip/help/q): ";
+					std::cout << "Action (s/r/ds/dc/dca/dcnst/dg/ip/t/help/q): ";
 					std::getline( std::cin, input );
 
 					if ( input == "r" )
 					{
 						runTill = ( const uint8_t* ) -1;
 						break;
+					}
+					else if ( input == "t")
+					{
+						traceExec = !traceExec;
+						std::cout << "Tracing: " << ( traceExec ? "Enabled" : "Disabled" ) << std::endl;
+						continue;
 					}
 					else if ( input == "ds" )
 					{
@@ -131,24 +144,23 @@ namespace QVM
 					}
 					else if ( input == "dc" )
 					{
-						Compiler::DisassembleChunk( *function->m_Chunk, function->m_Name,
-							( unsigned int ) ( ip - ( uint8_t* ) &function->m_Chunk->m_Code[ 0 ] ) );
+						Compiler::DisassembleChunk( *function->GetChunk(), function->GetName(),
+							( unsigned int ) ( ip - ( uint8_t* ) &function->GetChunk()->m_Code[ 0 ] ) );
 						continue;
 					}
 					else if ( input == "dca" )
 					{
 						auto& main = vm.m_Frames[ 0 ];
 
-						std::function< void( QScript::FunctionObject* value ) > visitFunction;
-						visitFunction = [ &visitFunction, &ip, &vm ]( QScript::FunctionObject* function ) -> void
+						std::function< void( const QScript::FunctionObject* function ) > visitFunction;
+						visitFunction = [ &visitFunction, &ip, &vm ]( const QScript::FunctionObject* function ) -> void
 						{
-							auto props = function->GetProperties();
 							auto isExecuting = vm.m_Frames.back().m_Closure->GetFunction() == function;
 
-							Compiler::DisassembleChunk( *props->m_Chunk, props->m_Name,
-								isExecuting ? ( unsigned int ) ( ip - ( uint8_t* ) &props->m_Chunk->m_Code[ 0 ] ) : -1 );
+							Compiler::DisassembleChunk( *function->GetChunk(), function->GetName(),
+								isExecuting ? ( unsigned int ) ( ip - ( uint8_t* ) &function->GetChunk()->m_Code[ 0 ] ) : -1 );
 
-							for ( auto constant : props->m_Chunk->m_Constants )
+							for ( auto constant : function->GetChunk()->m_Constants )
 							{
 								if ( !IS_FUNCTION( constant ) )
 									continue;
@@ -162,7 +174,7 @@ namespace QVM
 					}
 					else if ( input == "dcnst" )
 					{
-						Compiler::DumpConstants( *function->m_Chunk );
+						Compiler::DumpConstants( *function->GetChunk() );
 						continue;
 					}
 					else if ( input == "dg" )
@@ -172,7 +184,7 @@ namespace QVM
 					}
 					else if ( input.substr( 0, 2 ) == "s " )
 					{
-						runTill = ( &function->m_Chunk->m_Code[ 0 ] ) + std::atoi( input.substr( 2 ).c_str() ) - 1;
+						runTill = ( &function->GetChunk()->m_Code[ 0 ] ) + std::atoi( input.substr( 2 ).c_str() ) - 1;
 						break;
 					}
 					else if ( input == "help" )
@@ -187,7 +199,7 @@ namespace QVM
 					}
 					else if ( input == "ip" )
 					{
-						std::cout << "IP: " << ( ip - &function->m_Chunk->m_Code[ 0 ] ) << std::endl;
+						std::cout << "IP: " << ( ip - &function->GetChunk()->m_Code[ 0 ] ) << std::endl;
 					}
 					else if ( input == "q" )
 						return MAKE_BOOL( true );
