@@ -69,8 +69,8 @@ namespace Compiler
 		std::string stringBuffer = "";
 
 		LexerState lexerState = LS_CODE;
-		int currentLineNr = 0;
-		int currentColNr = 0;
+		size_t currentLineNr = 0;
+		size_t currentColNr = 0;
 
 		// Populate language keywords array
 		for ( auto it = LanguageSymbols.begin(); it != LanguageSymbols.end(); ++it )
@@ -95,7 +95,7 @@ namespace Compiler
 		};
 
 		// Get the longest searchable token length
-		int longestToken = languageSymbols.size() > 0 ? languageSymbols[ 0 ].m_String.length() : 0;
+		size_t longestToken = languageSymbols.size() > 0 ? languageSymbols[ 0 ].m_String.length() : 0;
 
 		auto pushToken = [ &currentLineNr, &currentColNr, &stringBuffer, &results, &isInteger, &isDecimal ]( bool isStrCnst = false ) -> void {
 			if ( stringBuffer.length() == 0 && !isStrCnst )
@@ -119,8 +119,8 @@ namespace Compiler
 			results.push_back( Token_t {
 				token,
 				BindingPower::BP_NONE,
-				currentLineNr,
-				currentColNr,
+				( int ) currentLineNr,
+				( int ) currentColNr,
 				stringBuffer,
 			} );
 
@@ -145,13 +145,13 @@ namespace Compiler
 					results.push_back( Token_t {
 						symIt->m_Token,
 						symIt->m_LBP,
-						currentLineNr,
-						currentColNr,
+						( int ) currentLineNr,
+						( int ) currentColNr,
 						symIt->m_String,
 					} );
 
 					currentColNr += symIt->m_String.length();
-					return symIt->m_String.length();
+					return ( int ) symIt->m_String.length();
 				}
 			}
 

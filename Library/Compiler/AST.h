@@ -11,6 +11,7 @@ namespace Compiler
 		NT_VALUE,			// Value node. Contains a value, links to no further nodes
 		NT_SIMPLE,			// Simple node, links to a single subtree (of 1...n items)
 		NT_COMPLEX,			// Complex node, links to two (left & right) nodes
+		NT_LIST,			// List node, 0...n child nodes
 	};
 
 	enum NodeId

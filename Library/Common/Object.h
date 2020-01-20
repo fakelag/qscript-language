@@ -3,7 +3,6 @@
 
 namespace QScript
 {
-	struct Function_t;
 	using NativeFn = Value (*)( const Value* args, int argCount );
 
 	class StringObject : public Object
@@ -28,20 +27,32 @@ namespace QScript
 	class FunctionObject : public Object
 	{
 	public:
-		FORCEINLINE FunctionObject( const Function_t* function )
+		FORCEINLINE FunctionObject( const std::string& name, int arity, Chunk_t* chunk )
 		{
 			m_Type = OT_FUNCTION;
-			m_Function = function;
+			// m_Function = function;
+			m_Name = name;
+			m_Arity = arity;
+			m_NumUpvalues = 0;
+			m_Chunk = chunk;
 		}
 
 		~FunctionObject()
 		{
 		}
 
-		FORCEINLINE	const Function_t* GetProperties() const { return m_Function; }
+		FORCEINLINE const std::string& GetName() 	const { return m_Name; }
+		FORCEINLINE int NumArgs() 					const { return m_Arity; }
+		FORCEINLINE int NumUpvalues() 				const { return m_NumUpvalues; }
+		FORCEINLINE Chunk_t* GetChunk() 			const { return m_Chunk; }
+
+		FORCEINLINE void SetUpvalues( int numUpvalues ) { ++m_NumUpvalues; }
 
 	private:
-		const Function_t* m_Function;
+		std::string				m_Name;
+		int						m_Arity;
+		int 					m_NumUpvalues;
+		Chunk_t*				m_Chunk;
 	};
 
 	class NativeFunctionObject : public Object
@@ -70,7 +81,7 @@ namespace QScript
 			m_Type = OT_UPVALUE;
 			m_Slot = value;
 			m_Next = NULL;
-			m_Closed.From( MAKE_NULL );
+			m_Closed = MAKE_NULL;
 		}
 
 		~UpvalueObject()
@@ -80,7 +91,7 @@ namespace QScript
 		FORCEINLINE Value* GetValue() { return m_Slot; }
 		FORCEINLINE void SetNext( UpvalueObject* next ) { m_Next = next; }
 		FORCEINLINE UpvalueObject* GetNext() { return m_Next; }
-		FORCEINLINE void Close() { m_Closed.From( *m_Slot ); m_Slot = &m_Closed; }
+		FORCEINLINE void Close() { m_Closed = *m_Slot; m_Slot = &m_Closed; }
 
 	private:
 		Value*				m_Slot;
@@ -93,7 +104,7 @@ namespace QScript
 	class ClosureObject : public Object
 	{
 	public:
-		FORCEINLINE ClosureObject( FunctionObject* function )
+		FORCEINLINE ClosureObject( const FunctionObject* function )
 		{
 			m_Type = OT_CLOSURE;
 			m_Fn = function;
@@ -103,11 +114,11 @@ namespace QScript
 		{
 		}
 
-		FORCEINLINE	FunctionObject* GetFunction() { return m_Fn; }
+		FORCEINLINE	const FunctionObject* GetFunction() const { return m_Fn; }
 		FORCEINLINE	std::vector< UpvalueObject* >& GetUpvalues() { return m_Upvalues; }
 
 	private:
-		FunctionObject* 				m_Fn;
+		const FunctionObject* 			m_Fn;
 		std::vector< UpvalueObject* >	m_Upvalues;
 	};
 }

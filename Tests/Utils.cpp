@@ -8,20 +8,10 @@
 
 // Dangerous copy functions
 void DeepCopy( QScript::Value* target, QScript::Value* other );
-QScript::Object* DeepCopyObject( QScript::Object* object )
+QScript::Object* DeepCopyObject( const QScript::Object* object )
 {
 	switch ( object->m_Type )
 	{
-	case QScript::ObjectType::OT_FUNCTION:
-	{
-		auto oldFunction = ( ( QScript::FunctionObject* )( object ) );
-		auto function = oldFunction->GetProperties();
-
-		auto newFunction = new QScript::Function_t( function->m_Name, function->m_Arity, function->m_Chunk );
-		newFunction->m_NumUpvalues = function->m_NumUpvalues;
-
-		return new QScript::FunctionObject( newFunction );
-	}
 	case QScript::ObjectType::OT_CLOSURE:
 	{
 		auto oldClosure = ( ( QScript::ClosureObject* )( object ) );
@@ -66,12 +56,11 @@ void DeepCopy( QScript::Value* target, QScript::Value* other )
 {
 	if ( IS_OBJECT( *other ) )
 	{
-		target->From( *other );
-		target->m_Data.m_Object = DeepCopyObject( AS_OBJECT( *other ) );
+		*target = MAKE_OBJECT( DeepCopyObject( AS_OBJECT( *other ) ) );
 	}
 	else
 	{
-		target->From( *other );
+		*target = *other;
 	}
 }
 

@@ -1,8 +1,5 @@
 #include "QLibPCH.h"
 
-#include "../Includes/QScript.h"
-#include "../Includes/Exception.h"
-
 std::string ReadFile( const std::string& path )
 {
 	std::string content = "";
@@ -36,7 +33,7 @@ int main()
 
 		try
 		{
-			QScript::Function_t* function = QScript::Compile( ReadFile( "program.qss" ) );
+			QScript::FunctionObject* function = QScript::Compile( ReadFile( "program.qss" ) );
 			QScript::Interpret( *function );
 
 			QScript::FreeFunction( function );

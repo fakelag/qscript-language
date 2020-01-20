@@ -38,7 +38,7 @@ namespace Compiler
 			bool found = false;
 			for ( uint32_t i = 0; i < chunk->m_Constants.size(); ++i )
 			{
-				if ( chunk->m_Constants[ i ] == value )
+				if ( ( chunk->m_Constants[ i ] == value ).IsTruthy() )
 				{
 					constant = i;
 					found = true;
@@ -172,7 +172,7 @@ namespace Compiler
 
 		// Call CompileXXX functions from Compiler.cpp for code generation,
 		// but append debugging info to the chunk here
-		uint32_t start = chunk->m_Code.size();
+		uint32_t start = ( uint32_t ) chunk->m_Code.size();
 
 		switch( m_NodeId )
 		{
@@ -187,13 +187,13 @@ namespace Compiler
 	ValueNode::ValueNode( int lineNr, int colNr, const std::string token, NodeId id, const QScript::Value& value )
 		: BaseNode( lineNr, colNr, token, NT_VALUE, id )
 	{
-		m_Value.From( value );
+		m_Value = value;
 	}
 
 	void ValueNode::Compile( Assembler& assembler, uint32_t options )
 	{
 		auto chunk = assembler.CurrentChunk();
-		uint32_t start = chunk->m_Code.size();
+		uint32_t start = ( uint32_t ) chunk->m_Code.size();
 
 		switch ( m_NodeId )
 		{
@@ -311,7 +311,7 @@ namespace Compiler
 	void ComplexNode::Compile( Assembler& assembler, uint32_t options )
 	{
 		auto chunk = assembler.CurrentChunk();
-		uint32_t start = chunk->m_Code.size();
+		uint32_t start = ( uint32_t ) chunk->m_Code.size();
 
 		switch ( m_NodeId )
 		{
@@ -329,7 +329,7 @@ namespace Compiler
 		{
 			m_Left->Compile( assembler, COMPILE_EXPRESSION( options ) );
 
-			uint32_t endJump = chunk->m_Code.size();
+			uint32_t endJump = ( uint32_t ) chunk->m_Code.size();
 
 			// Left hand operand evaluated to true, discard it and return the right hand result
 			EmitByte( QScript::OpCode::OP_POP, chunk );
@@ -337,7 +337,7 @@ namespace Compiler
 			m_Right->Compile( assembler, COMPILE_EXPRESSION( options ) );
 
 			// Create jump instruction
-			PlaceJump( chunk, endJump, chunk->m_Code.size() - endJump, QScript::OpCode::OP_JUMP_IF_ZERO_SHORT, QScript::OpCode::OP_JUMP_IF_ZERO_LONG );
+			PlaceJump( chunk, endJump, ( uint32_t ) chunk->m_Code.size() - endJump, QScript::OpCode::OP_JUMP_IF_ZERO_SHORT, QScript::OpCode::OP_JUMP_IF_ZERO_LONG );
 			break;
 		}
 		case NODE_CALL:
@@ -370,14 +370,14 @@ namespace Compiler
 		{
 			m_Left->Compile( assembler, COMPILE_EXPRESSION( options ) );
 
-			uint32_t endJump = chunk->m_Code.size();
+			uint32_t endJump = ( uint32_t ) chunk->m_Code.size();
 
 			// Pop left operand off
 			EmitByte( QScript::OpCode::OP_POP, chunk );
 
 			m_Right->Compile( assembler, COMPILE_EXPRESSION( options ) );
 
-			uint32_t patchSize = PlaceJump( chunk, endJump, chunk->m_Code.size() - endJump, QScript::OpCode::OP_JUMP_SHORT, QScript::OpCode::OP_JUMP_LONG );
+			uint32_t patchSize = PlaceJump( chunk, endJump, ( uint32_t ) chunk->m_Code.size() - endJump, QScript::OpCode::OP_JUMP_SHORT, QScript::OpCode::OP_JUMP_LONG );
 
 			PlaceJump( chunk, endJump, patchSize, QScript::OpCode::OP_JUMP_IF_ZERO_SHORT, QScript::OpCode::OP_JUMP_IF_ZERO_LONG );
 			break;
@@ -436,7 +436,7 @@ namespace Compiler
 	void SimpleNode::Compile( Assembler& assembler, uint32_t options )
 	{
 		auto chunk = assembler.CurrentChunk();
-		uint32_t start = chunk->m_Code.size();
+		uint32_t start = ( uint32_t ) chunk->m_Code.size();
 
 		std::map< NodeId, QScript::OpCode > singleByte ={
 			{ NODE_PRINT, 			QScript::OpCode::OP_PRINT },
@@ -460,7 +460,7 @@ namespace Compiler
 	}
 
 	ListNode::ListNode( int lineNr, int colNr, const std::string token, NodeId id, const std::vector< BaseNode* >& nodeList )
-		: BaseNode( lineNr, colNr, token, NT_SIMPLE, id )
+		: BaseNode( lineNr, colNr, token, NT_LIST, id )
 	{
 		m_NodeList = nodeList;
 	}
@@ -487,25 +487,25 @@ namespace Compiler
 	void ListNode::Compile( Assembler& assembler, uint32_t options )
 	{
 		auto chunk = assembler.CurrentChunk();
-		uint32_t start = chunk->m_Code.size();
+		uint32_t start = ( uint32_t ) chunk->m_Code.size();
 
 		switch ( m_NodeId )
 		{
 		case NODE_DO:
 		{
 			// Jump over wrapper to pop conditional value
-			uint32_t condWrapperJump = chunk->m_Code.size();
+			uint32_t condWrapperJump = ( uint32_t ) chunk->m_Code.size();
 
 			// Pop condition value
 			EmitByte( QScript::OpCode::OP_POP, chunk );
 
 			// Jump over wrapper on first iteration
 			uint32_t condWrapperBegin = condWrapperJump;
-			condWrapperBegin += PlaceJump( chunk, condWrapperJump, chunk->m_Code.size() - condWrapperJump,
+			condWrapperBegin += PlaceJump( chunk, condWrapperJump, ( uint32_t ) chunk->m_Code.size() - condWrapperJump,
 				QScript::OpCode::OP_JUMP_SHORT, QScript::OpCode::OP_JUMP_LONG );
 
 			// Address to loop back to
-			uint32_t bodyBegin = chunk->m_Code.size();
+			uint32_t bodyBegin = ( uint32_t ) chunk->m_Code.size();
 
 			// Loop body
 			m_NodeList[ 0 ]->Compile( assembler, COMPILE_STATEMENT( options ) );
@@ -513,15 +513,15 @@ namespace Compiler
 			// Loop condition
 			m_NodeList[ 1 ]->Compile( assembler, COMPILE_EXPRESSION( options ) );
 
-			uint32_t backJumpAddress = chunk->m_Code.size();
+			uint32_t backJumpAddress = ( uint32_t ) chunk->m_Code.size();
 			uint32_t backJumpSize = backJumpAddress - condWrapperBegin;
 
 			// Jump back to top
-			uint32_t backJumpPatchSize = PlaceJump( chunk, chunk->m_Code.size(), backJumpSize + 5,
+			uint32_t backJumpPatchSize = PlaceJump( chunk, ( uint32_t ) chunk->m_Code.size(), backJumpSize + 5,
 				QScript::OpCode::OP_JUMP_BACK_SHORT, QScript::OpCode::OP_JUMP_BACK_LONG );
 
 			// Skipping jump if condition is false
-			uint32_t overJumpPatchSize = PlaceJump( chunk, chunk->m_Code.size() - backJumpPatchSize, backJumpPatchSize,
+			uint32_t overJumpPatchSize = PlaceJump( chunk, ( uint32_t ) chunk->m_Code.size() - backJumpPatchSize, backJumpPatchSize,
 				QScript::OpCode::OP_JUMP_IF_ZERO_SHORT, QScript::OpCode::OP_JUMP_IF_ZERO_LONG );
 
 			// Correct backjump offset
@@ -543,26 +543,26 @@ namespace Compiler
 			if ( m_NodeList[ 0 ] )
 				m_NodeList[ 0 ]->Compile( assembler, COMPILE_STATEMENT( options ) );
 
-			uint32_t loopConditionBegin = chunk->m_Code.size();
+			uint32_t loopConditionBegin = ( uint32_t ) chunk->m_Code.size();
 
 			// Compile condition
 			if ( m_NodeList[ 1 ] )
 				m_NodeList[ 1 ]->Compile( assembler, COMPILE_EXPRESSION( options ) );
 
 			// Jump to loop end
-			uint32_t loopSkipJump = chunk->m_Code.size();
+			uint32_t loopSkipJump = ( uint32_t ) chunk->m_Code.size();
 
 			// Pop condition value
 			EmitByte( QScript::OpCode::OP_POP, chunk );
 
-			uint32_t loopIncrementBegin = chunk->m_Code.size();
+			uint32_t loopIncrementBegin = ( uint32_t ) chunk->m_Code.size();
 
 			// Increment statement
 			if ( m_NodeList[ 2 ] )
 				m_NodeList[ 2 ]->Compile( assembler, COMPILE_STATEMENT( options ) );
 
 			// Jump to condition (must be patched)
-			uint32_t loopConditionJump = chunk->m_Code.size();
+			uint32_t loopConditionJump = ( uint32_t ) chunk->m_Code.size();
 			uint32_t jumpToConditionSize = PlaceJump( chunk, loopConditionJump, loopConditionJump - loopConditionBegin + 5,
 				QScript::OpCode::OP_JUMP_BACK_SHORT, QScript::OpCode::OP_JUMP_BACK_LONG );
 
@@ -571,7 +571,7 @@ namespace Compiler
 				m_NodeList[ 3 ]->Compile( assembler, COMPILE_STATEMENT( options ) );
 
 			// Jump to increment statement
-			PlaceJump( chunk, chunk->m_Code.size(), chunk->m_Code.size() - loopIncrementBegin,
+			PlaceJump( chunk, ( uint32_t ) chunk->m_Code.size(), ( uint32_t ) chunk->m_Code.size() - loopIncrementBegin,
 				QScript::OpCode::OP_JUMP_BACK_SHORT, QScript::OpCode::OP_JUMP_BACK_LONG );
 
 			// Jump over increment on first fall through
@@ -579,7 +579,7 @@ namespace Compiler
 				QScript::OpCode::OP_JUMP_SHORT, QScript::OpCode::OP_JUMP_LONG );
 
 			// Jump to loop end
-			uint32_t jumpToLoopEndSize = PlaceJump( chunk, loopSkipJump, chunk->m_Code.size() - loopSkipJump,
+			uint32_t jumpToLoopEndSize = PlaceJump( chunk, loopSkipJump, ( uint32_t ) chunk->m_Code.size() - loopSkipJump,
 				QScript::OpCode::OP_JUMP_IF_ZERO_SHORT, QScript::OpCode::OP_JUMP_IF_ZERO_LONG );
 
 			// Pop condition value
@@ -600,7 +600,7 @@ namespace Compiler
 			auto argNode = static_cast< ListNode* >( m_NodeList[ 1 ] );
 
 			auto functionName = AS_STRING( static_cast< ValueNode* >( m_NodeList[ 0 ] )->GetValue() )->GetString();
-			auto functionArity = argNode->m_NodeList.size();
+			auto functionArity = ( uint32_t ) argNode->m_NodeList.size();
 
 			// Allocate chunk & create function
 			auto function = assembler.CreateFunction( functionName, functionArity, QScript::AllocChunk() );
@@ -621,7 +621,7 @@ namespace Compiler
 			assembler.FinishFunction( &functionObject, &upvalues );
 
 			// Create a constant (function) in enclosing chunk
-			EmitConstant( chunk, QScript::Value( functionObject ), QScript::OpCode::OP_CLOSURE_SHORT,
+			EmitConstant( chunk, MAKE_OBJECT( functionObject ), QScript::OpCode::OP_CLOSURE_SHORT,
 				QScript::OpCode::OP_CLOSURE_LONG, assembler );
 
 			// Emit upvalues
@@ -651,7 +651,7 @@ namespace Compiler
 			m_NodeList[ 0 ]->Compile( assembler, COMPILE_EXPRESSION( options ) );
 
 			// Address of the next instruction from the jump
-			uint32_t thenBodyBegin = chunk->m_Code.size();
+			uint32_t thenBodyBegin = ( uint32_t ) chunk->m_Code.size();
 
 			// Pop condition value off stack
 			EmitByte( QScript::OpCode::OP_POP, chunk );
@@ -659,7 +659,7 @@ namespace Compiler
 			// Compile body
 			m_NodeList[ 1 ]->Compile( assembler, COMPILE_STATEMENT( options ) );
 
-			uint32_t elseBodyBegin = chunk->m_Code.size();
+			uint32_t elseBodyBegin = ( uint32_t ) chunk->m_Code.size();
 
 			// Pop condition value off stack
 			EmitByte( QScript::OpCode::OP_POP, chunk );
@@ -668,7 +668,7 @@ namespace Compiler
 			if ( m_NodeList[ 2 ] )
 				m_NodeList[ 2 ]->Compile( assembler, COMPILE_STATEMENT( options ) );
 
-			uint32_t elseBodyEnd = chunk->m_Code.size();
+			uint32_t elseBodyEnd = ( uint32_t ) chunk->m_Code.size();
 
 			// Jump over else branch
 			elseBodyBegin += PlaceJump( chunk, elseBodyBegin, elseBodyEnd - elseBodyBegin,
@@ -745,23 +745,23 @@ namespace Compiler
 			if ( !IS_STATEMENT( options ) )
 				throw EXPECTED_EXPRESSION;
 
-			uint32_t loopConditionBegin = chunk->m_Code.size();
+			uint32_t loopConditionBegin = ( uint32_t ) chunk->m_Code.size();
 
 			// Compile condition
 			m_NodeList[ 0 ]->Compile( assembler, COMPILE_EXPRESSION( options ) );
 
-			uint32_t loopBodyBegin = chunk->m_Code.size();
+			uint32_t loopBodyBegin = ( uint32_t ) chunk->m_Code.size();
 
 			EmitByte( QScript::OpCode::OP_POP, chunk );
 
 			// Compile body
 			m_NodeList[ 1 ]->Compile( assembler, COMPILE_STATEMENT( options ) );
 
-			uint32_t firstJumpSize = chunk->m_Code.size() - loopBodyBegin;
+			uint32_t firstJumpSize = ( uint32_t ) chunk->m_Code.size() - loopBodyBegin;
 			PlaceJump( chunk, loopBodyBegin, firstJumpSize + 5,
 				QScript::OpCode::OP_JUMP_IF_ZERO_SHORT, QScript::OpCode::OP_JUMP_IF_ZERO_LONG );
 
-			uint32_t patchSize = PlaceJump( chunk, chunk->m_Code.size(), chunk->m_Code.size() - loopConditionBegin,
+			uint32_t patchSize = PlaceJump( chunk, ( uint32_t ) chunk->m_Code.size(), ( uint32_t ) chunk->m_Code.size() - loopConditionBegin,
 				QScript::OpCode::OP_JUMP_BACK_SHORT, QScript::OpCode::OP_JUMP_BACK_LONG );
 
 			PatchJump( chunk, loopBodyBegin, firstJumpSize + patchSize,

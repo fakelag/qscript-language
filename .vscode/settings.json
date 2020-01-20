@@ -64,6 +64,7 @@
 		"__memory": "cpp",
 		"set": "cpp",
 		"__functional_03": "cpp",
-		"stack": "cpp"
+		"stack": "cpp",
+		"fstream": "cpp"
 	}
 }
