@@ -18,7 +18,7 @@
 #define TRUE_BITS					((uint64_t)(NAN_QUIET | NAN_TRUE))
 #define FALSE_BITS					((uint64_t)(NAN_QUIET | NAN_FALSE))
 
-#define MAKE_OBJECT( object )		( QScript::Value( NAN_SIGN_BIT | NAN_QUIET | ( uint64_t ) ( uintptr_t ) ( object ) ))
+#define MAKE_OBJECT( object )		(QScript::Value(NAN_SIGN_BIT | NAN_QUIET | ( uint64_t ) ( uintptr_t ) ( object )))
 #define MAKE_NULL					(QScript::Value(NULL_BITS))
 #define MAKE_BOOL(value)			((bool)(value) ? (QScript::Value(TRUE_BITS)) : (QScript::Value(FALSE_BITS)))
 #define MAKE_NUMBER( value )		(QScript::Value( ((double)(value) )))
@@ -38,12 +38,6 @@
 #define IS_OBJECT( value )			(((value).m_Data.m_UInt64 & (NAN_QUIET | NAN_SIGN_BIT)) == (NAN_QUIET | NAN_SIGN_BIT))
 #define IS_NULL( value )			((value).m_Data.m_UInt64 == NULL_BITS)
 #define IS_BOOL( value )			((value).IsBool())
-#define IS_STRING( value )			((value).IsObjectOfType<QScript::ObjectType::OT_STRING>())
-#define IS_FUNCTION( value )		((value).IsObjectOfType<QScript::ObjectType::OT_FUNCTION>())
-#define IS_NATIVE( value )			((value).IsObjectOfType<QScript::ObjectType::OT_NATIVE>())
-#define IS_CLOSURE( value )			((value).IsObjectOfType<QScript::ObjectType::OT_CLOSURE>())
-#define IS_UPVALUE( value )			((value).IsObjectOfType<QScript::ObjectType::OT_UPVALUE>())
-
 #else
 #define AS_BOOL( value )			((value).m_Data.m_Bool)
 #define AS_NUMBER( value )			((value).m_Data.m_Number)
@@ -57,11 +51,6 @@
 #define IS_BOOL( value )			((value).m_Type == QScript::VT_BOOL)
 #define IS_NUMBER( value )			((value).m_Type == QScript::VT_NUMBER)
 #define IS_OBJECT( value )			((value).m_Type == QScript::VT_OBJECT)
-#define IS_STRING( value )			((value).IsObjectOfType<QScript::ObjectType::OT_STRING>())
-#define IS_FUNCTION( value )		((value).IsObjectOfType<QScript::ObjectType::OT_FUNCTION>())
-#define IS_NATIVE( value )			((value).IsObjectOfType<QScript::ObjectType::OT_NATIVE>())
-#define IS_CLOSURE( value )			((value).IsObjectOfType<QScript::ObjectType::OT_CLOSURE>())
-#define IS_UPVALUE( value )			((value).IsObjectOfType<QScript::ObjectType::OT_UPVALUE>())
 
 #define MAKE_OBJECT( object )		(QScript::Value( (( QScript::Object* ) object ) ))
 #define MAKE_NULL					(QScript::Value())
@@ -72,8 +61,12 @@
 #define MAKE_UPVALUE( valuePtr )	((QScript::Value( QScript::Object::AllocateUpvalue( valuePtr ) )))
 #endif
 
-#define IS_ANY( value ) (true)
-
+#define IS_ANY( value ) 			(true)
+#define IS_STRING( value )			((value).IsObjectOfType<QScript::ObjectType::OT_STRING>())
+#define IS_FUNCTION( value )		((value).IsObjectOfType<QScript::ObjectType::OT_FUNCTION>())
+#define IS_NATIVE( value )			((value).IsObjectOfType<QScript::ObjectType::OT_NATIVE>())
+#define IS_CLOSURE( value )			((value).IsObjectOfType<QScript::ObjectType::OT_CLOSURE>())
+#define IS_UPVALUE( value )			((value).IsObjectOfType<QScript::ObjectType::OT_UPVALUE>())
 
 #define ENCODE_LONG( a, index ) (( uint8_t )( ( a >> ( 8 * index ) ) & 0xFF ))
 #define DECODE_LONG( a, b, c, d ) (( uint32_t ) ( a + 0x100UL * b + 0x10000UL * c + 0x1000000UL * d ))
@@ -221,11 +214,6 @@ namespace QScript
 			m_Data.m_UInt64 = bits;
 		}
 
-		FORCEINLINE void From( const Value& other )
-		{
-			m_Data.m_UInt64 = other.m_Data.m_UInt64;
-		}
-
 		FORCEINLINE bool IsBool() const { return m_Data.m_UInt64 == TRUE_BITS || m_Data.m_UInt64 == FALSE_BITS; }
 
 		VALUE_ARIT_OP( + );
@@ -265,14 +253,7 @@ namespace QScript
 
 		FORCEINLINE Value( const Value& other )
 		{
-			From( other );
-		}
-
-		// No side effects, trivially copyable.
-		FORCEINLINE void From( const Value& other )
-		{
-			m_Type = other.m_Type;
-			m_Data = other.m_Data;
+			*this = other;
 		}
 
 		VALUE_ARIT_OP( + );
@@ -312,7 +293,7 @@ namespace QScript
 
 	private:
 		// Don't allow copying!
-		Value operator=( const Value& other );
+		// Value operator=( const Value& other );
 	};
 }
 

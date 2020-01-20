@@ -70,7 +70,7 @@ namespace QScript
 			m_Type = OT_UPVALUE;
 			m_Slot = value;
 			m_Next = NULL;
-			m_Closed.From( MAKE_NULL );
+			m_Closed = MAKE_NULL;
 		}
 
 		~UpvalueObject()
@@ -80,7 +80,7 @@ namespace QScript
 		FORCEINLINE Value* GetValue() { return m_Slot; }
 		FORCEINLINE void SetNext( UpvalueObject* next ) { m_Next = next; }
 		FORCEINLINE UpvalueObject* GetNext() { return m_Next; }
-		FORCEINLINE void Close() { m_Closed.From( *m_Slot ); m_Slot = &m_Closed; }
+		FORCEINLINE void Close() { m_Closed = *m_Slot; m_Slot = &m_Closed; }
 
 	private:
 		Value*				m_Slot;

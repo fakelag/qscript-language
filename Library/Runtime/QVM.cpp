@@ -59,7 +59,7 @@ chunk = function->m_Chunk \
 #define READ_CONST_SHORT() (chunk->m_Constants[ READ_BYTE() ])
 #define READ_CONST_LONG( constant ) QScript::Value constant; { \
 	READ_LONG( cnstIndex ); \
-	constant.From( chunk->m_Constants[ cnstIndex ] ); \
+	constant = chunk->m_Constants[ cnstIndex ]; \
 }
 #define BINARY_OP( op, require ) { \
 	auto b = vm.Pop(); auto a = vm.Pop(); \
@@ -104,7 +104,7 @@ namespace QVM
 #ifdef QVM_DEBUG
 		const uint8_t* runTill = NULL;
 #endif
-
+		// std::is_trivially_copyable<QScript::Value>::value;
 		INTERP_JMPTABLE;
 		// sizeof( QScript::Value );
 		for (;;)
@@ -238,13 +238,13 @@ namespace QVM
 			INTERP_OPCODE( OP_SET_GLOBAL_SHORT ):
 			{
 				auto constant = READ_CONST_SHORT();
-				vm.m_Globals[ AS_STRING( constant )->GetString() ].From( vm.Peek( 0 ) );
+				vm.m_Globals[ AS_STRING( constant )->GetString() ] = vm.Peek( 0 );
 				INTERP_DISPATCH;
 			}
 			INTERP_OPCODE( OP_SET_GLOBAL_LONG ):
 			{
 				READ_CONST_LONG( constant );
-				vm.m_Globals[ AS_STRING( constant )->GetString() ].From( vm.Peek( 0 ) );
+				vm.m_Globals[ AS_STRING( constant )->GetString() ] = vm.Peek( 0 );
 				INTERP_DISPATCH;
 			}
 			INTERP_OPCODE( OP_LOAD_LOCAL_0 ) :
@@ -271,39 +271,39 @@ namespace QVM
 				vm.Push( frame->m_Base[ offset ] );
 				INTERP_DISPATCH;
 			}
-			INTERP_OPCODE( OP_SET_LOCAL_0 ): 
-			INTERP_OPCODE( OP_SET_LOCAL_1 ): 
-			INTERP_OPCODE( OP_SET_LOCAL_2 ): 
-			INTERP_OPCODE( OP_SET_LOCAL_3 ): 
-			INTERP_OPCODE( OP_SET_LOCAL_4 ): 
-			INTERP_OPCODE( OP_SET_LOCAL_5 ): 
-			INTERP_OPCODE( OP_SET_LOCAL_6 ): 
-			INTERP_OPCODE( OP_SET_LOCAL_7 ): 
-			INTERP_OPCODE( OP_SET_LOCAL_8 ): 
-			INTERP_OPCODE( OP_SET_LOCAL_9 ): 
+			INTERP_OPCODE( OP_SET_LOCAL_0 ):
+			INTERP_OPCODE( OP_SET_LOCAL_1 ):
+			INTERP_OPCODE( OP_SET_LOCAL_2 ):
+			INTERP_OPCODE( OP_SET_LOCAL_3 ):
+			INTERP_OPCODE( OP_SET_LOCAL_4 ):
+			INTERP_OPCODE( OP_SET_LOCAL_5 ):
+			INTERP_OPCODE( OP_SET_LOCAL_6 ):
+			INTERP_OPCODE( OP_SET_LOCAL_7 ):
+			INTERP_OPCODE( OP_SET_LOCAL_8 ):
+			INTERP_OPCODE( OP_SET_LOCAL_9 ):
 			INTERP_OPCODE( OP_SET_LOCAL_10 ):
 			INTERP_OPCODE( OP_SET_LOCAL_11 ) :
 			{
 				uint8_t offset = inst - QScript::OP_SET_LOCAL_0;
-				frame->m_Base[ offset ].From( vm.Peek( 0 ) );
+				frame->m_Base[ offset ] = vm.Peek( 0 );
 				INTERP_DISPATCH;
 			}
-			INTERP_OPCODE( OP_SET_LOCAL_SHORT ): frame->m_Base[ READ_BYTE() ].From( vm.Peek( 0 ) ); INTERP_DISPATCH;
+			INTERP_OPCODE( OP_SET_LOCAL_SHORT ): frame->m_Base[ READ_BYTE() ] = vm.Peek( 0 ); INTERP_DISPATCH;
 			INTERP_OPCODE( OP_SET_LOCAL_LONG ):
 			{
 				READ_LONG( offset );
-				frame->m_Base[ offset ].From( vm.Peek( 0 ) );
+				frame->m_Base[ offset ] = vm.Peek( 0 );
 				INTERP_DISPATCH;
 			}
 			INTERP_OPCODE( OP_SET_UPVALUE_SHORT ):
 			{
-				frame->m_Closure->GetUpvalues()[ READ_BYTE() ]->GetValue()->From( vm.Peek( 0 ) );
+				*( frame->m_Closure->GetUpvalues()[ READ_BYTE() ]->GetValue() ) = vm.Peek( 0 );
 				INTERP_DISPATCH;
 			}
 			INTERP_OPCODE( OP_SET_UPVALUE_LONG ):
 			{
 				READ_LONG( index );
-				frame->m_Closure->GetUpvalues()[ index ]->GetValue()->From( vm.Peek( 0 ) );
+				*( frame->m_Closure->GetUpvalues()[ index ]->GetValue() ) = vm.Peek( 0 );
 				INTERP_DISPATCH;
 			}
 			INTERP_OPCODE( OP_LOAD_UPVALUE_SHORT ):
@@ -708,7 +708,7 @@ void QScript::Interpret( VM_t& vm, Value* out )
 	auto exitCode = QVM::Run( vm );
 
 	if ( out )
-		out->From( exitCode );
+		*out = exitCode;
 
 	INTERP_SHUTDOWN;
 }

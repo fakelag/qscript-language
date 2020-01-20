@@ -66,11 +66,11 @@ void DeepCopy( QScript::Value* target, QScript::Value* other )
 {
 	if ( IS_OBJECT( *other ) )
 	{
-		target->From( MAKE_OBJECT( DeepCopyObject( AS_OBJECT( *other ) ) ) );
+		*target = MAKE_OBJECT( DeepCopyObject( AS_OBJECT( *other ) ) );
 	}
 	else
 	{
-		target->From( *other );
+		*target = *other;
 	}
 }
 

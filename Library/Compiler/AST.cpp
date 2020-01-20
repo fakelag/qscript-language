@@ -187,7 +187,7 @@ namespace Compiler
 	ValueNode::ValueNode( int lineNr, int colNr, const std::string token, NodeId id, const QScript::Value& value )
 		: BaseNode( lineNr, colNr, token, NT_VALUE, id )
 	{
-		m_Value.From( value );
+		m_Value = value;
 	}
 
 	void ValueNode::Compile( Assembler& assembler, uint32_t options )

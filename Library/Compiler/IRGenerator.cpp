@@ -134,22 +134,22 @@ namespace Compiler
 					switch ( irBuilder.m_Token.m_Id )
 					{
 						case TOK_STR:
-							value.From( MAKE_STRING( irBuilder.m_Token.m_String ) );
+							value = MAKE_STRING( irBuilder.m_Token.m_String );
 							break;
 						case TOK_INT:
-							value.From( MAKE_NUMBER( ( double ) std::stoi( irBuilder.m_Token.m_String ) ) );
+							value = MAKE_NUMBER( ( double ) std::stoi( irBuilder.m_Token.m_String ) );
 							break;
 						case TOK_DBL:
-							value.From( MAKE_NUMBER( std::stod( irBuilder.m_Token.m_String ) ) );
+							value = MAKE_NUMBER( std::stod( irBuilder.m_Token.m_String ) );
 							break;
 						case TOK_NULL:
-							value.From( MAKE_NULL );
+							value = MAKE_NULL;
 							break;
 						case TOK_FALSE:
-							value.From( MAKE_BOOL( false ) );
+							value = MAKE_BOOL( false );
 							break;
 						case TOK_TRUE:
-							value.From( MAKE_BOOL( true ) );
+							value = MAKE_BOOL( true );
 							break;
 						default:
 						{

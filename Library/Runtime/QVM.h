@@ -49,7 +49,7 @@ struct VM_t
 			m_StackCapacity = newCapacity;
 		}
 
-		m_StackTop->From( value );
+		*m_StackTop = value;
 		++m_StackTop;
 	}
 
