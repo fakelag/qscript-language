@@ -495,7 +495,7 @@ namespace QVM
 	QScript::StringObject* AllocateString( const std::string& string )
 	{
 		auto stringObject = new QScript::StringObject( string );
-		VirtualMachine->m_Objects.push_back( ( QScript::Object* ) stringObject );
+		VirtualMachine->AddObject( ( QScript::Object* ) stringObject );
 		return stringObject;
 	}
 
@@ -504,28 +504,28 @@ namespace QVM
 		assert( 0 );
 
 		auto functionObject = new QScript::FunctionObject( name, arity, NULL );
-		VirtualMachine->m_Objects.push_back( ( QScript::Object* ) functionObject );
+		VirtualMachine->AddObject( ( QScript::Object* ) functionObject );
 		return functionObject;
 	}
 
 	QScript::NativeFunctionObject* AllocateNative( void* nativeFn )
 	{
 		auto nativeObject = new QScript::NativeFunctionObject( ( QScript::NativeFn ) nativeFn );
-		VirtualMachine->m_Objects.push_back( ( QScript::Object* ) nativeObject );
+		VirtualMachine->AddObject( ( QScript::Object* ) nativeObject );
 		return nativeObject;
 	}
 
 	QScript::ClosureObject* AllocateClosure( QScript::FunctionObject* function )
 	{
 		auto closureObject = new QScript::ClosureObject( function );
-		VirtualMachine->m_Objects.push_back( ( QScript::Object* ) closureObject );
+		VirtualMachine->AddObject( ( QScript::Object* ) closureObject );
 		return closureObject;
 	}
 
 	QScript::UpvalueObject* AllocateUpvalue( QScript::Value* valueRef )
 	{
 		auto upvalueObject = new QScript::UpvalueObject( valueRef );
-		VirtualMachine->m_Objects.push_back( ( QScript::Object* ) upvalueObject );
+		VirtualMachine->AddObject( ( QScript::Object* ) upvalueObject );
 		return upvalueObject;
 	}
 }
@@ -538,6 +538,9 @@ void VM_t::Init( const QScript::FunctionObject* mainFunction )
 	m_Stack = new QScript::Value[ s_InitStackSize ];
 	m_StackCapacity = s_InitStackSize;
 	m_StackTop = &m_Stack[ 0 ];
+
+	// Get GC ready
+	m_ObjectsToNextGC = 32;
 
 	// Wrap the main function in a closure
 	auto mainClosure = new QScript::ClosureObject( mainFunction );
@@ -586,6 +589,119 @@ void VM_t::Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target )
 	default:
 		QVM::RuntimeError( frame, "rt_invalid_call_target", "Invalid call value object type" );
 	}
+}
+
+void VM_t::AddObject( QScript::Object* object )
+{
+	m_Objects.push_back( object );
+
+#ifdef QVM_AGGRESSIVE_GC
+	if ( true )
+#else
+	if ( m_Objects.size() >= m_ObjectsToNextGC )
+#endif
+	{
+		// Mark object
+		object->m_IsReachable = true;
+
+		// Mark other reachable objects
+		MarkReachable();
+
+		// Sweep unreachable objects from memory
+		Recycle();
+
+		// Update next collection count
+		m_ObjectsToNextGC = m_Objects.size() * 2.0;
+	}
+}
+
+void VM_t::MarkReachable()
+{
+	// Mark values sitting on the stack
+	for ( QScript::Value* value = m_Stack; value < m_StackTop; ++value )
+	{
+		if ( !IS_OBJECT( *value ) )
+			continue;
+
+		MarkObject( AS_OBJECT( *value ) );
+	}
+
+	// Mark globals
+	for ( auto& global : m_Globals )
+	{
+		if ( !IS_OBJECT( global.second ) )
+			continue;
+
+		MarkObject( AS_OBJECT( global.second ) );
+	}
+
+	// Mark closures of the current callstack
+	for ( auto& frame : m_Frames )
+		MarkObject( frame.m_Closure );
+
+	// Mark living upvalues
+	for ( auto upval = m_LivingUpvalues; upval; upval = upval->GetNext() )
+		MarkObject( upval );
+}
+
+void VM_t::MarkObject( QScript::Object* object )
+{
+	if ( !object )
+		return;
+
+	if ( object->m_IsReachable )
+		return;
+
+	object->m_IsReachable = true;
+
+	switch ( object->m_Type )
+	{
+		case QScript::OT_CLOSURE:
+		{
+			auto& upvalues = ( ( QScript::ClosureObject* ) object )->GetUpvalues();
+			for ( auto upval : upvalues )
+				MarkObject( upval );
+
+			break;
+		}
+		case QScript::OT_UPVALUE:
+		{
+			auto value = ( ( QScript::UpvalueObject* ) object )->GetValue();
+
+			if ( IS_OBJECT( *value ) )
+				MarkObject( AS_OBJECT( *value ) );
+
+			break;
+		}
+		case QScript::OT_NATIVE:
+		case QScript::OT_FUNCTION:
+		case QScript::OT_STRING:
+			break;
+		default:
+			UNREACHABLE();
+	}
+}
+
+void VM_t::Recycle()
+{
+	size_t objectCount = m_Objects.size();
+
+	for ( int i = ( int ) objectCount - 1; i >= 0; --i )
+	{
+		if ( m_Objects[ i ]->m_IsReachable )
+			continue;
+
+		delete m_Objects[ i ];
+		m_Objects.erase( m_Objects.begin() + i );
+	}
+
+	// Reset marks on objects
+	for ( auto object : m_Objects )
+		object->m_IsReachable = false;
+
+#ifdef QVM_DEBUG
+	std::cout << "GC: Freed " << ( objectCount - m_Objects.size() ) << " objects" << std::endl;
+#endif
 }
 
 uint8_t* VM_t::OpenUpvalues( QScript::ClosureObject* closure, Frame_t* frame, uint8_t* ip )

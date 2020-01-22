@@ -165,7 +165,9 @@ namespace QScript
 	{
 	public:
 		virtual ~Object() {};
-		ObjectType m_Type;
+
+		ObjectType 		m_Type;
+		bool 			m_IsReachable;
 
 		using StringAllocatorFn = StringObject*(*)( const std::string& string );
 		using FunctionAllocatorFn = FunctionObject * ( *)( const std::string& name, int arity );

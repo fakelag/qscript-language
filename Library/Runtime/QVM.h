@@ -70,12 +70,17 @@ struct VM_t
 
 	void Init( const QScript::FunctionObject* function );
 	void Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target );
+	void AddObject( QScript::Object* object );
 	uint8_t* OpenUpvalues( QScript::ClosureObject* closure, Frame_t* frame, uint8_t* ip );
 	void CloseUpvalues( QScript::Value* last );
 	void ResolveImports();
 
 	void CreateNative( const std::string name, QScript::NativeFn native );
 	void Release();
+
+	void MarkReachable();
+	void MarkObject( QScript::Object* object );
+	void Recycle();
 
 	// Call frames
 	std::vector< Frame_t >								m_Frames;
@@ -93,4 +98,7 @@ struct VM_t
 
 	// Upvalues in use (not closed over)
 	QScript::UpvalueObject*								m_LivingUpvalues;
+
+	// Number of allocations until garbage collection
+	int 												m_ObjectsToNextGC;
 };
