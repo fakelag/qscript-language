@@ -55,6 +55,15 @@ namespace Compiler
 		bool 							IsError()							const { return m_Errors.size() > 0; }
 		IrBuilder_t*					CurrentBuilder()					const { return m_Builders[ m_CurrentBuilder ]; }
 		IrBuilder_t*					NextBuilder() 						{ return m_Builders[ m_CurrentBuilder++ ]; }
+		int 							Offset()							{ return m_CurrentBuilder; }
+
+		IrBuilder_t*					Peek( int offset )
+		{
+			if ( offset < 0 || offset > m_Builders.size() - 1 )
+				return NULL;
+
+			return m_Builders[ offset ];
+		}
 
 		void 							Expect( Token token, const std::string desc )
 		{
@@ -78,7 +87,7 @@ namespace Compiler
 				NextBuilder();
 				return true;
 			}
-			
+
 			return false;
 		}
 
