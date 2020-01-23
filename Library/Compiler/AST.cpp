@@ -594,9 +594,6 @@ namespace Compiler
 		}
 		case NODE_FUNC:
 		{
-			if ( !IS_STATEMENT( options ) )
-				throw EXPECTED_EXPRESSION;
-
 			auto argNode = static_cast< ListNode* >( m_NodeList[ 1 ] );
 
 			auto functionName = AS_STRING( static_cast< ValueNode* >( m_NodeList[ 0 ] )->GetValue() )->GetString();
@@ -639,7 +636,8 @@ namespace Compiler
 				QScript::OpCode::OP_SET_GLOBAL_LONG, assembler );
 
 			// Pop function off stack
-			EmitByte( QScript::OpCode::OP_POP, chunk );
+			if ( IS_STATEMENT( options ) )
+				EmitByte( QScript::OpCode::OP_POP, chunk );
 			break;
 		}
 		case NODE_IF:

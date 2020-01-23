@@ -402,7 +402,7 @@ bool Tests::TestInterpreter()
 		UTEST_CASE_CLOSED();
 	}( );
 
-	UTEST_CASE( "functions 2 (Calling functions bound to variables, recursive functions)" )
+	UTEST_CASE( "functions 2 (Calling functions bound to variables, recursive functions, chaining calls)" )
 	{
 		QScript::Value exitCode;
 		UTEST_ASSERT( TestUtils::RunVM( "var x = 0;				\
@@ -429,6 +429,17 @@ bool Tests::TestInterpreter()
 			function xxx = (anotherFunc) { return anotherFunc(60, 60); }	\
 			function sum = (a, b) { return a + b; }							\
 			return xxx(sum);", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 120 );
+
+		UTEST_ASSERT( TestUtils::RunVM( "function a = () {					\
+			return function b = () { 										\
+				return function c = () {									\
+					return 90;												\
+				};															\
+			};																\
+		", &exitCode ) );
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 120 );

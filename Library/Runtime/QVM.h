@@ -71,6 +71,7 @@ struct VM_t
 	void Init( const QScript::FunctionObject* function );
 	void Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target );
 	void AddObject( QScript::Object* object );
+
 	uint8_t* OpenUpvalues( QScript::ClosureObject* closure, Frame_t* frame, uint8_t* ip );
 	void CloseUpvalues( QScript::Value* last );
 	void ResolveImports();

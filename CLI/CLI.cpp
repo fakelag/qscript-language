@@ -28,12 +28,12 @@ int main()
 	std::string command;
 	for ( ;; )
 	{
-		//std::cout << "REPL > ";
-		//std::getline( std::cin, command );
+		std::cout << "REPL > ";
+		std::getline( std::cin, command );
 
 		try
 		{
-			QScript::FunctionObject* function = QScript::Compile( ReadFile( "program.qss" ) );
+			QScript::FunctionObject* function = QScript::Compile( command ); // ReadFile( "program.qss" ) );
 			QScript::Interpret( *function );
 
 			QScript::FreeFunction( function );
