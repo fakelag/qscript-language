@@ -155,7 +155,7 @@ namespace Compiler
 		m_OptimizationFlags = optimizationFlags;
 
 		// Main code
-		CreateFunction( "<main>", 0, chunk );
+		CreateFunction( "<main>", 0, true, chunk );
 	}
 
 	std::vector< QScript::FunctionObject* > Assembler::Finish()
@@ -182,14 +182,14 @@ namespace Compiler
 		return m_Functions.back().m_Stack;
 	}
 
-	QScript::FunctionObject* Assembler::CreateFunction( const std::string& name, int arity, QScript::Chunk_t* chunk )
+	QScript::FunctionObject* Assembler::CreateFunction( const std::string& name, int arity, bool isAnonymous, QScript::Chunk_t* chunk )
 	{
 		auto function = new QScript::FunctionObject( name, arity, chunk );
 		auto context = FunctionContext_t{ function, new Assembler::Stack_t() };
 
 		m_Functions.push_back( context );
 
-		CreateLocal( name == "<main>" ? "" : name );
+		CreateLocal( isAnonymous ? "" : name );
 		return function;
 	}
 

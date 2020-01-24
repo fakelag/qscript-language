@@ -9,10 +9,7 @@ namespace Compiler
 {
 	bool IsFunctionDefinition( ParserState& parserState )
 	{
-		if ( parserState.CurrentBuilder()->m_Token.m_Id != Compiler::TOK_PAREN_LEFT )
-			return false;
-
-		int offset = parserState.Offset() + 1;
+		int offset = parserState.Offset();
 		IrBuilder_t* builder = parserState.Peek( offset );
 
 		for ( ; builder; offset += 1, builder = parserState.Peek( offset ) )
@@ -108,6 +105,13 @@ namespace Compiler
 
 						// Allow trailing semicolon on function definitions
 						parserState.MatchCurrent( TOK_SCOLON );
+					}
+					else if ( headNode->Id() == NODE_VAR )
+					{
+						parserState.MatchCurrent( TOK_BRACE_RIGHT );
+
+						// Expression statements must end with a semicolon
+						parserState.Expect( TOK_SCOLON, "Expected end of expression" );
 					}
 					else if ( headNode->Id() == NODE_IF || headNode->Id() == NODE_WHILE || headNode->Id() == NODE_FOR )
 					{
@@ -456,7 +460,6 @@ namespace Compiler
 					{
 						std::vector< BaseNode* > argsList;
 
-						parserState.NextBuilder();
 						if ( !parserState.MatchCurrent( TOK_PAREN_RIGHT ) )
 						{
 							do {

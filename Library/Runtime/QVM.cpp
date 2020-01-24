@@ -598,7 +598,7 @@ void VM_t::AddObject( QScript::Object* object )
 #ifdef QVM_AGGRESSIVE_GC
 	if ( true )
 #else
-	if ( m_Objects.size() >= m_ObjectsToNextGC )
+	if ( m_Objects.size() >= ( size_t ) m_ObjectsToNextGC )
 #endif
 	{
 		// Mark object
@@ -611,7 +611,7 @@ void VM_t::AddObject( QScript::Object* object )
 		Recycle();
 
 		// Update next collection count
-		m_ObjectsToNextGC = m_Objects.size() * 2.0;
+		m_ObjectsToNextGC = ( int ) m_Objects.size() * 2;
 	}
 }
 

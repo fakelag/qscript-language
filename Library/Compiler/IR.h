@@ -59,7 +59,7 @@ namespace Compiler
 
 		IrBuilder_t*					Peek( int offset )
 		{
-			if ( offset < 0 || offset > m_Builders.size() - 1 )
+			if ( offset < 0 || offset > ( int ) m_Builders.size() - 1 )
 				return NULL;
 
 			return m_Builders[ offset ];
@@ -67,6 +67,9 @@ namespace Compiler
 
 		void 							Expect( Token token, const std::string desc )
 		{
+			if ( IsFinished() )
+				return;
+
 			auto builder = CurrentBuilder();
 			if ( builder->m_Token.m_Id != token )
 			{

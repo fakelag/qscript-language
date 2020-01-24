@@ -1,6 +1,8 @@
 #pragma once
 
+#ifndef QVM_DEBUG
 #define QS_NAN_BOXING
+#endif
 
 #ifdef QS_NAN_BOXING
 #define NAN_SIGN_BIT				((uint64_t)1 << 63)

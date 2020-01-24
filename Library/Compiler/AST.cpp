@@ -152,6 +152,47 @@ namespace Compiler
 		}
 	}
 
+	void CompileFunction( bool isAnonymous, const std::string& name, ListNode* funcNode, Assembler& assembler )
+	{
+		auto chunk = assembler.CurrentChunk();
+		auto& nodeList = funcNode->GetList();
+
+		auto argNode = static_cast< ListNode* >( nodeList[ 0 ] );
+		auto functionArity = ( uint32_t ) argNode->GetList().size();
+
+		// Allocate chunk & create function
+		auto function = assembler.CreateFunction( name, functionArity, isAnonymous, QScript::AllocChunk() );
+		assembler.PushScope();
+
+		// Create args in scope
+		for ( auto arg : argNode->GetList() )
+			assembler.CreateLocal( AS_STRING( static_cast< ValueNode* >( arg )->GetValue() )->GetString() );
+
+		// Compile function body
+		for ( auto node : static_cast< ListNode* >( nodeList[ 1 ] )->GetList() )
+			node->Compile( assembler, COMPILE_STATEMENT( 0 ) );
+
+		QScript::FunctionObject* functionObject;
+		std::vector< Assembler::Upvalue_t > upvalues;
+
+		// Remove body scope
+		assembler.FinishFunction( &functionObject, &upvalues );
+
+		// Create a constant (function) in enclosing chunk
+		EmitConstant( chunk, MAKE_OBJECT( functionObject ), QScript::OpCode::OP_CLOSURE_SHORT,
+			QScript::OpCode::OP_CLOSURE_LONG, assembler );
+
+		// Emit upvalues
+		for ( auto upvalue : upvalues )
+		{
+			EmitByte( upvalue.m_IsLocal ? 1 : 0, chunk );
+			EmitByte( ENCODE_LONG( upvalue.m_Index, 0 ), chunk );
+			EmitByte( ENCODE_LONG( upvalue.m_Index, 1 ), chunk );
+			EmitByte( ENCODE_LONG( upvalue.m_Index, 2 ), chunk );
+			EmitByte( ENCODE_LONG( upvalue.m_Index, 3 ), chunk );
+		}
+	}
+
 	BaseNode::BaseNode( int lineNr, int colNr, const std::string token, NodeType type, NodeId id )
 	{
 		m_LineNr		= lineNr;
@@ -594,50 +635,10 @@ namespace Compiler
 		}
 		case NODE_FUNC:
 		{
-			auto argNode = static_cast< ListNode* >( m_NodeList[ 1 ] );
-
-			auto functionName = AS_STRING( static_cast< ValueNode* >( m_NodeList[ 0 ] )->GetValue() )->GetString();
-			auto functionArity = ( uint32_t ) argNode->m_NodeList.size();
-
-			// Allocate chunk & create function
-			auto function = assembler.CreateFunction( functionName, functionArity, QScript::AllocChunk() );
-			assembler.PushScope();
-
-			// Create args in scope
-			for ( auto arg : argNode->m_NodeList )
-				assembler.CreateLocal( AS_STRING( static_cast< ValueNode* >( arg )->GetValue() )->GetString() );
-
-			// Compile function body directly
-			for ( auto node : static_cast< ListNode* >( m_NodeList[ 2 ] )->GetList() )
-				node->Compile( assembler, COMPILE_STATEMENT( options ) );
-
-			QScript::FunctionObject* functionObject;
-			std::vector< Assembler::Upvalue_t > upvalues;
-
-			// Remove body scope
-			assembler.FinishFunction( &functionObject, &upvalues );
-
-			// Create a constant (function) in enclosing chunk
-			EmitConstant( chunk, MAKE_OBJECT( functionObject ), QScript::OpCode::OP_CLOSURE_SHORT,
-				QScript::OpCode::OP_CLOSURE_LONG, assembler );
-
-			// Emit upvalues
-			for ( auto upvalue : upvalues )
-			{
-				EmitByte( upvalue.m_IsLocal ? 1 : 0, chunk );
-				EmitByte( ENCODE_LONG( upvalue.m_Index, 0 ), chunk );
-				EmitByte( ENCODE_LONG( upvalue.m_Index, 1 ), chunk );
-				EmitByte( ENCODE_LONG( upvalue.m_Index, 2 ), chunk );
-				EmitByte( ENCODE_LONG( upvalue.m_Index, 3 ), chunk );
-			}
-
-			// Create a constant + global (function name) in enclosing chunk
-			EmitConstant( chunk, static_cast< ValueNode* >( m_NodeList[ 0 ] )->GetValue(), QScript::OpCode::OP_SET_GLOBAL_SHORT,
-				QScript::OpCode::OP_SET_GLOBAL_LONG, assembler );
-
-			// Pop function off stack
 			if ( IS_STATEMENT( options ) )
-				EmitByte( QScript::OpCode::OP_POP, chunk );
+				throw EXPECTED_STATEMENT;
+
+			CompileFunction( true, "<anonymous>", this, assembler );
 			break;
 		}
 		case NODE_IF:
@@ -701,11 +702,21 @@ namespace Compiler
 
 			if ( m_NodeList[ 1 ] )
 			{
-				// Assign variable at declaration
-				m_NodeList[ 1 ]->Compile( assembler, COMPILE_EXPRESSION( options ) );
+				if ( m_NodeList[ 1 ]->Id() == NODE_FUNC )
+				{
+					// Compile a named function
+					CompileFunction( false, AS_STRING( varName )->GetString(), static_cast< ListNode* >( m_NodeList[ 1 ] ), assembler );
+				}
+				else
+				{
+					// Assign variable at declaration
+					m_NodeList[ 1 ]->Compile( assembler, COMPILE_EXPRESSION( options ) );
+				}
 
 				if ( assembler.StackDepth() > 0 )
+				{
 					assembler.CreateLocal( AS_STRING( varName )->GetString() );
+				}
 				else
 				{
 					m_NodeList[ 0 ]->Compile( assembler, COMPILE_ASSIGN_TARGET( options ) );
