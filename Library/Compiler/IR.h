@@ -145,7 +145,7 @@ namespace Compiler
 		{
 			static_assert( std::is_base_of<BaseNode, T>::value, "Allocated node must derive from BaseNode" );
 
-			auto node = new T( args... );
+			auto node = QS_NEW T( args... );
 			m_AllocatedNodes.push_back( ( BaseNode* ) node );
 
 			return node;

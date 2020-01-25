@@ -25,6 +25,10 @@ std::string ReadFile( const std::string& path )
 
 int main()
 {
+#ifdef QS_MEMLEAK_TEST
+	_CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
+#endif
+
 	std::string command;
 	for ( ;; )
 	{
