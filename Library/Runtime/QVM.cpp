@@ -111,9 +111,9 @@ namespace QVM
 		const uint8_t* runTill = NULL;
 		bool traceExec = false;
 #endif
-		// std::is_trivially_copyable<QScript::Value>::value;
+
 		INTERP_JMPTABLE;
-		// sizeof( QScript::Value );
+
 		for (;;)
 		{
 #ifdef QVM_DEBUG
@@ -131,7 +131,7 @@ namespace QVM
 						runTill = ( const uint8_t* ) -1;
 						break;
 					}
-					else if ( input == "t")
+					else if ( input == "t" )
 					{
 						traceExec = !traceExec;
 						std::cout << "Tracing: " << ( traceExec ? "Enabled" : "Disabled" ) << std::endl;
@@ -144,7 +144,7 @@ namespace QVM
 					}
 					else if ( input == "dc" )
 					{
-						Compiler::DisassembleChunk( *function->GetChunk(), function->GetName(),
+						Compiler::DisassembleChunk( *function->GetChunk(), "<function, " + function->GetName() + ">",
 							( unsigned int ) ( ip - ( uint8_t* ) &function->GetChunk()->m_Code[ 0 ] ) );
 						continue;
 					}
@@ -157,7 +157,7 @@ namespace QVM
 						{
 							auto isExecuting = vm.m_Frames.back().m_Closure->GetFunction() == function;
 
-							Compiler::DisassembleChunk( *function->GetChunk(), function->GetName(),
+							Compiler::DisassembleChunk( *function->GetChunk(), "<function, " + function->GetName() + ">",
 								isExecuting ? ( unsigned int ) ( ip - ( uint8_t* ) &function->GetChunk()->m_Code[ 0 ] ) : -1 );
 
 							for ( auto constant : function->GetChunk()->m_Constants )
@@ -494,7 +494,7 @@ namespace QVM
 
 	QScript::StringObject* AllocateString( const std::string& string )
 	{
-		auto stringObject = new QScript::StringObject( string );
+		auto stringObject = QS_NEW QScript::StringObject( string );
 		VirtualMachine->AddObject( ( QScript::Object* ) stringObject );
 		return stringObject;
 	}
@@ -503,28 +503,28 @@ namespace QVM
 	{
 		assert( 0 );
 
-		auto functionObject = new QScript::FunctionObject( name, arity, NULL );
+		auto functionObject = QS_NEW QScript::FunctionObject( name, arity, NULL );
 		VirtualMachine->AddObject( ( QScript::Object* ) functionObject );
 		return functionObject;
 	}
 
 	QScript::NativeFunctionObject* AllocateNative( void* nativeFn )
 	{
-		auto nativeObject = new QScript::NativeFunctionObject( ( QScript::NativeFn ) nativeFn );
+		auto nativeObject = QS_NEW QScript::NativeFunctionObject( ( QScript::NativeFn ) nativeFn );
 		VirtualMachine->AddObject( ( QScript::Object* ) nativeObject );
 		return nativeObject;
 	}
 
 	QScript::ClosureObject* AllocateClosure( QScript::FunctionObject* function )
 	{
-		auto closureObject = new QScript::ClosureObject( function );
+		auto closureObject = QS_NEW QScript::ClosureObject( function );
 		VirtualMachine->AddObject( ( QScript::Object* ) closureObject );
 		return closureObject;
 	}
 
 	QScript::UpvalueObject* AllocateUpvalue( QScript::Value* valueRef )
 	{
-		auto upvalueObject = new QScript::UpvalueObject( valueRef );
+		auto upvalueObject = QS_NEW QScript::UpvalueObject( valueRef );
 		VirtualMachine->AddObject( ( QScript::Object* ) upvalueObject );
 		return upvalueObject;
 	}
@@ -535,7 +535,7 @@ void VM_t::Init( const QScript::FunctionObject* mainFunction )
 	m_Objects.clear();
 	m_Globals.clear();
 
-	m_Stack = new QScript::Value[ s_InitStackSize ];
+	m_Stack = QS_NEW QScript::Value[ s_InitStackSize ];
 	m_StackCapacity = s_InitStackSize;
 	m_StackTop = &m_Stack[ 0 ];
 
@@ -543,16 +543,32 @@ void VM_t::Init( const QScript::FunctionObject* mainFunction )
 	m_ObjectsToNextGC = 32;
 
 	// Wrap the main function in a closure
-	auto mainClosure = new QScript::ClosureObject( mainFunction );
+	m_Main = QS_NEW QScript::ClosureObject( mainFunction );
 
 	// Create initial call frame
-	m_Frames.emplace_back( mainClosure, m_Stack, &mainFunction->GetChunk()->m_Code[ 0 ] );
+	m_Frames.emplace_back( m_Main, m_Stack, &mainFunction->GetChunk()->m_Code[ 0 ] );
 
 	// Push main function to stack slot 0. This is directly allocated, so
 	// the VM garbage collection won't ever release it
-	Push( MAKE_OBJECT( mainClosure ) );
+	Push( MAKE_OBJECT( m_Main ) );
 
 	m_LivingUpvalues = NULL;
+}
+
+void VM_t::Release()
+{
+	// Release main
+	delete m_Main;
+	m_Main = NULL;
+
+	for ( auto object : m_Objects )
+		delete object;
+
+	delete[] m_Stack;
+	m_StackCapacity = 0;
+	m_StackTop = NULL;
+
+	m_Objects.clear();
 }
 
 void VM_t::Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target )
@@ -598,7 +614,7 @@ void VM_t::AddObject( QScript::Object* object )
 #ifdef QVM_AGGRESSIVE_GC
 	if ( true )
 #else
-	if ( m_Objects.size() >= m_ObjectsToNextGC )
+	if ( m_Objects.size() >= ( size_t ) m_ObjectsToNextGC )
 #endif
 	{
 		// Mark object
@@ -611,7 +627,7 @@ void VM_t::AddObject( QScript::Object* object )
 		Recycle();
 
 		// Update next collection count
-		m_ObjectsToNextGC = m_Objects.size() * 2.0;
+		m_ObjectsToNextGC = ( int ) m_Objects.size() * 2;
 	}
 }
 
@@ -780,36 +796,6 @@ void VM_t::CreateNative( const std::string name, QScript::NativeFn native )
 {
 	auto global = std::pair<std::string, QScript::Value>( name, MAKE_OBJECT( QVM::AllocateNative( ( void* ) native ) ) );
 	m_Globals.insert( global );
-}
-
-void VM_t::Release()
-{
-	for ( auto object : m_Objects )
-	{
-		switch ( object->m_Type )
-		{
-		case QScript::ObjectType::OT_FUNCTION:
-		{
-			delete ( ( QScript::FunctionObject* )( object ) )->GetChunk();
-			delete ( ( QScript::FunctionObject* )( object ) );
-			break;
-		}
-		// case QScript::ObjectType::OT_CLOSURE:
-		// case QScript::ObjectType::OT_NATIVE:
-		// case QScript::ObjectType::OT_STRING,
-		// case QScript::ObjectType::OT_UPVALUE:
-		default:
-			break;
-		}
-
-		delete object;
-	}
-
-	delete[] m_Stack;
-	m_StackCapacity = 0;
-	m_StackTop = NULL;
-
-	m_Objects.clear();
 }
 
 void QScript::Interpret( const QScript::FunctionObject& function )

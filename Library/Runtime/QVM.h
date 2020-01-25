@@ -29,7 +29,7 @@ struct VM_t
 		{
 			// Reallocate more stack space
 			int newCapacity = m_StackCapacity * 2;
-			QScript::Value* newStack = new QScript::Value[ newCapacity ];
+			QScript::Value* newStack = QS_NEW QScript::Value[ newCapacity ];
 
 			// Copy previous contents to new stack
 			std::memcpy( newStack, m_Stack, ( m_StackTop - m_Stack ) * sizeof( QScript::Value ) );
@@ -71,6 +71,7 @@ struct VM_t
 	void Init( const QScript::FunctionObject* function );
 	void Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target );
 	void AddObject( QScript::Object* object );
+
 	uint8_t* OpenUpvalues( QScript::ClosureObject* closure, Frame_t* frame, uint8_t* ip );
 	void CloseUpvalues( QScript::Value* last );
 	void ResolveImports();
@@ -83,6 +84,7 @@ struct VM_t
 	void Recycle();
 
 	// Call frames
+	QScript::ClosureObject*								m_Main;
 	std::vector< Frame_t >								m_Frames;
 
 	// Keep track of allocated objects in the VM

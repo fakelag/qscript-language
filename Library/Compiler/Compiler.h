@@ -71,7 +71,7 @@ namespace Compiler
 		Assembler( QScript::Chunk_t* chunk, int optimizationFlags );
 
 		uint32_t 									AddUpvalue( FunctionContext_t* context, uint32_t index, bool isLocal );
-		QScript::FunctionObject*					CreateFunction( const std::string& name, int arity, QScript::Chunk_t* chunk );
+		QScript::FunctionObject*					CreateFunction( const std::string& name, int arity, bool isAnonymous, QScript::Chunk_t* chunk );
 		uint32_t									CreateLocal( const std::string& name );
 		QScript::Chunk_t*							CurrentChunk();
 		QScript::FunctionObject*					CurrentFunction();

@@ -25,6 +25,7 @@ namespace QScript
 	};
 
 	Chunk_t* AllocChunk();
+
 	void FreeChunk( Chunk_t* chunk );
 	void FreeFunction( FunctionObject* function );
 

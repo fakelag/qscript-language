@@ -25,15 +25,19 @@ std::string ReadFile( const std::string& path )
 
 int main()
 {
+#ifdef QS_MEMLEAK_TEST
+	_CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
+#endif
+
 	std::string command;
 	for ( ;; )
 	{
-		//std::cout << "REPL > ";
-		//std::getline( std::cin, command );
+		std::cout << "REPL > ";
+		std::getline( std::cin, command );
 
 		try
 		{
-			QScript::FunctionObject* function = QScript::Compile( ReadFile( "program.qss" ) );
+			QScript::FunctionObject* function = QScript::Compile( command ); // ReadFile( "program.qss" ) );
 			QScript::Interpret( *function );
 
 			QScript::FreeFunction( function );

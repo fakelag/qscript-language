@@ -7,6 +7,54 @@
 
 namespace Compiler
 {
+	bool IsFunctionDefinition( ParserState& parserState )
+	{
+		int offset = parserState.Offset();
+		IrBuilder_t* builder = parserState.Peek( offset );
+
+		for ( ; builder; offset += 1, builder = parserState.Peek( offset ) )
+		{
+			switch ( builder->m_Token.m_Id )
+			{
+			case Compiler::TOK_COMMA:
+			case Compiler::TOK_NAME:
+				continue;
+			case Compiler::TOK_PAREN_RIGHT:
+				break;
+			default:
+				return false;
+			}
+
+			break;
+		}
+
+		if ( builder == NULL )
+			return false;
+
+		auto arrowToken = parserState.Peek( ++offset );
+
+		if ( !arrowToken || arrowToken->m_Token.m_Id != Compiler::TOK_ARROW )
+			return false;
+
+		auto blockStart = parserState.Peek( ++offset );
+		return blockStart && blockStart->m_Token.m_Id == Compiler::TOK_BRACE_LEFT;
+	}
+
+	void EndStatement( const BaseNode* node, ParserState& parserState )
+	{
+		if ( node && node->Id() == NODE_FUNC )
+		{
+			// Don't mandate a semicolon after functions
+			parserState.Expect( TOK_BRACE_RIGHT, "Expected end of block declaration" );
+			parserState.MatchCurrent( TOK_SCOLON );
+		}
+		else
+		{
+			// Expression and statements must end with a semicolon
+			parserState.Expect( TOK_SCOLON, "Expected end of expression" );
+		}
+	}
+
 	std::vector< BaseNode* > GenerateIR( const std::vector< Token_t >& tokens )
 	{
 		ParserState parserState;
@@ -71,24 +119,49 @@ namespace Compiler
 						break;
 					}
 
-					if ( headNode->Id() == NODE_FUNC )
+					switch ( headNode->Id() )
 					{
-						parserState.Expect( TOK_BRACE_RIGHT, "Expected end of block declaration" );
+
+					case NODE_FUNC:
+					{
+						// Allow trailing semicolon on function definitions
 						parserState.MatchCurrent( TOK_SCOLON );
+						break;
 					}
-					else if ( headNode->Id() == NODE_IF || headNode->Id() == NODE_WHILE || headNode->Id() == NODE_FOR )
+					case NODE_ASSIGN:
+					{
+						auto assignNode = static_cast< ComplexNode* >( headNode );
+						EndStatement( assignNode->GetRight(), parserState );
+						break;
+					}
+					case NODE_VAR:
+					{
+						auto varNode = static_cast< ListNode* >( headNode );
+						EndStatement( varNode->GetList()[ 1 ], parserState );
+						break;
+					}
+					case NODE_RETURN:
+					{
+						auto returnNode = static_cast< SimpleNode* >( headNode );
+						EndStatement( returnNode->GetNode(), parserState );
+						break;
+					}
+					case NODE_IF:
+					case NODE_WHILE:
+					case NODE_FOR:
 					{
 						auto currentToken = parserState.CurrentBuilder()->m_Token.m_Id;
 						if ( currentToken != TOK_BRACE_RIGHT && currentToken != TOK_SCOLON )
 						{
 							auto builder = parserState.CurrentBuilder();
-							throw CompilerException( "ir_expect", "Expected end of if/while-statement", builder->m_Token.m_LineNr,
+							throw CompilerException( "ir_expect", "Expected end of if/for/while-statement", builder->m_Token.m_LineNr,
 								builder->m_Token.m_ColNr, builder->m_Token.m_String );
 						}
 
 						parserState.NextBuilder();
+						break;
 					}
-					else
+					default:
 					{
 						if ( headNode->Id() == NODE_SCOPE )
 						{
@@ -100,6 +173,8 @@ namespace Compiler
 							// Expression statements must end with a semicolon
 							parserState.Expect( TOK_SCOLON, "Expected end of expression" );
 						}
+						break;
+					}
 					}
 				}
 
@@ -116,7 +191,7 @@ namespace Compiler
 
 		auto createBuilder = [ &parserState, &nextExpression, &nextStatement ]( const Token_t& token ) -> IrBuilder_t*
 		{
-			IrBuilder_t* builder = new IrBuilder_t( token );
+			IrBuilder_t* builder = QS_NEW IrBuilder_t( token );
 
 			switch ( token.m_Id )
 			{
@@ -391,49 +466,6 @@ namespace Compiler
 				};
 				break;
 			}
-			case TOK_FUNC:
-			{
-				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder ) -> BaseNode*
-				{
-					BaseNode* name = nextExpression( BP_VAR );
-					std::vector< BaseNode* > argsList;
-
-					if ( !name->IsString() )
-					{
-						throw CompilerException( "ir_function_name", "Invalid function name: \"" + name->Token() + "\"",
-							name->LineNr(), name->ColNr(), name->Token() );
-					}
-
-					parserState.Expect( TOK_EQUALS, "Expected \"=\" after \"function <name>\", got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
-					parserState.Expect( TOK_PAREN_LEFT, "Expected \"(\" after \"function <name> =\", got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
-
-					if ( !parserState.MatchCurrent( TOK_PAREN_RIGHT ) )
-					{
-						do {
-							auto argName = nextExpression( BP_VAR );
-
-							if ( !argName->IsString() )
-							{
-								throw CompilerException( "ir_variable_name", "Invalid variable name: \"" + argName->Token() + "\"",
-									argName->LineNr(), argName->ColNr(), argName->Token() );
-							}
-
-							argsList.push_back( argName );
-						} while ( parserState.MatchCurrent( TOK_COMMA ) );
-
-						parserState.Expect( TOK_PAREN_RIGHT, "Expected \")\" after \"function <name> = (...\", got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
-					}
-
-					auto body = parserState.ToScope( nextExpression( irBuilder.m_Token.m_LBP ) );
-					
-					auto args = parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-							irBuilder.m_Token.m_String, NODE_ARGUMENTS, argsList );
-
-					return parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-						irBuilder.m_Token.m_String, NODE_FUNC, std::vector< BaseNode* >{ name, args, body } );
-				};
-				break;
-			}
 			case TOK_BRACE_LEFT:
 			{
 				builder->m_Nud = [ &parserState, &nextStatement ]( const IrBuilder_t& irBuilder ) -> BaseNode*
@@ -457,34 +489,62 @@ namespace Compiler
 			case TOK_PAREN_RIGHT:
 			case TOK_SCOLON:
 			case TOK_COMMA:
+			case TOK_ARROW:
 				break;
 			case TOK_PAREN_LEFT:
 			{
-				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder )
+				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder ) -> BaseNode*
 				{
-					// TODO: check for instant closing rparen
-
-					auto expression = nextExpression();
-
-					if ( parserState.NextBuilder()->m_Token.m_Id != TOK_PAREN_RIGHT )
+					if ( IsFunctionDefinition( parserState ) )
 					{
-						auto curBuilder = parserState.CurrentBuilder();
-						throw Exception( "ir_missing_rparen",
-							std::string( "Expected an end of expression, got: \"" + curBuilder->m_Token.m_String + "\"" ) );
-					}
+						std::vector< BaseNode* > argsList;
 
-					return expression;
+						if ( !parserState.MatchCurrent( TOK_PAREN_RIGHT ) )
+						{
+							do {
+								auto argName = nextExpression( BP_VAR );
+
+								if ( !argName->IsString() )
+								{
+									throw CompilerException( "ir_variable_name", "Invalid variable name: \"" + argName->Token() + "\"",
+										argName->LineNr(), argName->ColNr(), argName->Token() );
+								}
+
+								argsList.push_back( argName );
+							} while ( parserState.MatchCurrent( TOK_COMMA ) );
+
+							parserState.Expect( TOK_PAREN_RIGHT, "Expected \")\" after \"var <name> = (...\", got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
+						}
+
+						// Skip over arrow
+						parserState.Expect( TOK_ARROW, "Expected \"->\" after \"var <name> = (...)\", got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
+
+						auto body = parserState.ToScope( nextExpression( irBuilder.m_Token.m_LBP ) );
+
+						auto args = parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+								irBuilder.m_Token.m_String, NODE_ARGUMENTS, argsList );
+
+						return parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+							irBuilder.m_Token.m_String, NODE_FUNC, std::vector< BaseNode* >{ args, body } );
+					}
+					else
+					{
+						auto expression = nextExpression();
+
+						if ( parserState.NextBuilder()->m_Token.m_Id != TOK_PAREN_RIGHT )
+						{
+							auto curBuilder = parserState.CurrentBuilder();
+							throw Exception( "ir_missing_rparen",
+								std::string( "Expected an end of expression, got: \"" + curBuilder->m_Token.m_String + "\"" ) );
+						}
+
+						return expression;
+					}
 				};
 
 				builder->m_Led = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder, BaseNode* left )
 				{
 					std::vector< BaseNode* > argsList;
-
-					if ( !left->IsString() )
-					{
-						throw CompilerException( "ir_function_name", "Invalid function name: \"" + left->Token() + "\"",
-							left->LineNr(), left->ColNr(), left->Token() );
-					}
 
 					// Parse argument list
 					if ( !parserState.MatchCurrent( TOK_PAREN_RIGHT ) )

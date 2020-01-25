@@ -1,5 +1,13 @@
 #pragma once
 
+#ifdef QS_MEMLEAK_TEST
+#define QS_NEW new ( _NORMAL_BLOCK , __FILE__ , __LINE__ )
+#include <stdlib.h>
+#include <crtdbg.h>
+#else
+#define QS_NEW new
+#endif
+
 #include <string>
 #include <vector>
 #include <algorithm>

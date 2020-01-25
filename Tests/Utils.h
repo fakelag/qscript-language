@@ -9,4 +9,5 @@ namespace TestUtils
 
 	bool CheckVM( VM_t& vm );
 	bool RunVM( const std::string& code, QScript::Value* exitCode );
+	bool FreeExitCode( QScript::Value& value );
 }

@@ -40,11 +40,12 @@ namespace Compiler
 		{ TOK_BRACE_RIGHT, 	{ TOK_BRACE_RIGHT, 	"}", 		BP_NONE,					false } },
 		{ TOK_COMMA, 		{ TOK_COMMA, 		",", 		BP_NONE,					false } },
 
+		{ TOK_ARROW,		{ TOK_ARROW, 		"->", 		BP_NONE,					false } },
+
 		{ TOK_DO,			{ TOK_DO,			"do",		BP_NONE,					true } },
 		{ TOK_ELSE,			{ TOK_ELSE,			"else",		BP_NONE,					true } },
 		{ TOK_FALSE,		{ TOK_FALSE, 		"false", 	BP_NONE,					true } },
 		{ TOK_FOR,			{ TOK_FOR, 			"for", 		BP_NONE,					true } },
-		{ TOK_FUNC,			{ TOK_FUNC, 		"function",	BP_NONE,					true } },
 		{ TOK_IF,			{ TOK_IF,			"if",		BP_NONE,					true } },
 		{ TOK_NULL,			{ TOK_NULL, 		"null", 	BP_NONE,					true } },
 		{ TOK_RETURN,		{ TOK_RETURN, 		"return", 	BP_NONE,					true } },
@@ -63,8 +64,11 @@ namespace Compiler
 			LS_COMMENT_MULTILINE,
 		};
 
+		std::regex intRegEx( "[-+]?([0-9]*[0-9]+|[0-9]+)" );
+		std::regex decimalRegEx( "[-+]?\\d+\\.\\d*" );
+
 		std::vector< Token_t > results;
-		std::vector<KeywordInfo_t> languageSymbols;
+		std::vector< KeywordInfo_t > languageSymbols;
 
 		std::string stringBuffer = "";
 
@@ -83,15 +87,13 @@ namespace Compiler
 		} );
 
 		// Is this string an integer ?
-		auto isInteger = []( const std::string& token ) -> bool {
-			static std::regex re("[-+]?([0-9]*[0-9]+|[0-9]+)");
-			return std::regex_match( token, re );
+		auto isInteger = [ &intRegEx ]( const std::string& token ) -> bool {
+			return std::regex_match( token, intRegEx );
 		};
 
 		// Is it a decimal ?
-		auto isDecimal = []( const std::string& token ) -> bool {
-			static std::regex re("[-+]?\\d+\\.\\d*");
-			return std::regex_match( token, re );
+		auto isDecimal = [ &decimalRegEx ]( const std::string& token ) -> bool {
+			return std::regex_match( token, decimalRegEx );
 		};
 
 		// Get the longest searchable token length

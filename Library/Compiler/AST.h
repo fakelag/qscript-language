@@ -110,6 +110,9 @@ namespace Compiler
 		void Release() override;
 		void Compile( Assembler& assembler, uint32_t options = CO_NONE ) override;
 
+		const BaseNode* GetLeft() const;
+		const BaseNode* GetRight() const;
+
 	private:
 		BaseNode*			m_Left;
 		BaseNode*			m_Right;
@@ -122,6 +125,8 @@ namespace Compiler
 
 		void Release() override;
 		void Compile( Assembler& assembler, uint32_t options = CO_NONE ) override;
+
+		const BaseNode* GetNode() const;
 
 	private:
 		BaseNode*			m_Node;

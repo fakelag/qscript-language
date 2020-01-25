@@ -55,9 +55,21 @@ namespace Compiler
 		bool 							IsError()							const { return m_Errors.size() > 0; }
 		IrBuilder_t*					CurrentBuilder()					const { return m_Builders[ m_CurrentBuilder ]; }
 		IrBuilder_t*					NextBuilder() 						{ return m_Builders[ m_CurrentBuilder++ ]; }
+		int 							Offset()							{ return m_CurrentBuilder; }
+
+		IrBuilder_t*					Peek( int offset )
+		{
+			if ( offset < 0 || offset > ( int ) m_Builders.size() - 1 )
+				return NULL;
+
+			return m_Builders[ offset ];
+		}
 
 		void 							Expect( Token token, const std::string desc )
 		{
+			if ( IsFinished() )
+				return;
+
 			auto builder = CurrentBuilder();
 			if ( builder->m_Token.m_Id != token )
 			{
@@ -78,7 +90,7 @@ namespace Compiler
 				NextBuilder();
 				return true;
 			}
-			
+
 			return false;
 		}
 
@@ -133,7 +145,7 @@ namespace Compiler
 		{
 			static_assert( std::is_base_of<BaseNode, T>::value, "Allocated node must derive from BaseNode" );
 
-			auto node = new T( args... );
+			auto node = QS_NEW T( args... );
 			m_AllocatedNodes.push_back( ( BaseNode* ) node );
 
 			return node;

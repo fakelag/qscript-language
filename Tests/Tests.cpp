@@ -16,24 +16,28 @@ int main( int argc, const char** argv )
 	dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
 	SetConsoleMode( hStdOut, dwMode );
 #endif
-	bool allPassed = true;
-	std::vector< bool > testResults;
 
-	testResults.push_back( Tests::TestLexer() );
-	testResults.push_back( Tests::TestCompiler() );
-	testResults.push_back( Tests::TestInterpreter() );
+	_CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
+	{
+		bool allPassed = true;
+		std::vector< bool > testResults;
 
-	for ( auto result : testResults )
-		if ( !result ) allPassed = false;
+		testResults.push_back( Tests::TestLexer() );
+		testResults.push_back( Tests::TestCompiler() );
+		testResults.push_back( Tests::TestInterpreter() );
 
-	if ( allPassed )
-		std::cout << "\n\n\033[32mAll tests passed\033[39m" << std::endl;
-	else
-		std::cout << "\n\n\033[31mSome tests failed\033[39m" << std::endl;
+		for ( auto result : testResults )
+			if ( !result ) allPassed = false;
+
+		if ( allPassed )
+			std::cout << "\n\n\033[32mAll tests passed\033[39m" << std::endl;
+		else
+			std::cout << "\n\n\033[31mSome tests failed\033[39m" << std::endl;
 
 #ifdef _WIN32
-	std::getchar();
+		std::getchar();
 #endif
+	}
 
 	return 0;
 }

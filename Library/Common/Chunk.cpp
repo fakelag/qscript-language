@@ -9,7 +9,33 @@ QScript::Object::UpvalueAllocatorFn QScript::Object::AllocateUpvalue = NULL;
 
 QScript::Chunk_t* QScript::AllocChunk()
 {
-	return new Chunk_t;
+	return QS_NEW Chunk_t;
+}
+
+void FreeObject( QScript::Object* object )
+{
+	switch ( object->m_Type )
+	{
+	case QScript::OT_FUNCTION:
+	{
+		QScript::FreeChunk( ( ( QScript::FunctionObject* ) object )->GetChunk() );
+		break;
+	}
+	case QScript::OT_CLOSURE:
+	{
+		assert( 0 );
+		break;
+	}
+	case QScript::OT_UPVALUE:
+	{
+		assert( 0 );
+		break;
+	}
+	default:
+		break;
+	}
+
+	delete object;
 }
 
 void QScript::FreeChunk( QScript::Chunk_t* chunk )
@@ -19,7 +45,7 @@ void QScript::FreeChunk( QScript::Chunk_t* chunk )
 		if ( !IS_OBJECT( constant ) )
 			continue;
 
-		delete AS_OBJECT( constant );
+		FreeObject( AS_OBJECT( constant ) );
 	}
 
 	delete chunk;

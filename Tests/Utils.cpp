@@ -64,6 +64,35 @@ void DeepCopy( QScript::Value* target, QScript::Value* other )
 	}
 }
 
+void FreeObject( const QScript::Object* object )
+{
+	switch ( object->m_Type )
+	{
+	case QScript::OT_FUNCTION:
+	{
+		QScript::FreeChunk( ( ( QScript::FunctionObject* ) object )->GetChunk() );
+		break;
+	}
+	case QScript::OT_CLOSURE:
+	{
+		FreeObject( ( ( QScript::ClosureObject* ) object )->GetFunction() );
+		break;
+	}
+	default:
+		break;
+	}
+
+	delete object;
+}
+
+bool TestUtils::FreeExitCode( QScript::Value& value )
+{
+	if ( IS_OBJECT( value ) )
+		FreeObject( AS_OBJECT( value ) );
+
+	return true;
+}
+
 std::string TestUtils::GenerateSequence( int length, std::function< std::string( int iteration ) > iterFn,
 	const std::string& first, const std::string& last )
 {

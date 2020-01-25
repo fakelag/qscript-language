@@ -4,67 +4,73 @@
 #include "Instructions.h"
 #include "Compiler.h"
 
+#define BEGIN_COMPILER \
+Object::AllocateString = &Compiler::AllocateString; \
+Object::AllocateFunction = &Compiler::AllocateFunction; \
+Object::AllocateNative = &Compiler::AllocateNative; \
+Object::AllocateClosure = &Compiler::AllocateClosure; \
+Object::AllocateUpvalue = &Compiler::AllocateUpvalue;
+
+#define END_COMPILER \
+Object::AllocateString = NULL; \
+Object::AllocateFunction = NULL; \
+Object::AllocateNative = NULL; \
+Object::AllocateClosure = NULL; \
+Object::AllocateUpvalue = NULL;
+
 namespace QScript
 {
 	FunctionObject* Compile( const std::string& source, int flags )
 	{
-		Object::AllocateString = &Compiler::AllocateString;
-		Object::AllocateFunction = &Compiler::AllocateFunction;
-		Object::AllocateNative = &Compiler::AllocateNative;
-		Object::AllocateClosure = &Compiler::AllocateClosure;
-		Object::AllocateUpvalue = &Compiler::AllocateUpvalue;
-
+		BEGIN_COMPILER;
 		Chunk_t* chunk = AllocChunk();
-
-		// Lexical analysis (tokenization)
-		auto tokens = Compiler::Lexer( source );
-
-#if 1
-		// Generate IR
-		auto entryNodes = Compiler::GenerateIR( tokens );
-
-		// Run IR optimizers
-
-		// Compile bytecode
-		Compiler::Assembler assembler( chunk, flags );
 
 		try
 		{
+			// Lexical analysis (tokenization)
+			auto tokens = Compiler::Lexer( source );
+
+			// Generate IR
+			auto entryNodes = Compiler::GenerateIR( tokens );
+
+			// Run IR optimizers
+
+			// Compile bytecode
+			Compiler::Assembler assembler( chunk, flags );
+
 			for ( auto node : entryNodes )
 				node->Compile( assembler );
+
+			for ( auto node : entryNodes )
+			{
+				node->Release();
+				delete node;
+			}
+
+			entryNodes.clear();
+
+			// Compiled funtions
+			auto functions = assembler.Finish();
+
+			// Clean up objects created in compilation process
+			Compiler::GarbageCollect( functions );
+
+			// Reset allocators
+			END_COMPILER;
+
+			// Return compiled code
+			return functions.back();
 		}
 		catch ( const CompilerException& exception )
 		{
+			FreeChunk( chunk );
 			throw std::vector< CompilerException >{ exception };
 		}
-
-		for ( auto node : entryNodes )
+		catch ( ... )
 		{
-			node->Release();
-			delete node;
+			FreeChunk( chunk );
+			throw; 
 		}
-
-		entryNodes.clear();
-#else
-		// RET
-		chunk->m_Code.push_back( QScript::OpCode::OP_RETURN );
-#endif
-
-		// Compiled funtions
-		auto functions = assembler.Finish();
-
-		// Clean up objects created in compilation process
-		Compiler::GarbageCollect( functions );
-
-		// Reset allocators
-		Object::AllocateString = NULL;
-		Object::AllocateFunction = NULL;
-		Object::AllocateNative = NULL;
-		Object::AllocateClosure = NULL;
-		Object::AllocateUpvalue = NULL;
-
-		// Return compiled code
-		return functions.back();
 	}
 }
 
@@ -88,21 +94,21 @@ namespace Compiler
 	{
 		// Compiler object allocation must use pure 'new'
 		// keyword, since FreeChunk() is also responsible for releasing these objects
-		auto stringObject = new QScript::StringObject( string );
+		auto stringObject = QS_NEW QScript::StringObject( string );
 		ObjectList.push_back( ( QScript::Object* ) stringObject );
 		return stringObject;
 	}
 
 	QScript::FunctionObject* AllocateFunction( const std::string& name, int arity )
 	{
-		auto functionObject = new QScript::FunctionObject( name, arity, NULL );
+		auto functionObject = QS_NEW QScript::FunctionObject( name, arity, NULL );
 		ObjectList.push_back( ( QScript::Object* ) functionObject );
 		return functionObject;
 	}
 
 	QScript::NativeFunctionObject* AllocateNative( void* nativeFn )
 	{
-		auto nativeObject = new QScript::NativeFunctionObject( ( QScript::NativeFn ) nativeFn );
+		auto nativeObject = QS_NEW QScript::NativeFunctionObject( ( QScript::NativeFn ) nativeFn );
 		ObjectList.push_back( ( QScript::Object* ) nativeObject );
 		return nativeObject;
 	}
@@ -111,7 +117,7 @@ namespace Compiler
 	{
 		assert( 0 );
 
-		auto closureObject = new QScript::ClosureObject( function );
+		auto closureObject = QS_NEW QScript::ClosureObject( function );
 		ObjectList.push_back( ( QScript::Object* ) closureObject );
 		return closureObject;
 	}
@@ -120,7 +126,7 @@ namespace Compiler
 	{
 		assert( 0 );
 
-		auto upvalueObject = new QScript::UpvalueObject( valuePtr );
+		auto upvalueObject = QS_NEW QScript::UpvalueObject( valuePtr );
 		ObjectList.push_back( ( QScript::Object* ) upvalueObject );
 		return upvalueObject;
 	}
@@ -155,7 +161,7 @@ namespace Compiler
 		m_OptimizationFlags = optimizationFlags;
 
 		// Main code
-		CreateFunction( "<main>", 0, chunk );
+		CreateFunction( "<main>", 0, true, chunk );
 	}
 
 	std::vector< QScript::FunctionObject* > Assembler::Finish()
@@ -182,14 +188,14 @@ namespace Compiler
 		return m_Functions.back().m_Stack;
 	}
 
-	QScript::FunctionObject* Assembler::CreateFunction( const std::string& name, int arity, QScript::Chunk_t* chunk )
+	QScript::FunctionObject* Assembler::CreateFunction( const std::string& name, int arity, bool isAnonymous, QScript::Chunk_t* chunk )
 	{
-		auto function = new QScript::FunctionObject( name, arity, chunk );
-		auto context = FunctionContext_t{ function, new Assembler::Stack_t() };
+		auto function = QS_NEW QScript::FunctionObject( name, arity, chunk );
+		auto context = FunctionContext_t{ function, QS_NEW Assembler::Stack_t() };
 
 		m_Functions.push_back( context );
 
-		CreateLocal( name == "<main>" ? "" : name );
+		CreateLocal( isAnonymous ? "" : name );
 		return function;
 	}
 
