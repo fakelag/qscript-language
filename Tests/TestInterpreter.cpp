@@ -29,6 +29,7 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_NUMBER( exitCode ) == true );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 4.0 );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_CASE_CLOSED();
 	}( );
 
@@ -40,16 +41,19 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_STRING( exitCode ) == true );
 		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "long string" );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_ASSERT( TestUtils::RunVM( "return \"string\" + 1;", &exitCode ) );
 
 		UTEST_ASSERT( IS_STRING( exitCode ) == true );
 		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "string1.00" );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_ASSERT( TestUtils::RunVM( "return 2.5 + \"string\";", &exitCode ) );
 
 		UTEST_ASSERT( IS_STRING( exitCode ) == true );
 		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "2.50string" );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_CASE_CLOSED();
 	}( );
 
@@ -63,6 +67,7 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 130816.0 );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_CASE_CLOSED();
 	}( );
 
@@ -74,6 +79,7 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_STRING( exitCode ) );
 		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "hello world!" );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_CASE_CLOSED();
 	}( );
 
@@ -85,16 +91,19 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 104.00 );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_ASSERT( TestUtils::RunVM( "var glob = 10; { var loc; loc = 2.5; var loc2 = 10 + loc; glob = loc2 * 2; } return glob;", &exitCode ) );
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 25.00 );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_ASSERT( TestUtils::RunVM( "var g = 5; g = 10; { var z = g + 1; var x; x = z + 2; g = x * 2; } return g;", &exitCode ) );
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 26.00 );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_ASSERT( TestUtils::RunVM( "var glob1 = 60;		\
 			var glob2 = 40;										\
 			var glob3;											\
@@ -125,6 +134,7 @@ bool Tests::TestInterpreter()
 			return "var tmp_" + std::to_string( iter ) + " = " + std::to_string( iter ) + ";";
 		} );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_ASSERT( TestUtils::RunVM( "var glob1 = 60;		\
 			{ " + localVariables + " glob1 = tmp_412; }			\
 			return glob1;", &exitCode ) );
@@ -132,6 +142,7 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 412 );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_CASE_CLOSED();
 	}( );
 
@@ -164,6 +175,7 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 100.00 );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_ASSERT( TestUtils::RunVM( "var x = 0;								\
 			if (x == 1) {														\
 				var a = \"hello \";												\
@@ -190,6 +202,7 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_STRING( exitCode ) );
 		UTEST_ASSERT( AS_STRING( exitCode )->GetString().compare( 0, 15, "number is 1140." ) == 0 );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_ASSERT( TestUtils::RunVM( "var x = 0;								\
 			if (x) { x = 1; }													\
 			else if (0) { x = 2; }												\
@@ -202,6 +215,7 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 4 );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_ASSERT( TestUtils::RunVM( "var x = 0;								\
 				if (x) { " + largeBodyOfCode + " }								\
 				else if (x == 1) { " + largeBodyOfCode + " }					\
@@ -211,6 +225,7 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 42 );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_CASE_CLOSED();
 	}( );
 
@@ -230,6 +245,7 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 251 );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_CASE_CLOSED();
 	}( );
 
@@ -256,6 +272,7 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 100000 );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_ASSERT( TestUtils::RunVM( "var g1 = 0;			\
 				while ((g1 = g1 + 1) < 40) {}						\
 			return g1;", &exitCode ) );
@@ -263,6 +280,7 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 40.0 );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_CASE_CLOSED();
 	}( );
 
@@ -274,6 +292,7 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 50 );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_ASSERT( TestUtils::RunVM( "var g = 0;		\
 			var g1 = 0;									\
 			while ( g < 10 ) {							\
@@ -297,6 +316,7 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 2490.0 );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_ASSERT( TestUtils::RunVM( "var g0 = -1;		\
 			var g1 = -1;									\
 			do {											\
@@ -316,6 +336,7 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 20365011074.0 );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_CASE_CLOSED();
 	}( );
 
@@ -330,6 +351,7 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 55 );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_ASSERT( TestUtils::RunVM( "var res;				\
 			var g0 = 2;											\
 			var g1 = 2;											\
@@ -348,6 +370,7 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 10 );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_ASSERT( TestUtils::RunVM( "var g = 1;																			\
 			for ( var i = " + largeExpression + "; i < 10 +" + largeExpression + "; i = i + 1 + " + largeExpression	+ ") {	\
 				" + largeBodyOfCode + " g = i + 1;																			\
@@ -357,6 +380,7 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 10 );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_CASE_CLOSED();
 	}( );
 
@@ -364,7 +388,7 @@ bool Tests::TestInterpreter()
 	{
 		QScript::Value exitCode;
 		UTEST_ASSERT( TestUtils::RunVM( "var x = 5;				\
-			function abc = () {									\
+			var abc = () -> {									\
 				var x = 5;										\
 				var y = x + 50;									\
 				{ var z = y + y; }								\
@@ -376,8 +400,9 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 1 );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_ASSERT( TestUtils::RunVM( "var x = 5;				\
-			function abc = (x) {								\
+			var abc = (x) -> {									\
 				var y = x + 50;									\
 				{ " + largeBodyOfCode + " }						\
 				var q = y + x;									\
@@ -390,8 +415,9 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 60 );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_ASSERT( TestUtils::RunVM( "var x = 5;				\
-			function abc = (a, b, c) {							\
+			var abc = (a, b, c) -> {							\
 				return a + b + c;								\
 			}													\
 			return abc(7, 9, 2);", &exitCode ) );
@@ -399,6 +425,7 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 18 );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_CASE_CLOSED();
 	}( );
 
@@ -406,17 +433,18 @@ bool Tests::TestInterpreter()
 	{
 		QScript::Value exitCode;
 		UTEST_ASSERT( TestUtils::RunVM( "var x = 0;				\
-			function a = (x) { var y = x + 5; return y + 5; }	\
-			function b = (x) { return a(x) + 5; }				\
-			function c = (x) { return b(x) - 5; }				\
+			var a = (x) -> { var y = x + 5; return y + 5; }		\
+			var b = (x) -> { return a(x) + 5; }					\
+			var c = (x) -> { return b(x) - 5; }					\
 			x = c(20);											\
 			return x;", &exitCode ) );
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 30 );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_ASSERT( TestUtils::RunVM( "						\
-			function fibonacci = (num) {						\
+			var fibonacci = (num) -> {							\
 				if (num <= 1) return 1;							\
 				return fibonacci(num - 1) + fibonacci(num - 2);	\
 			}													\
@@ -425,34 +453,31 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 89 );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_ASSERT( TestUtils::RunVM( "var x = 0;							\
-			function xxx = (anotherFunc) { return anotherFunc(60, 60); }	\
-			function sum = (a, b) { return a + b; }							\
+			var xxx = (anotherFunc) -> { return anotherFunc(60, 60); }		\
+			var sum = (a, b) -> { return a + b; }							\
 			return xxx(sum);", &exitCode ) );
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 120 );
 
-		UTEST_ASSERT( TestUtils::RunVM( "function a = () {					\
-			return function b = () { 										\
-				return function c = () {									\
-					return 90;												\
-				};															\
-			};																\
-		", &exitCode ) );
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_ASSERT( TestUtils::RunVM( "var x = () -> { return () -> { return () -> { return 8; }; } } return x()()();", &exitCode ) );
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
-		UTEST_ASSERT( AS_NUMBER( exitCode ) == 120 );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 8 );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_CASE_CLOSED();
 	}( );
 
 	UTEST_CASE( "Closures 1 (Simple closures)" )
 	{
 		QScript::Value exitCode;
-		UTEST_ASSERT( TestUtils::RunVM( "function f = () {		\
+		UTEST_ASSERT( TestUtils::RunVM( "var f = () -> {		\
 			var l0 = \"initial\";								\
-			function a = ( ) {									\
+			var a = ( ) -> {									\
 				l0 = \"second\";								\
 			}													\
 			a();												\
@@ -463,9 +488,10 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_STRING( exitCode ) );
 		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "second" );
 
-		UTEST_ASSERT( TestUtils::RunVM( "function f = () {		\
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_ASSERT( TestUtils::RunVM( "var f = () -> {		\
 			var l0 = \"returned\";								\
-			function a = ( ) {									\
+			var a = ( ) -> {									\
 				return l0;										\
 			}													\
 			return a();											\
@@ -475,10 +501,11 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_STRING( exitCode ) );
 		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "returned" );
 
-		UTEST_ASSERT( TestUtils::RunVM( "function g = () {		\
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_ASSERT( TestUtils::RunVM( "var g = () -> {		\
 			var a = \"a\";										\
 			var b = \"b\";										\
-			function f = ( ) {									\
+			var f = ( ) -> {									\
 				return a + b;									\
 			}													\
 			return f();											\
@@ -488,12 +515,13 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_STRING( exitCode ) );
 		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "ab" );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_ASSERT( TestUtils::RunVM( "var g = null;		\
 		{													\
 			var l0 = 333;									\
 			var l1 = 919191;								\
 			var l2 = 222;									\
-			function l3 = ( ) {								\
+			var l3 = ( ) -> {								\
 				return l1;									\
 			}												\
 			g = l3;											\
@@ -503,6 +531,7 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 919191 );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_CASE_CLOSED();
 	}( );
 
@@ -510,20 +539,20 @@ bool Tests::TestInterpreter()
 	{
 		QScript::Value exitCode;
 		UTEST_ASSERT( TestUtils::RunVM( "var g = null;		\
-			function a = ( ) {								\
+			var a = ( )  -> {								\
 			var mmmm;										\
 			var l0 = 1;										\
 			var bbbb;										\
-			function b = ( ) {								\
+			var b = ( ) -> {								\
 				var oooo;									\
 				var l1 = 2;									\
 				var ffff;									\
-				function c = ( ) {							\
+				var c = ( ) -> {							\
 					var xxx;								\
 					var l2 = 3;								\
 					var zzz;								\
 					var ggg;								\
-					function d = ( ) {						\
+					var d = ( ) -> {						\
 						g = l0 + l1 + l2;					\
 						g = g + l0;							\
 					}										\
@@ -539,13 +568,14 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 7 );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_ASSERT( TestUtils::RunVM( "var g = null;			\
 			var g1 = null;										\
 			{													\
 				var l0 = null;									\
 				{												\
 					var a = 1;									\
-					function retA = ( ) { return a; }			\
+					var retA = ( ) -> { return a; }				\
 					g = retA;									\
 				}												\
 				{												\
@@ -557,10 +587,11 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 1 );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_ASSERT( TestUtils::RunVM( "var g = \"\";			\
-			function process = ( ) {							\
+			var process = ( ) -> {							\
 			var l0 = \"closure\";								\
-			function l1 = ( ) {									\
+			var l1 = ( ) -> {									\
 				g = g + l0;										\
 				var l0 = \"shadow\";							\
 				g = g + l0;										\
@@ -574,15 +605,16 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_STRING( exitCode ) );
 		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "closureshadowclosure" );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_CASE_CLOSED();
 	}( );
 
 	UTEST_CASE( "Closures 3 (Unused closure, close over function param, refer to same variable on all closures)" )
 	{
 		QScript::Value exitCode;
-		UTEST_ASSERT( TestUtils::RunVM( "function g = () {		\
+		UTEST_ASSERT( TestUtils::RunVM( "var g = () -> {		\
 				var a = \"object\";								\
-				if ( false ) { function x = () { return a; } }	\
+				if ( false ) { var x = () -> { return a; } }	\
 			}													\
 			g();												\
 			return 6; ", &exitCode ) );
@@ -590,9 +622,10 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 6 );
 
-		UTEST_ASSERT( TestUtils::RunVM( "function g = () {		\
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_ASSERT( TestUtils::RunVM( "var g = () -> {		\
 				var a = \"object\";								\
-				if ( false ) { function x = () { return a; } }	\
+				if ( false ) { var x = () -> { return a; } }	\
 			}													\
 			g();												\
 			return 6; ", &exitCode ) );
@@ -600,15 +633,16 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 6 );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_ASSERT( TestUtils::RunVM( "var g;							\
 			var g2;														\
 			{															\
 				var a = \"a\";											\
 				{														\
 					var b = \"b\";										\
-					function x = ( ) { return a; }						\
+					var x = ( ) -> { return a; }						\
 					g = x;												\
-					if ( false ) { function z = ( ) { return b; } }		\
+					if ( false ) { var z = ( ) -> { return b; } }		\
 				}														\
 				g2 = g();												\
 			}															\
@@ -617,9 +651,10 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_STRING( exitCode ) );
 		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "a" );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_ASSERT( TestUtils::RunVM( "var g = null;					\
-			function f = ( arg0 ) {										\
-				function x = ( ) {										\
+			var f = ( arg0 ) -> {										\
+				var x = ( ) -> {										\
 					return arg0;										\
 				}														\
 				g = x;													\
@@ -630,12 +665,13 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_STRING( exitCode ) );
 		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "hello" );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_ASSERT( TestUtils::RunVM( "var gAdd;					\
 			var gGet;												\
-			function g = ( ) {										\
+			var g = ( ) -> {										\
 				var v = 0;											\
-				function add = ( ) { v = v + 1; }					\
-				function get = ( ) { return v; }					\
+				var add = ( ) -> { v = v + 1; }						\
+				var get = ( ) -> { return v; }						\
 				gAdd = add;											\
 				gGet = get;											\
 			}														\
@@ -647,6 +683,7 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 2 );
 
+		TestUtils::FreeExitCode( exitCode );
 		UTEST_CASE_CLOSED();
 	}( );
 
