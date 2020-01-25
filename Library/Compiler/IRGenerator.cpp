@@ -31,8 +31,28 @@ namespace Compiler
 		if ( builder == NULL )
 			return false;
 
-		auto blockStart = parserState.Peek( offset + 1 );
+		auto arrowToken = parserState.Peek( ++offset );
+
+		if ( !arrowToken || arrowToken->m_Token.m_Id != Compiler::TOK_ARROW )
+			return false;
+
+		auto blockStart = parserState.Peek( ++offset );
 		return blockStart && blockStart->m_Token.m_Id == Compiler::TOK_BRACE_LEFT;
+	}
+
+	void EndStatement( const BaseNode* node, ParserState& parserState )
+	{
+		if ( node && node->Id() == NODE_FUNC )
+		{
+			// Don't mandate a semicolon after functions
+			parserState.Expect( TOK_BRACE_RIGHT, "Expected end of block declaration" );
+			parserState.MatchCurrent( TOK_SCOLON );
+		}
+		else
+		{
+			// Expression and statements must end with a semicolon
+			parserState.Expect( TOK_SCOLON, "Expected end of expression" );
+		}
 	}
 
 	std::vector< BaseNode* > GenerateIR( const std::vector< Token_t >& tokens )
@@ -99,33 +119,49 @@ namespace Compiler
 						break;
 					}
 
-					if ( headNode->Id() == NODE_FUNC )
+					switch ( headNode->Id() )
 					{
-						parserState.Expect( TOK_BRACE_RIGHT, "Expected end of block declaration" );
 
+					case NODE_FUNC:
+					{
 						// Allow trailing semicolon on function definitions
 						parserState.MatchCurrent( TOK_SCOLON );
+						break;
 					}
-					else if ( headNode->Id() == NODE_VAR )
+					case NODE_ASSIGN:
 					{
-						parserState.MatchCurrent( TOK_BRACE_RIGHT );
-
-						// Expression statements must end with a semicolon
-						parserState.Expect( TOK_SCOLON, "Expected end of expression" );
+						auto assignNode = static_cast< ComplexNode* >( headNode );
+						EndStatement( assignNode->GetRight(), parserState );
+						break;
 					}
-					else if ( headNode->Id() == NODE_IF || headNode->Id() == NODE_WHILE || headNode->Id() == NODE_FOR )
+					case NODE_VAR:
+					{
+						auto varNode = static_cast< ListNode* >( headNode );
+						EndStatement( varNode->GetList()[ 1 ], parserState );
+						break;
+					}
+					case NODE_RETURN:
+					{
+						auto returnNode = static_cast< SimpleNode* >( headNode );
+						EndStatement( returnNode->GetNode(), parserState );
+						break;
+					}
+					case NODE_IF:
+					case NODE_WHILE:
+					case NODE_FOR:
 					{
 						auto currentToken = parserState.CurrentBuilder()->m_Token.m_Id;
 						if ( currentToken != TOK_BRACE_RIGHT && currentToken != TOK_SCOLON )
 						{
 							auto builder = parserState.CurrentBuilder();
-							throw CompilerException( "ir_expect", "Expected end of if/while-statement", builder->m_Token.m_LineNr,
+							throw CompilerException( "ir_expect", "Expected end of if/for/while-statement", builder->m_Token.m_LineNr,
 								builder->m_Token.m_ColNr, builder->m_Token.m_String );
 						}
 
 						parserState.NextBuilder();
+						break;
 					}
-					else
+					default:
 					{
 						if ( headNode->Id() == NODE_SCOPE )
 						{
@@ -137,6 +173,8 @@ namespace Compiler
 							// Expression statements must end with a semicolon
 							parserState.Expect( TOK_SCOLON, "Expected end of expression" );
 						}
+						break;
+					}
 					}
 				}
 
@@ -153,7 +191,7 @@ namespace Compiler
 
 		auto createBuilder = [ &parserState, &nextExpression, &nextStatement ]( const Token_t& token ) -> IrBuilder_t*
 		{
-			IrBuilder_t* builder = new IrBuilder_t( token );
+			IrBuilder_t* builder = QS_NEW IrBuilder_t( token );
 
 			switch ( token.m_Id )
 			{
@@ -451,6 +489,7 @@ namespace Compiler
 			case TOK_PAREN_RIGHT:
 			case TOK_SCOLON:
 			case TOK_COMMA:
+			case TOK_ARROW:
 				break;
 			case TOK_PAREN_LEFT:
 			{
@@ -476,6 +515,9 @@ namespace Compiler
 
 							parserState.Expect( TOK_PAREN_RIGHT, "Expected \")\" after \"var <name> = (...\", got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
 						}
+
+						// Skip over arrow
+						parserState.Expect( TOK_ARROW, "Expected \"->\" after \"var <name> = (...)\", got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
 
 						auto body = parserState.ToScope( nextExpression( irBuilder.m_Token.m_LBP ) );
 

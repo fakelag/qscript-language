@@ -25,6 +25,7 @@ namespace Compiler
 	{
 		TOK_2EQUALS = 0,
 		TOK_AND,
+		TOK_ARROW,
 		TOK_BANG,
 		TOK_BRACE_LEFT,
 		TOK_BRACE_RIGHT,

@@ -349,6 +349,16 @@ namespace Compiler
 		}
 	}
 
+	const BaseNode* ComplexNode::GetLeft() const
+	{
+		return m_Left;
+	}
+
+	const BaseNode* ComplexNode::GetRight() const
+	{
+		return m_Right;
+	}
+
 	void ComplexNode::Compile( Assembler& assembler, uint32_t options )
 	{
 		auto chunk = assembler.CurrentChunk();
@@ -360,10 +370,29 @@ namespace Compiler
 		{
 			RequireAssignability( m_Left );
 
-			// When assigning a value, first evaluate right hand operand (value)
-			// and then set it via the left hand operand
-			m_Right->Compile( assembler, COMPILE_EXPRESSION( options ) );
-			m_Left->Compile( assembler, COMPILE_ASSIGN_TARGET( options ) );
+			if ( m_Right->Id() == NODE_FUNC )
+			{
+				if ( m_Left->Id() == NODE_NAME )
+				{
+					// Compile a named function
+					auto& varName = static_cast< ValueNode* >( m_Left )->GetValue();
+					CompileFunction( false, AS_STRING( varName )->GetString(), static_cast< ListNode* >( m_Right ), assembler );
+				}
+				else
+				{
+					// Anonymous function
+					CompileFunction( true, "<anonymous>", static_cast< ListNode* >( m_Right ), assembler );
+				}
+
+				m_Left->Compile( assembler, COMPILE_ASSIGN_TARGET( options ) );
+			}
+			else
+			{
+				// When assigning a value, first evaluate right hand operand (value)
+				// and then set it via the left hand operand
+				m_Right->Compile( assembler, COMPILE_EXPRESSION( options ) );
+				m_Left->Compile( assembler, COMPILE_ASSIGN_TARGET( options ) );
+			}
 			break;
 		}
 		case NODE_AND:
@@ -472,6 +501,11 @@ namespace Compiler
 			m_Node->Release();
 			delete m_Node;
 		}
+	}
+
+	const BaseNode* SimpleNode::GetNode() const
+	{
+		return m_Node;
 	}
 
 	void SimpleNode::Compile( Assembler& assembler, uint32_t options )
