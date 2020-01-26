@@ -89,6 +89,9 @@ namespace Compiler
 			{
 				builder = parserState.NextBuilder();
 
+				if ( parserState.IsFinished() )
+					throw CompilerException( "ir_parsing_past_eof", "Parsing past end of file", -1, -1, "" );
+
 				if ( builder->m_Led == NULL )
 				{
 					throw CompilerException( "ir_expect_rvalue", "Expected a right-value",
@@ -96,6 +99,9 @@ namespace Compiler
 				}
 
 				left = builder->m_Led( *builder, left );
+
+				if ( parserState.IsFinished() )
+					throw CompilerException( "ir_parsing_past_eof", "Parsing past end of file", -1, -1, "" );
 			}
 
 			return left;
