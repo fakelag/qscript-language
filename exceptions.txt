@@ -26,6 +26,7 @@ Runtime 			rt_unknown_opcode					Unknown opcode: %opcode%
 Runtime				rt_unknown_global 					Referring to an unknown global: "%identifierString%"
 Runtime 			rt_invalid_call_arity				Arguments provided is different from what the callee accepts, got: %numArgs% expected: %fnArity%
 Runtime				rt_invalid_call_target				Call value was not object type | Invalid call value object type
+Runtime 			rt_exit								exit() called
 
 Generic Exceptions
 error_not_implemented	reason: A feature is not yet implemented
