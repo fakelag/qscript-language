@@ -31,6 +31,7 @@ namespace QScript
 
 	FunctionObject* Compile( const std::string& source, int flags = OF_NONE );
 
+	void Repl();
 	void Interpret( const FunctionObject& function );
 	void Interpret( VM_t& vm, Value* exitCode );
 }

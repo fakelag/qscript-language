@@ -1,5 +1,14 @@
 #pragma once
 
+namespace QVM
+{
+	QScript::StringObject* AllocateString( const std::string& string );
+	QScript::FunctionObject* AllocateFunction( const std::string& name, int arity );
+	QScript::NativeFunctionObject* AllocateNative( void* nativeFn );
+	QScript::ClosureObject* AllocateClosure( QScript::FunctionObject* function );
+	QScript::UpvalueObject* AllocateUpvalue( QScript::Value* valueRef );
+}
+
 struct Frame_t
 {
 	Frame_t( QScript::ClosureObject* closure, QScript::Value* stackFrame, uint8_t* ip )

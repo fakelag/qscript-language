@@ -10,4 +10,9 @@ namespace Native
 	{
 		return MAKE_NUMBER( (double) ::clock() / CLOCKS_PER_SEC );
 	}
+
+	QScript::Value exit( const QScript::Value* args, int numArgs )
+	{
+		throw RuntimeException( "rt_exit", "exit() called", 0, 0, "" );
+	}
 }

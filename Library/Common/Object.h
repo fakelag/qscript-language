@@ -41,10 +41,11 @@ namespace QScript
 		{
 		}
 
-		FORCEINLINE const std::string& GetName() 	const { return m_Name; }
-		FORCEINLINE int NumArgs() 					const { return m_Arity; }
-		FORCEINLINE int NumUpvalues() 				const { return m_NumUpvalues; }
-		FORCEINLINE Chunk_t* GetChunk() 			const { return m_Chunk; }
+		FORCEINLINE void Rename( const std::string& newName ) 		{ m_Name = newName; }
+		FORCEINLINE const std::string& GetName() 					const { return m_Name; }
+		FORCEINLINE int NumArgs() 									const { return m_Arity; }
+		FORCEINLINE int NumUpvalues() 								const { return m_NumUpvalues; }
+		FORCEINLINE Chunk_t* GetChunk() 							const { return m_Chunk; }
 
 		FORCEINLINE void SetUpvalues( int numUpvalues ) { ++m_NumUpvalues; }
 

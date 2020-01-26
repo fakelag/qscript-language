@@ -431,16 +431,16 @@ namespace QVM
 				auto b = vm.Pop();
 				auto a = vm.Pop();
 
-				if ( IS_STRING( a ) || IS_STRING( b ) )
+				if ( IS_NUMBER( a ) && IS_NUMBER( b ) )
+				{
+					vm.Push( MAKE_NUMBER( AS_NUMBER( a ) + AS_NUMBER( b ) ) );
+				}
+				else if ( IS_STRING( a ) || IS_STRING( b ) )
 				{
 					auto stringA = a.ToString();
 					auto stringB = b.ToString();
 
 					vm.Push( MAKE_STRING( stringA + stringB ) );
-				}
-				else if ( IS_NUMBER( a ) && IS_NUMBER( b ) )
-				{
-					vm.Push( MAKE_NUMBER( AS_NUMBER( a ) + AS_NUMBER( b ) ) );
 				}
 				else
 				{
@@ -546,7 +546,7 @@ void VM_t::Init( const QScript::FunctionObject* mainFunction )
 	m_Main = QS_NEW QScript::ClosureObject( mainFunction );
 
 	// Create initial call frame
-	m_Frames.emplace_back( m_Main, m_Stack, &mainFunction->GetChunk()->m_Code[ 0 ] );
+	m_Frames.emplace_back( m_Main, m_Stack, mainFunction->GetChunk()->m_Code.data() );
 
 	// Push main function to stack slot 0. This is directly allocated, so
 	// the VM garbage collection won't ever release it
@@ -633,6 +633,9 @@ void VM_t::AddObject( QScript::Object* object )
 
 void VM_t::MarkReachable()
 {
+	// Mark main
+	MarkObject( m_Main );
+
 	// Mark values sitting on the stack
 	for ( QScript::Value* value = m_Stack; value < m_StackTop; ++value )
 	{
@@ -790,12 +793,88 @@ void VM_t::ResolveImports()
 {
 	// Add a native for testing
 	CreateNative( "clock", Native::clock );
+	CreateNative( "exit", Native::exit );
 }
 
 void VM_t::CreateNative( const std::string name, QScript::NativeFn native )
 {
 	auto global = std::pair<std::string, QScript::Value>( name, MAKE_OBJECT( QVM::AllocateNative( ( void* ) native ) ) );
 	m_Globals.insert( global );
+}
+
+void QScript::Repl()
+{
+	static int s_ReplID = 0;
+
+	auto chunk = QScript::AllocChunk();
+	auto function = QS_NEW QScript::FunctionObject( "<repl>", 0, chunk );
+
+	VM_t vm( function );
+
+	for ( ;; )
+	{
+		std::string source;
+		std::cout << "REPL (" + std::to_string( ++s_ReplID ) << ") >";
+		std::getline( std::cin, source );
+
+		try
+		{
+			INTERP_SHUTDOWN;
+			auto newMain = QScript::Compile( source );
+			INTERP_INIT;
+
+			newMain->Rename( "<repl_" + std::to_string( s_ReplID ) + ">" );
+
+			// Link function to main, so it gets freed at the end
+			vm.m_Main->GetFunction()->GetChunk()->m_Constants.push_back( MAKE_OBJECT( newMain ) );
+
+			// Let GC handle collecting the closure
+			auto newClosure = QScript::Object::AllocateClosure( newMain );
+
+			// Reset stack
+			vm.m_StackTop = &vm.m_Stack[ 0 ];
+
+			// New closure to stack@0
+			vm.Push( MAKE_OBJECT( newClosure ) );
+
+			// Main frame out
+			vm.m_Frames.pop_back();
+
+			// New frame in
+			vm.m_Frames.emplace_back( newClosure, vm.m_Stack, &newMain->GetChunk()->m_Code[ 0 ] );
+			
+			// Run code
+			vm.ResolveImports();
+			QVM::Run( vm );
+		}
+		catch ( std::vector< CompilerException >& exceptions )
+		{
+			for ( auto ex : exceptions )
+				std::cout << ex.describe() << std::endl;
+		}
+		catch ( const RuntimeException& exception )
+		{
+			if ( exception.id() == "rt_exit" )
+				break;
+
+			std::cout << "Exception (" << exception.id() << "): " << exception.describe() << std::endl;
+		}
+		catch ( const Exception& exception )
+		{
+			std::cout << "Exception (" << exception.id() << "): " << exception.describe() << std::endl;
+		}
+		catch ( const std::exception& exception )
+		{
+			std::cout << "Exception: " << exception.what() << std::endl;
+		}
+		catch ( ... )
+		{
+			std::cout << "Unknown exception occurred." << std::endl;
+		}
+	}
+
+	vm.Release();
+	QScript::FreeFunction( function );
 }
 
 void QScript::Interpret( const QScript::FunctionObject& function )
