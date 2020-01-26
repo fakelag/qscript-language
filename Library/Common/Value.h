@@ -94,15 +94,16 @@ FORCEINLINE Value operator op ( const Value& other ) { \
 	return MAKE_BOOL( thisNum op otherNum ); \
 }
 #else
-#define VALUE_CMP_OP( op ) \
+#define VALUE_CMP_OP( op, nullCase ) \
 FORCEINLINE Value operator op ( const Value& other ) { \
 	if ( m_Type != other.m_Type ) \
-		return MAKE_NULL; \
+		return nullCase; \
 	switch ( m_Type ) { \
 		case VT_NULL: return MAKE_NULL; \
 		case VT_BOOL: return MAKE_BOOL( AS_BOOL( *this ) op AS_BOOL( other ) ); \
 		case VT_NUMBER: return MAKE_BOOL( AS_NUMBER( *this ) op AS_NUMBER( other ) ); \
-		default: return MAKE_NULL; \
+		case VT_OBJECT: return MAKE_BOOL( AS_OBJECT( *this ) op AS_OBJECT( other ) ); \
+		default: return nullCase; \
 	} \
 }
 
@@ -265,8 +266,8 @@ namespace QScript
 		VALUE_ARIT_OP( / );
 		VALUE_ARIT_OP( * );
 
-		VALUE_CMP_OP( == );
-		VALUE_CMP_OP( != );
+		VALUE_CMP_OP( ==, MAKE_BOOL( false ) );
+		VALUE_CMP_OP( !=, MAKE_BOOL( true ) );
 		VALUE_CMP_OP_BOOLNUM( > );
 		VALUE_CMP_OP_BOOLNUM( < );
 		VALUE_CMP_OP_BOOLNUM( <= );
