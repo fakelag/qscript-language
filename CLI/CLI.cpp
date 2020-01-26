@@ -23,24 +23,43 @@ std::string ReadFile( const std::string& path )
 	return content;
 }
 
-int main()
+bool GetArg( const std::string& argument, int argc, char* argv[], std::string* next )
+{
+	for ( int i = 1; i < argc; ++i )
+	{
+		if ( argv[ i ] == argument )
+		{
+			if ( i + 1 < argc )
+				*next = argv[ i + 1 ];
+			else
+				*next = "";
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
+int main( int argc, char* argv[] )
 {
 #ifdef QS_MEMLEAK_TEST
 	_CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 #endif
 
-	std::string command;
-	for ( ;; )
+	std::string next;
+	if ( GetArg( "--repl", argc, argv, &next ) )
 	{
-		std::cout << "REPL > ";
-		std::getline( std::cin, command );
+		QScript::Repl();
+	}
+	else if ( GetArg( "--file", argc, argv, &next ) )
+	{
+		QScript::FunctionObject* function = NULL;
 
 		try
 		{
-			QScript::FunctionObject* function = QScript::Compile( command ); // ReadFile( "program.qss" ) );
+			function = QScript::Compile( ReadFile( next ) );
 			QScript::Interpret( *function );
-
-			QScript::FreeFunction( function );
 		}
 		catch ( std::vector< CompilerException >& exceptions )
 		{
@@ -49,7 +68,8 @@ int main()
 		}
 		catch ( const RuntimeException& exception )
 		{
-			std::cout << "Exception (" << exception.id() << "): " << exception.describe() << std::endl;
+			if ( exception.id() != "rt_exit" )
+				std::cout << "Exception (" << exception.id() << "): " << exception.describe() << std::endl;
 		}
 		catch ( const Exception& exception )
 		{
@@ -64,9 +84,7 @@ int main()
 			std::cout << "Unknown exception occurred." << std::endl;
 		}
 
-		// Flush stdin
-		int ch;
-		while ( ( ch = std::cin.get() ) != '\n' && ch != EOF );
+		QScript::FreeFunction( function );
 	}
 
 	return 0;
