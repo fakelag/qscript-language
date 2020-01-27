@@ -16,11 +16,10 @@ std::string QScript::Value::ToString() const
 		case OT_UPVALUE: return "<upvalue>";
 		default:
 		{
-#ifdef QVM_DEBUG
-			return "<unknown>";
-#else
+#ifndef QVM_DEBUG
 			UNREACHABLE();
 #endif
+		return "<unknown>";
 		}
 		}
 	}
