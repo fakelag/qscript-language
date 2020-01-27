@@ -145,18 +145,18 @@ namespace QScript
 	class ClosureObject;
 	class UpvalueObject;
 
-#ifndef QS_NAN_BOXING
 	enum ValueType
 	{
+		VT_INVALID = -1,
 		VT_NULL = 0,
 		VT_NUMBER,
 		VT_BOOL,
 		VT_OBJECT,
 	};
-#endif
 
 	enum ObjectType
 	{
+		OT_INVALID = -1,
 		OT_STRING,
 		OT_FUNCTION,
 		OT_NATIVE,

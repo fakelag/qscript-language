@@ -55,11 +55,41 @@ bool Tests::TestCompiler()
 		UTEST_CASE_CLOSED();
 	}( );
 
+	UTEST_CASE( "Known, unknown and redefined globals" )
+	{
+		auto fn = QScript::Compile( "var known123 = 10;" );
+		QScript::FreeFunction( fn );
+
+		fn = QScript::Compile( "var k; k = 10; k = k + 1; print k;" );
+		QScript::FreeFunction( fn );
+
+		UTEST_THROW_EXCEPTION( QScript::Compile( "k = 10;" ),
+			const std::vector< CompilerException >& e,
+			e.size() == 1 && e[ 0 ].id() == "cp_unknown_identifier" );
+
+		UTEST_THROW_EXCEPTION( QScript::Compile( "print k;" ),
+			const std::vector< CompilerException >& e,
+			e.size() == 1 && e[ 0 ].id() == "cp_unknown_identifier" );
+
+		UTEST_THROW_EXCEPTION( QScript::Compile( "var k; var k;" ),
+			const std::vector< CompilerException >& e,
+			e.size() == 1 && e[ 0 ].id() == "cp_identifier_already_exists" );
+
+		UTEST_THROW_EXCEPTION( QScript::Compile( "var k = 0; var k;" ),
+			const std::vector< CompilerException >& e,
+			e.size() == 1 && e[ 0 ].id() == "cp_identifier_already_exists" );
+
+		UTEST_CASE_CLOSED();
+	}( );
+
 	UTEST_CASE( "Constant stacking" )
 	{
+		QScript::Config_t config;
+		config.m_OptFlags |= QScript::Config_t::OF_CONSTANT_STACKING;
+
 		auto fn = QScript::Compile( TestUtils::GenerateSequence( 512, []( int iter ) {
 			return "+" + std::to_string( iter % 2 == 0 ? iter : 8000 ) + std::string( ".00" );
-		}, "var f = 0.00 ", ";" ), QScript::OF_CONSTANT_STACKING );
+		}, "var f = 0.00 ", ";" ), config );
 
 		UTEST_ASSERT( fn->GetChunk()->m_Constants.size() == 258 );
 

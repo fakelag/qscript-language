@@ -10,6 +10,8 @@ Compiler			cp_invalid_jmp_patch_size			Expected long JMP instruction, got short
 Compiler 			cp_invalid_jmp_patch_inst			Expected JMP instruction at patch site
 Compiler 			cp_expected_expression		 		Expected an expression, got: %tokenString% (statement)
 Compiler 			cp_expected_statement		 		Expected a statement, got: %tokenString% (expression)
+Compiler 			cp_unknown_identifier				Referenced an unknown identifier: "%tokenString%"
+Compiler 			cp_identifier_already_exists		Identifier already exits: "%tokenString%"
 IRGenerator 		ir_expect_lvalue_or_statement		Expected a left-value or statement
 IRGenerator 		ir_expect_rvalue					Expected a right-value
 IRGenerator			ir_unknown_token					Unknown token id: %tokenId% "%tokenString%"

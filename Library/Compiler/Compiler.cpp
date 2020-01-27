@@ -20,7 +20,7 @@ Object::AllocateUpvalue = NULL;
 
 namespace QScript
 {
-	FunctionObject* Compile( const std::string& source, int flags )
+	FunctionObject* Compile( const std::string& source, const Config_t& config )
 	{
 		BEGIN_COMPILER;
 		Chunk_t* chunk = AllocChunk();
@@ -36,7 +36,7 @@ namespace QScript
 			// Run IR optimizers
 
 			// Compile bytecode
-			Compiler::Assembler assembler( chunk, flags );
+			Compiler::Assembler assembler( chunk, config );
 
 			for ( auto node : entryNodes )
 				node->Compile( assembler );
@@ -63,13 +63,25 @@ namespace QScript
 		}
 		catch ( const CompilerException& exception )
 		{
-			FreeChunk( chunk );
+			// Free created objects
+			Compiler::GarbageCollect( std::vector<QScript::FunctionObject*>{ } );
+
+			// Delete chunk manually (FreeChunk would lead to double deletions)
+			delete chunk;
+
+			// Rethrow
 			throw std::vector< CompilerException >{ exception };
 		}
 		catch ( ... )
 		{
-			FreeChunk( chunk );
-			throw; 
+			// Free created objects
+			Compiler::GarbageCollect( std::vector<QScript::FunctionObject*>{ } );
+
+			// Delete chunk manually (FreeChunk would lead to double deletions)
+			delete chunk;
+
+			// Rethrow
+			throw;
 		}
 	}
 }
@@ -156,9 +168,12 @@ namespace Compiler
 		ObjectList.clear();
 	}
 
-	Assembler::Assembler( QScript::Chunk_t* chunk, int optimizationFlags )
+	Assembler::Assembler( QScript::Chunk_t* chunk, const QScript::Config_t& config )
 	{
-		m_OptimizationFlags = optimizationFlags;
+		m_OptimizationFlags = config.m_OptFlags;
+
+		for ( auto identifier : config.m_Globals )
+			AddGlobal( identifier );
 
 		// Main code
 		CreateFunction( "<main>", 0, true, chunk );
@@ -222,7 +237,9 @@ namespace Compiler
 	{
 		auto stack = CurrentStack();
 
-		stack->m_Locals.push_back( Assembler::Local_t{ name, stack->m_CurrentDepth, false } );
+		auto variable = Variable_t{ name, false, QScript::VT_INVALID, QScript::OT_INVALID };
+
+		stack->m_Locals.push_back( Assembler::Local_t{ variable, stack->m_CurrentDepth, false } );
 		return ( uint32_t ) stack->m_Locals.size() - 1;
 	}
 
@@ -235,7 +252,7 @@ namespace Compiler
 	{
 		for ( int i = ( int ) stack->m_Locals.size() - 1; i >= 0 ; --i )
 		{
-			if ( stack->m_Locals[ i ].m_Name == name )
+			if ( stack->m_Locals[ i ].m_Var.m_Name == name )
 			{
 				*out = ( uint32_t ) i;
 				return true;
@@ -243,6 +260,19 @@ namespace Compiler
 		}
 
 		return false;
+	}
+
+	bool Assembler::FindGlobal( const std::string& name, Variable_t* out )
+	{
+		auto global = m_Globals.find( name );
+
+		if ( global == m_Globals.end() )
+			return false;
+
+		if ( out )
+			*out = global->second;
+
+		return true;
 	}
 
 	bool Assembler::FindLocal( const std::string& name, uint32_t* out )
@@ -271,6 +301,28 @@ namespace Compiler
 		}
 
 		return false;
+	}
+
+	bool Assembler::AddGlobal( const std::string& name )
+	{
+		// Return false if the identifier already exists
+		if ( m_Globals.find( name ) != m_Globals.end() )
+			return false;
+
+		// Add global Variable_t
+		Variable_t global = Variable_t{ name, false, QScript::VT_INVALID, QScript::OT_INVALID };
+		m_Globals.insert( std::make_pair( name, global ) );
+		return true;
+	}
+
+	bool Assembler::AddConstantGlobal( const std::string& name, QScript::ValueType type, QScript::ObjectType objType )
+	{
+		if ( m_Globals.find( name ) != m_Globals.end() )
+			return false;
+
+		Variable_t global = Variable_t{ name, true, type, objType };
+		m_Globals.insert( std::make_pair( name, global ) );
+		return true;
 	}
 
 	uint32_t Assembler::AddUpvalue( FunctionContext_t* context, uint32_t index, bool isLocal )

@@ -18,18 +18,28 @@ namespace QScript
 	class FunctionObject;
 	struct Value;
 
-	enum OptimizationFlags
+	struct Config_t
 	{
-		OF_NONE = 0,
-		OF_CONSTANT_STACKING = ( 1<<0 ),
+		enum OptimizationFlags : uint8_t
+		{
+			OF_NONE = 0,
+			OF_CONSTANT_STACKING = ( 1<<0 ),
+		};
+
+		Config_t()
+		{
+			m_OptFlags = OF_NONE;
+		}
+
+		uint8_t							m_OptFlags;
+		std::vector< std::string >		m_Globals;
 	};
 
 	Chunk_t* AllocChunk();
+	FunctionObject* Compile( const std::string& source, const Config_t& config = Config_t() );
 
 	void FreeChunk( Chunk_t* chunk );
 	void FreeFunction( FunctionObject* function );
-
-	FunctionObject* Compile( const std::string& source, int flags = OF_NONE );
 
 	void Repl();
 	void Interpret( const FunctionObject& function );

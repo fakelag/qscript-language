@@ -33,7 +33,7 @@ namespace Compiler
 	{
 		uint32_t constant = 0;
 
-		if ( assembler.OptimizationFlags() & QScript::OF_CONSTANT_STACKING )
+		if ( assembler.OptimizationFlags() & QScript::Config_t::OF_CONSTANT_STACKING )
 		{
 			bool found = false;
 			for ( uint32_t i = 0; i < chunk->m_Constants.size(); ++i )
@@ -280,12 +280,17 @@ namespace Compiler
 				opCodeShortAssign = QScript::OpCode::OP_SET_UPVALUE_SHORT;
 				opCodeLongAssign = QScript::OpCode::OP_SET_UPVALUE_LONG;
 			}
-			else
+			else if ( assembler.FindGlobal( name, NULL ) )
 			{
 				if ( options & CO_ASSIGN )
 					EmitConstant( chunk, m_Value, QScript::OpCode::OP_SET_GLOBAL_SHORT, QScript::OpCode::OP_SET_GLOBAL_LONG, assembler );
 				else
 					EmitConstant( chunk, m_Value, QScript::OpCode::OP_LOAD_GLOBAL_SHORT, QScript::OpCode::OP_LOAD_GLOBAL_LONG, assembler );
+			}
+			else
+			{
+				throw CompilerException( "cp_unknown_identifier", "Referenced an unknown identifier \"" + name + "\"",
+					m_LineNr, m_ColNr, m_Token );
 			}
 
 			if ( canEmit )
@@ -733,13 +738,16 @@ namespace Compiler
 			RequireAssignability( m_NodeList[ 0 ] );
 
 			auto& varName = static_cast< ValueNode* >( m_NodeList[ 0 ] )->GetValue();
+			auto varString = AS_STRING( varName )->GetString();
+
+			bool isLocal = ( assembler.StackDepth() > 0 );
 
 			if ( m_NodeList[ 1 ] )
 			{
 				if ( m_NodeList[ 1 ]->Id() == NODE_FUNC )
 				{
 					// Compile a named function
-					CompileFunction( false, AS_STRING( varName )->GetString(), static_cast< ListNode* >( m_NodeList[ 1 ] ), assembler );
+					CompileFunction( false, varString, static_cast< ListNode* >( m_NodeList[ 1 ] ), assembler );
 				}
 				else
 				{
@@ -747,12 +755,18 @@ namespace Compiler
 					m_NodeList[ 1 ]->Compile( assembler, COMPILE_EXPRESSION( options ) );
 				}
 
-				if ( assembler.StackDepth() > 0 )
+				if ( isLocal )
 				{
-					assembler.CreateLocal( AS_STRING( varName )->GetString() );
+					assembler.CreateLocal( varString );
 				}
 				else
 				{
+					if ( !assembler.AddGlobal( varString ) )
+					{
+						throw CompilerException( "cp_identifier_already_exists", "Identifier already exits: \"" + varString + "\"",
+							m_LineNr, m_ColNr, m_Token );
+					}
+
 					m_NodeList[ 0 ]->Compile( assembler, COMPILE_ASSIGN_TARGET( options ) );
 
 					if ( IS_STATEMENT( options ) )
@@ -767,9 +781,15 @@ namespace Compiler
 				// Empty variable
 				EmitByte( QScript::OpCode::OP_LOAD_NULL, chunk );
 
-				if ( assembler.StackDepth() == 0 )
+				if ( !isLocal )
 				{
 					// Global variable
+					if ( !assembler.AddGlobal( varString ) )
+					{
+						throw CompilerException( "cp_identifier_already_exists", "Identifier already exits: \"" + varString + "\"",
+							m_LineNr, m_ColNr, m_Token );
+					}
+
 					EmitConstant( chunk, varName, QScript::OpCode::OP_SET_GLOBAL_SHORT, QScript::OpCode::OP_SET_GLOBAL_LONG, assembler );
 
 					if ( IS_STATEMENT( options ) )
@@ -778,7 +798,7 @@ namespace Compiler
 				else
 				{
 					// Local variable
-					assembler.CreateLocal( AS_STRING( varName )->GetString() );
+					assembler.CreateLocal( varString );
 				}
 			}
 			break;

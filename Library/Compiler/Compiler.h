@@ -37,9 +37,17 @@ namespace Compiler
 	class Assembler
 	{
 	public:
+		struct Variable_t
+		{
+			std::string				m_Name;
+			bool					m_IsConst;
+			QScript::ValueType		m_Type;
+			QScript::ObjectType		m_ObjType;
+		};
+
 		struct Local_t
 		{
-			std::string		m_Name;
+			Variable_t		m_Var;
 			uint32_t		m_Depth;
 			bool			m_Captured;
 		};
@@ -68,14 +76,17 @@ namespace Compiler
 			std::vector< Upvalue_t >	m_Upvalues;
 		};
 
-		Assembler( QScript::Chunk_t* chunk, int optimizationFlags );
+		Assembler( QScript::Chunk_t* chunk, const QScript::Config_t& config );
 
+		bool 										AddGlobal( const std::string& name );
+		bool 										AddConstantGlobal( const std::string& name, QScript::ValueType type, QScript::ObjectType objType );
 		uint32_t 									AddUpvalue( FunctionContext_t* context, uint32_t index, bool isLocal );
 		QScript::FunctionObject*					CreateFunction( const std::string& name, int arity, bool isAnonymous, QScript::Chunk_t* chunk );
 		uint32_t									CreateLocal( const std::string& name );
 		QScript::Chunk_t*							CurrentChunk();
 		QScript::FunctionObject*					CurrentFunction();
 		Stack_t*									CurrentStack();
+		bool 										FindGlobal( const std::string& name, Variable_t* out );
 		bool										FindLocal( const std::string& name, uint32_t* out );
 		bool 										FindLocalFromStack( Stack_t* stack, const std::string& name, uint32_t* out );
 		void										FinishFunction( QScript::FunctionObject** func, std::vector< Upvalue_t >* upvalues );
@@ -88,9 +99,10 @@ namespace Compiler
 		int											OptimizationFlags() const;
 
 	private:
-		std::vector< FunctionContext_t >			m_Functions;
-		int											m_OptimizationFlags;
+		std::vector< FunctionContext_t >				m_Functions;
+		int												m_OptimizationFlags;
 
-		std::vector< QScript::FunctionObject* >		m_Compiled;
+		std::vector< QScript::FunctionObject* >			m_Compiled;
+		std::map< std::string, Variable_t >				m_Globals;
 	};
 };
