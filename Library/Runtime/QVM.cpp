@@ -811,6 +811,9 @@ void QScript::Repl()
 
 	VM_t vm( function );
 
+	INTERP_INIT;
+	vm.ResolveImports();
+
 	for ( ;; )
 	{
 		std::string source;
@@ -819,8 +822,15 @@ void QScript::Repl()
 
 		try
 		{
+			QScript::Config_t config;
+			config.m_OptFlags |= QScript::Config_t::OF_CONSTANT_STACKING;
+
+			// Load globals (user defined + natives)
+			for ( auto global : vm.m_Globals )
+				config.m_Globals.push_back( global.first );
+
 			INTERP_SHUTDOWN;
-			auto newMain = QScript::Compile( source );
+			auto newMain = QScript::Compile( source, config );
 			INTERP_INIT;
 
 			newMain->Rename( "<repl_" + std::to_string( s_ReplID ) + ">" );
@@ -842,9 +852,8 @@ void QScript::Repl()
 
 			// New frame in
 			vm.m_Frames.emplace_back( newClosure, vm.m_Stack, &newMain->GetChunk()->m_Code[ 0 ] );
-			
+
 			// Run code
-			vm.ResolveImports();
 			QVM::Run( vm );
 		}
 		catch ( std::vector< CompilerException >& exceptions )
