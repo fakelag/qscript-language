@@ -99,6 +99,12 @@ bool Tests::TestCompiler()
 			const std::vector< CompilerException >& e,
 			e.size() == 1 && e[ 0 ].id() == "cp_assign_to_const" );
 
+		UTEST_THROW_EXCEPTION( QScript::Compile( "const z = () -> { const localVal = 10; 	\
+			const localFunc = () -> { localVal = 1; } 										\
+			}" ),
+			const std::vector< CompilerException >& e,
+			e.size() == 1 && e[ 0 ].id() == "cp_assign_to_const" );
+
 		UTEST_CASE_CLOSED();
 	}( );
 
