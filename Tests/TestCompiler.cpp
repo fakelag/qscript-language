@@ -82,6 +82,26 @@ bool Tests::TestCompiler()
 		UTEST_CASE_CLOSED();
 	}( );
 
+	UTEST_CASE( "Constant variables" )
+	{
+		auto fn = QScript::Compile( "const x; const y = 10 * 10 + x;" );
+		QScript::FreeFunction( fn );
+
+		fn = QScript::Compile( "{ const x = 10; const z; print z; }" );
+		QScript::FreeFunction( fn );
+
+		fn = QScript::Compile( "const z = () -> { const localVal = 10; 	\
+		const localFunc = () -> { print localVal + 1; } 				\
+		}" );
+		QScript::FreeFunction( fn );
+
+		UTEST_THROW_EXCEPTION( QScript::Compile( "const x = 1; x = 2;" ),
+			const std::vector< CompilerException >& e,
+			e.size() == 1 && e[ 0 ].id() == "cp_assign_to_const" );
+
+		UTEST_CASE_CLOSED();
+	}( );
+
 	UTEST_CASE( "Constant stacking" )
 	{
 		QScript::Config_t config;
