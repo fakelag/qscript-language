@@ -30,7 +30,6 @@ namespace QScript
 		FORCEINLINE FunctionObject( const std::string& name, int arity, Chunk_t* chunk )
 		{
 			m_Type = OT_FUNCTION;
-			// m_Function = function;
 			m_Name = name;
 			m_Arity = arity;
 			m_NumUpvalues = 0;

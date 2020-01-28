@@ -7,8 +7,11 @@
 #define COMPILE_EXPRESSION( options ) (options | CO_EXPRESSION)
 #define COMPILE_STATEMENT( options ) (options & ~CO_EXPRESSION)
 #define COMPILE_ASSIGN_TARGET( options ) (options | CO_ASSIGN)
+#define COMPILE_REASSIGN_TARGET( options ) (options | CO_ASSIGN | CO_REASSIGN)
+
 
 #define IS_STATEMENT( options ) (!(options & CO_EXPRESSION))
+#define IS_ASSIGN_TARGET( options ) ((options & (CO_ASSIGN | CO_REASSIGN)))
 
 #define EXPECTED_EXPRESSION CompilerException( "cp_expected_expression", "Expected an expression, got: \"" + m_Token + "\" (statement)", m_LineNr, m_ColNr, m_Token );
 #define EXPECTED_STATEMENT CompilerException( "cp_expected_statement", "Expected a statement, got: \"" + m_Token + "\" (expression)", m_LineNr, m_ColNr, m_Token );
@@ -27,6 +30,39 @@ namespace Compiler
 			colNr,
 			token,
 		} );
+	}
+
+	bool ResolveExpressionType( BaseNode* node, QScript::ValueType* vtOut, QScript::ObjectType* otOut )
+	{
+		if ( node->Id() == NODE_FUNC )
+		{
+			*vtOut = QScript::VT_OBJECT;
+			*otOut = QScript::OT_FUNCTION;
+			return true;
+		}
+		else if ( node->Id() == NODE_CONSTANT )
+		{
+			auto value = static_cast< ValueNode* >( node )->GetValue();
+
+			auto valueType = QScript::VT_INVALID;
+			auto objectType = QScript::OT_INVALID;
+
+			if ( IS_NUMBER( value ) ) valueType = QScript::VT_NUMBER;
+			else if ( IS_NULL( value ) ) valueType = QScript::VT_NULL;
+			else if ( IS_BOOL( value ) ) valueType = QScript::VT_BOOL;
+			else if ( IS_OBJECT( value ) )
+			{
+				valueType = QScript::VT_OBJECT;
+				objectType = AS_OBJECT( value )->m_Type;
+			}
+
+			*vtOut = valueType;
+			*otOut = objectType;
+
+			return valueType != QScript::VT_INVALID;
+		}
+
+		return false;
 	}
 
 	uint32_t EmitConstant( QScript::Chunk_t* chunk, const QScript::Value& value, QScript::OpCode shortOpCode, QScript::OpCode longOpCode, Compiler::Assembler& assembler )
@@ -249,10 +285,17 @@ namespace Compiler
 			QScript::OpCode opCodeShortAssign = QScript::OpCode::OP_NOP;
 			QScript::OpCode opCodeLongAssign = QScript::OpCode::OP_NOP;
 
-			if ( assembler.FindLocal( name, &nameIndex ) )
+			Assembler::Variable_t varInfo;
+			if ( assembler.FindLocal( name, &nameIndex, &varInfo ) )
 			{
-				if ( options & CO_ASSIGN )
+				if ( IS_ASSIGN_TARGET( options ) )
 				{
+					if ( ( options & CO_REASSIGN ) && varInfo.m_IsConst )
+					{
+						throw CompilerException( "cp_assign_to_const", "Assigning to constant variable: \"" + varInfo.m_Name + "\"",
+							m_LineNr, m_ColNr, m_Token );
+					}
+
 					if ( nameIndex < QScript::OP_SET_LOCAL_MAX )
 						EmitByte( QScript::OP_SET_LOCAL_0 + ( uint8_t ) nameIndex, chunk );
 					else
@@ -270,22 +313,37 @@ namespace Compiler
 				opCodeLong = QScript::OpCode::OP_LOAD_LOCAL_LONG;
 				opCodeShortAssign = QScript::OpCode::OP_SET_LOCAL_SHORT;
 				opCodeLongAssign = QScript::OpCode::OP_SET_LOCAL_LONG;
-
 			}
-			else if ( assembler.RequestUpvalue( name, &nameIndex ) )
+			else if ( assembler.RequestUpvalue( name, &nameIndex, &varInfo ) )
 			{
+				if ( ( options & CO_REASSIGN ) && varInfo.m_IsConst )
+				{
+					throw CompilerException( "cp_assign_to_const", "Assigning to constant variable: \"" + varInfo.m_Name + "\"",
+						m_LineNr, m_ColNr, m_Token );
+				}
+
 				canEmit = true;
 				opCodeShort = QScript::OpCode::OP_LOAD_UPVALUE_SHORT;
 				opCodeLong = QScript::OpCode::OP_LOAD_UPVALUE_LONG;
 				opCodeShortAssign = QScript::OpCode::OP_SET_UPVALUE_SHORT;
 				opCodeLongAssign = QScript::OpCode::OP_SET_UPVALUE_LONG;
 			}
-			else if ( assembler.FindGlobal( name, NULL ) )
+			else if ( assembler.FindGlobal( name, &varInfo ) )
 			{
-				if ( options & CO_ASSIGN )
+				if ( IS_ASSIGN_TARGET( options ) )
+				{
+					if ( ( options & CO_REASSIGN ) && varInfo.m_IsConst )
+					{
+						throw CompilerException( "cp_assign_to_const", "Assigning to constant variable: \"" + varInfo.m_Name + "\"",
+							m_LineNr, m_ColNr, m_Token );
+					}
+
 					EmitConstant( chunk, m_Value, QScript::OpCode::OP_SET_GLOBAL_SHORT, QScript::OpCode::OP_SET_GLOBAL_LONG, assembler );
+				}
 				else
+				{
 					EmitConstant( chunk, m_Value, QScript::OpCode::OP_LOAD_GLOBAL_SHORT, QScript::OpCode::OP_LOAD_GLOBAL_LONG, assembler );
+				}
 			}
 			else
 			{
@@ -297,7 +355,7 @@ namespace Compiler
 			{
 				if ( nameIndex > 255 )
 				{
-					EmitByte( ( options & CO_ASSIGN ) ? opCodeLongAssign : opCodeLong, chunk );
+					EmitByte( IS_ASSIGN_TARGET( options ) ? opCodeLongAssign : opCodeLong, chunk );
 					EmitByte( ENCODE_LONG( nameIndex, 0 ), chunk );
 					EmitByte( ENCODE_LONG( nameIndex, 1 ), chunk );
 					EmitByte( ENCODE_LONG( nameIndex, 2 ), chunk );
@@ -305,14 +363,14 @@ namespace Compiler
 				}
 				else
 				{
-					EmitByte( ( options & CO_ASSIGN ) ? opCodeShortAssign : opCodeShort, chunk );
+					EmitByte( IS_ASSIGN_TARGET( options ) ? opCodeShortAssign : opCodeShort, chunk );
 					EmitByte( ( uint8_t ) nameIndex, chunk );
 				}
 			}
 
 			break;
 		}
-		default:
+		case NODE_CONSTANT:
 		{
 			if ( IS_STATEMENT( options ) )
 				throw EXPECTED_STATEMENT;
@@ -321,7 +379,11 @@ namespace Compiler
 				EmitByte( QScript::OP_LOAD_NULL, chunk );
 			else
 				EmitConstant( chunk, m_Value, QScript::OpCode::OP_LOAD_CONSTANT_SHORT, QScript::OpCode::OP_LOAD_CONSTANT_LONG, assembler );
+
+			break;
 		}
+		default:
+			throw CompilerException( "cp_invalid_value_node", "Unknown value node: " + std::to_string( m_NodeId ), m_LineNr, m_ColNr, m_Token );
 		}
 
 		AddDebugSymbol( chunk, start, m_LineNr, m_ColNr, m_Token );
@@ -389,14 +451,14 @@ namespace Compiler
 					CompileFunction( true, "<anonymous>", static_cast< ListNode* >( m_Right ), assembler );
 				}
 
-				m_Left->Compile( assembler, COMPILE_ASSIGN_TARGET( options ) );
+				m_Left->Compile( assembler, COMPILE_REASSIGN_TARGET( options ) );
 			}
 			else
 			{
 				// When assigning a value, first evaluate right hand operand (value)
 				// and then set it via the left hand operand
 				m_Right->Compile( assembler, COMPILE_EXPRESSION( options ) );
-				m_Left->Compile( assembler, COMPILE_ASSIGN_TARGET( options ) );
+				m_Left->Compile( assembler, COMPILE_REASSIGN_TARGET( options ) );
 			}
 			break;
 		}
@@ -732,18 +794,28 @@ namespace Compiler
 			assembler.PopScope();
 			break;
 		}
+		case NODE_CONSTVAR:
 		case NODE_VAR:
 		{
-			// Target must be assignable
-			RequireAssignability( m_NodeList[ 0 ] );
-
+			// m_NodeList[ 0 ] should be NODE_NAME and is validated during parsing
 			auto& varName = static_cast< ValueNode* >( m_NodeList[ 0 ] )->GetValue();
 			auto varString = AS_STRING( varName )->GetString();
 
 			bool isLocal = ( assembler.StackDepth() > 0 );
+			bool isConst = ( m_NodeId == NODE_CONSTVAR );
 
 			if ( m_NodeList[ 1 ] )
 			{
+				QScript::ValueType valueType;
+				QScript::ObjectType objectType;
+
+				if ( !ResolveExpressionType( m_NodeList[ 1 ], &valueType, &objectType ) )
+				{
+					// If the type can't be known by compiler. Default to INVALID
+					valueType = QScript::VT_INVALID;
+					objectType = QScript::OT_INVALID;
+				}
+
 				if ( m_NodeList[ 1 ]->Id() == NODE_FUNC )
 				{
 					// Compile a named function
@@ -757,11 +829,11 @@ namespace Compiler
 
 				if ( isLocal )
 				{
-					assembler.CreateLocal( varString );
+					assembler.CreateLocal( varString, isConst, valueType, objectType );
 				}
 				else
 				{
-					if ( !assembler.AddGlobal( varString ) )
+					if ( !assembler.AddGlobal( varString, isConst, valueType, objectType ) )
 					{
 						throw CompilerException( "cp_identifier_already_exists", "Identifier already exits: \"" + varString + "\"",
 							m_LineNr, m_ColNr, m_Token );
@@ -784,7 +856,7 @@ namespace Compiler
 				if ( !isLocal )
 				{
 					// Global variable
-					if ( !assembler.AddGlobal( varString ) )
+					if ( !assembler.AddGlobal( varString, isConst, QScript::VT_NULL, QScript::OT_INVALID ) )
 					{
 						throw CompilerException( "cp_identifier_already_exists", "Identifier already exits: \"" + varString + "\"",
 							m_LineNr, m_ColNr, m_Token );
@@ -798,7 +870,7 @@ namespace Compiler
 				else
 				{
 					// Local variable
-					assembler.CreateLocal( varString );
+					assembler.CreateLocal( varString, isConst, QScript::VT_NULL, QScript::OT_INVALID );
 				}
 			}
 			break;

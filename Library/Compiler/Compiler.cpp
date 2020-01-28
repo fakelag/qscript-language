@@ -235,9 +235,14 @@ namespace Compiler
 
 	uint32_t Assembler::CreateLocal( const std::string& name )
 	{
+		return CreateLocal( name, false, QScript::VT_INVALID, QScript::OT_INVALID );
+	}
+
+	uint32_t Assembler::CreateLocal( const std::string& name, bool isConstant, QScript::ValueType type, QScript::ObjectType objType )
+	{
 		auto stack = CurrentStack();
 
-		auto variable = Variable_t{ name, false, QScript::VT_INVALID, QScript::OT_INVALID };
+		auto variable = Variable_t{ name, isConstant, type, objType };
 
 		stack->m_Locals.push_back( Assembler::Local_t{ variable, stack->m_CurrentDepth, false } );
 		return ( uint32_t ) stack->m_Locals.size() - 1;
@@ -248,13 +253,14 @@ namespace Compiler
 		return &CurrentStack()->m_Locals[ local ];
 	}
 
-	bool Assembler::FindLocalFromStack( Stack_t* stack, const std::string& name, uint32_t* out )
+	bool Assembler::FindLocalFromStack( Stack_t* stack, const std::string& name, uint32_t* out, Variable_t* varInfo )
 	{
 		for ( int i = ( int ) stack->m_Locals.size() - 1; i >= 0 ; --i )
 		{
 			if ( stack->m_Locals[ i ].m_Var.m_Name == name )
 			{
 				*out = ( uint32_t ) i;
+				*varInfo = stack->m_Locals[ i ].m_Var;
 				return true;
 			}
 		}
@@ -275,18 +281,18 @@ namespace Compiler
 		return true;
 	}
 
-	bool Assembler::FindLocal( const std::string& name, uint32_t* out )
+	bool Assembler::FindLocal( const std::string& name, uint32_t* out, Variable_t* varInfo )
 	{
-		return FindLocalFromStack( CurrentStack(), name, out );
+		return FindLocalFromStack( CurrentStack(), name, out, varInfo );
 	}
 
-	bool Assembler::RequestUpvalue( const std::string name, uint32_t* out )
+	bool Assembler::RequestUpvalue( const std::string name, uint32_t* out, Variable_t* varInfo )
 	{
 		int thisFunction = ( int ) m_Functions.size() - 1;
 		for ( int i = thisFunction; i > 0; --i )
 		{
 			uint32_t upValue = 0;
-			if ( !FindLocalFromStack( m_Functions[ i - 1 ].m_Stack, name, &upValue ) )
+			if ( !FindLocalFromStack( m_Functions[ i - 1 ].m_Stack, name, &upValue, varInfo ) )
 				continue;
 
 			// Capture it
@@ -305,22 +311,15 @@ namespace Compiler
 
 	bool Assembler::AddGlobal( const std::string& name )
 	{
-		// Return false if the identifier already exists
-		if ( m_Globals.find( name ) != m_Globals.end() )
-			return false;
-
-		// Add global Variable_t
-		Variable_t global = Variable_t{ name, false, QScript::VT_INVALID, QScript::OT_INVALID };
-		m_Globals.insert( std::make_pair( name, global ) );
-		return true;
+		return AddGlobal( name, false, QScript::VT_INVALID, QScript::OT_INVALID );
 	}
 
-	bool Assembler::AddConstantGlobal( const std::string& name, QScript::ValueType type, QScript::ObjectType objType )
+	bool Assembler::AddGlobal( const std::string& name, bool isConstant, QScript::ValueType type, QScript::ObjectType objType )
 	{
 		if ( m_Globals.find( name ) != m_Globals.end() )
 			return false;
 
-		Variable_t global = Variable_t{ name, true, type, objType };
+		Variable_t global = Variable_t{ name, isConstant, type, objType };
 		m_Globals.insert( std::make_pair( name, global ) );
 		return true;
 	}

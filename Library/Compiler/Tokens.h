@@ -30,6 +30,7 @@ namespace Compiler
 		TOK_BRACE_LEFT,
 		TOK_BRACE_RIGHT,
 		TOK_COMMA,
+		TOK_CONST,
 		TOK_DBL,
 		TOK_DO,
 		TOK_ELSE,

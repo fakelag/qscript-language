@@ -23,6 +23,7 @@ namespace Compiler
 		NODE_ASSIGN,
 		NODE_CALL,
 		NODE_CONSTANT,
+		NODE_CONSTVAR,
 		NODE_DIV,
 		NODE_DO,
 		NODE_EQUALS,
@@ -51,10 +52,11 @@ namespace Compiler
 	{
 		CO_NONE					= ( 0 << 0 ),
 		CO_ASSIGN				= ( 1 << 0 ),
+		CO_REASSIGN				= ( 1 << 1 ),
 
 		// Expressions produce values, inform subsequent nodes that they should compile
 		// an expression.
-		CO_EXPRESSION			= ( 1 << 1 ),
+		CO_EXPRESSION			= ( 1 << 2 ),
 	};
 
 	class BaseNode

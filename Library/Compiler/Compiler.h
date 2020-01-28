@@ -79,22 +79,23 @@ namespace Compiler
 		Assembler( QScript::Chunk_t* chunk, const QScript::Config_t& config );
 
 		bool 										AddGlobal( const std::string& name );
-		bool 										AddConstantGlobal( const std::string& name, QScript::ValueType type, QScript::ObjectType objType );
+		bool 										AddGlobal( const std::string& name, bool isConstant, QScript::ValueType type, QScript::ObjectType objType );
 		uint32_t 									AddUpvalue( FunctionContext_t* context, uint32_t index, bool isLocal );
 		QScript::FunctionObject*					CreateFunction( const std::string& name, int arity, bool isAnonymous, QScript::Chunk_t* chunk );
+		uint32_t 									CreateLocal( const std::string& name, bool isConstant, QScript::ValueType type, QScript::ObjectType objType );
 		uint32_t									CreateLocal( const std::string& name );
 		QScript::Chunk_t*							CurrentChunk();
 		QScript::FunctionObject*					CurrentFunction();
 		Stack_t*									CurrentStack();
 		bool 										FindGlobal( const std::string& name, Variable_t* out );
-		bool										FindLocal( const std::string& name, uint32_t* out );
-		bool 										FindLocalFromStack( Stack_t* stack, const std::string& name, uint32_t* out );
+		bool										FindLocal( const std::string& name, uint32_t* out, Variable_t* varInfo );
+		bool 										FindLocalFromStack( Stack_t* stack, const std::string& name, uint32_t* out, Variable_t* varInfo );
 		void										FinishFunction( QScript::FunctionObject** func, std::vector< Upvalue_t >* upvalues );
 		std::vector< QScript::FunctionObject* >		Finish();
 		Local_t*									GetLocal( int local );
 		void										PopScope();
 		void										PushScope();
-		bool 										RequestUpvalue( const std::string name, uint32_t* out );
+		bool 										RequestUpvalue( const std::string name, uint32_t* out, Variable_t* varInfo );
 		int											StackDepth();
 		int											OptimizationFlags() const;
 

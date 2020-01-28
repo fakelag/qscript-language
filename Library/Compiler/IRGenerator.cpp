@@ -140,6 +140,7 @@ namespace Compiler
 						EndStatement( assignNode->GetRight(), parserState );
 						break;
 					}
+					case NODE_CONSTVAR:
 					case NODE_VAR:
 					{
 						auto varNode = static_cast< ListNode* >( headNode );
@@ -261,6 +262,7 @@ namespace Compiler
 				};
 				break;
 			}
+			case TOK_CONST:
 			case TOK_VAR:
 			{
 				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder )
@@ -278,12 +280,14 @@ namespace Compiler
 						parserState.NextBuilder();
 
 						return parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-							irBuilder.m_Token.m_String, NODE_VAR, std::vector< BaseNode* >{ varName, nextExpression( BP_ASSIGN ) } );
+							irBuilder.m_Token.m_String, irBuilder.m_Token.m_Id == TOK_CONST ? NODE_CONSTVAR : NODE_VAR,
+							std::vector< BaseNode* >{ varName, nextExpression( BP_ASSIGN ) } );
 					}
 					else
 					{
 						return parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-							irBuilder.m_Token.m_String, NODE_VAR, std::vector< BaseNode* >{ varName, ( BaseNode* ) NULL } );
+							irBuilder.m_Token.m_String,  irBuilder.m_Token.m_Id == TOK_CONST ? NODE_CONSTVAR : NODE_VAR,
+							std::vector< BaseNode* >{ varName, ( BaseNode* ) NULL } );
 					}
 				};
 				break;
