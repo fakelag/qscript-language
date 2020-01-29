@@ -9,7 +9,6 @@
 #define COMPILE_ASSIGN_TARGET( options ) (options | CO_ASSIGN)
 #define COMPILE_REASSIGN_TARGET( options ) (options | CO_ASSIGN | CO_REASSIGN)
 
-
 #define IS_STATEMENT( options ) (!(options & CO_EXPRESSION))
 #define IS_ASSIGN_TARGET( options ) ((options & (CO_ASSIGN | CO_REASSIGN)))
 
@@ -531,6 +530,8 @@ namespace Compiler
 				{ NODE_SUB, 			QScript::OpCode::OP_SUB },
 				{ NODE_MUL, 			QScript::OpCode::OP_MUL },
 				{ NODE_DIV, 			QScript::OpCode::OP_DIV },
+				{ NODE_MOD, 			QScript::OpCode::OP_MOD },
+				{ NODE_POW, 			QScript::OpCode::OP_POW },
 				{ NODE_EQUALS,			QScript::OpCode::OP_EQUALS },
 				{ NODE_NOTEQUALS,		QScript::OpCode::OP_NOT_EQUALS },
 				{ NODE_GREATERTHAN,		QScript::OpCode::OP_GREATERTHAN },

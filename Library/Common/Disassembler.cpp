@@ -31,45 +31,6 @@ bool Compiler::FindDebugSymbol( const QScript::Chunk_t& chunk, uint32_t offset, 
 	return false;
 }
 
-std::string Compiler::ValueToString( const QScript::Value& value )
-{
-	//std::string valueType;
-
-	//std::map< QScript::ValueType, std::string > typeStrings ={
-	//	{ QScript::ValueType::VT_NULL,		"null" },
-	//	{ QScript::ValueType::VT_NUMBER,	"number" },
-	//	{ QScript::ValueType::VT_BOOL,		"bool" },
-	//};
-
-	//switch ( value.m_Type )
-	//{
-	//case QScript::ValueType::VT_OBJECT:
-	//{
-	//	if ( IS_STRING( value ) )
-	//		valueType = "string";
-	//	else if ( IS_FUNCTION( value ) || IS_CLOSURE( value ) )
-	//		valueType = "function";
-	//	else if ( IS_NATIVE( value ) )
-	//		valueType = "native";
-	//	else
-	//		throw Exception( "disasm_invalid_value_object", "Invalid object type: " + std::to_string( AS_OBJECT( value )->m_Type ) );
-
-	//	break;
-	//}
-	//default:
-	//{
-	//	auto string =  typeStrings.find( value.m_Type );
-	//	if ( string != typeStrings.end() )
-	//		valueType = string->second;
-	//	else
-	//		throw Exception( "disasm_invalid_value", "Invalid value type: " + std::to_string( value.m_Type ) );
-	//}
-	//}
-
-	//return "(" + valueType + ", " + value.ToString() + ")";
-	return value.ToString();
-}
-
 void Compiler::DisassembleChunk( const QScript::Chunk_t& chunk, const std::string& identifier, int ip )
 {
 	// Show identifier of the current chunk
@@ -92,7 +53,7 @@ uint32_t Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32
 	const QScript::Value& value = chunk.m_Constants[ constant ]; \
 	instString = name + std::string( " " ) \
 		+ std::to_string( constant ) \
-		+ " " + Compiler::ValueToString( value ) \
+		+ " " + value.ToString() \
 		+ " (SHORT)"; \
 	instOffset = offset + InstructionSize( QScript::OpCode::inst ); \
 	break; \
@@ -103,7 +64,7 @@ uint32_t Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32
 	const QScript::Value& value = chunk.m_Constants[ constant ]; \
 	instString = name + std::string( " " ) \
 		+ std::to_string( constant ) \
-		+ " " + Compiler::ValueToString( value ) \
+		+ " " + value.ToString() \
 		+ " (LONG)"; \
 	instOffset = offset + InstructionSize( QScript::OpCode::inst ); \
 	break; \
@@ -222,6 +183,8 @@ uint32_t Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32
 	SIMPLE_INST( OP_SUB, "SUB" );
 	SIMPLE_INST( OP_DIV, "DIV" );
 	SIMPLE_INST( OP_MUL, "MUL" );
+	SIMPLE_INST( OP_POW, "POW" );
+	SIMPLE_INST( OP_MOD, "MOD" );
 	SIMPLE_INST( OP_NEGATE, "NEGATE" );
 	SIMPLE_INST( OP_NOT, "NOT" );
 	SIMPLE_INST( OP_EQUALS, "EQUALS" );
@@ -239,7 +202,7 @@ uint32_t Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32
 		uint32_t constant = ( uint32_t ) chunk.m_Code[ offset + 1 ];
 
 		const QScript::Value& function = chunk.m_Constants[ constant ];
-		instString = "CLOSURE " + Compiler::ValueToString( function ) + " (SHORT)";
+		instString = "CLOSURE " + function.ToString() + " (SHORT)";
 
 		auto functionObj = AS_FUNCTION( function );
 
@@ -264,7 +227,7 @@ uint32_t Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32
 			chunk.m_Code[ offset + 3 ], chunk.m_Code[ offset + 4 ] );
 
 		const QScript::Value& function = chunk.m_Constants[ constant ];
-		instString = "CLOSURE " + Compiler::ValueToString( function ) + " (LONG)";
+		instString = "CLOSURE " + function.ToString() + " (LONG)";
 
 		auto functionObj = AS_FUNCTION( function );
 
@@ -333,6 +296,8 @@ int Compiler::InstructionSize( uint8_t inst )
 	case QScript::OpCode::OP_SUB: return 1;
 	case QScript::OpCode::OP_DIV: return 1;
 	case QScript::OpCode::OP_MUL: return 1;
+	case QScript::OpCode::OP_POW: return 1;
+	case QScript::OpCode::OP_MOD: return 1;
 	case QScript::OpCode::OP_CALL: return 2;
 	case QScript::OpCode::OP_CLOSURE_LONG: return 5;
 	case QScript::OpCode::OP_CLOSURE_SHORT: return 2;
@@ -394,7 +359,7 @@ void Compiler::DumpStack( const VM_t& vm )
 	for ( const QScript::Value* value = vm.m_Stack; value < vm.m_StackTop; ++value )
 	{
 		std::cout << std::setfill( '0' ) << std::setw( 4 ) << ( value - vm.m_Stack ) << std::setfill( ' ' ) << std::left << std::setw( 10 ) << " ";
-		std::cout << Compiler:: ValueToString( *value ) << std::setfill( ' ' ) << std::right << std::setw( 0 ) << std::endl;
+		std::cout << value->ToString() << std::setfill( ' ' ) << std::right << std::setw( 0 ) << std::endl;
 	}
 }
 
@@ -405,7 +370,7 @@ void Compiler::DumpConstants( const QScript::Chunk_t& chunk )
 	{
 		auto value = chunk.m_Constants[ i ];
 		std::cout << std::setfill( '0' ) << std::setw( 4 ) << i << std::setfill( ' ' ) << std::left << std::setw( 10 ) << " ";
-		std::cout << Compiler::ValueToString( value ) << std::setfill( ' ' ) << std::right << std::setw( 0 ) << std::endl;
+		std::cout << value.ToString() << std::setfill( ' ' ) << std::right << std::setw( 0 ) << std::endl;
 	}
 }
 
@@ -415,6 +380,6 @@ void Compiler::DumpGlobals( const VM_t& vm )
 	for ( auto global : vm.m_Globals )
 	{
 		std::cout << global.first << std::setfill( ' ' ) << std::left << std::setw( 10 ) << " ";
-		std::cout << Compiler::ValueToString( global.second ) << std::setfill( ' ' ) << std::right << std::setw( 0 ) << std::endl;
+		std::cout << global.second.ToString() << std::setfill( ' ' ) << std::right << std::setw( 0 ) << std::endl;
 	}
 }

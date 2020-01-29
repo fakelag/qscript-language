@@ -24,7 +24,6 @@ namespace Compiler
 	void DumpGlobals( const VM_t& vm );
 	void DumpStack( const VM_t& vm );
 	bool FindDebugSymbol( const QScript::Chunk_t& chunk, uint32_t offset, QScript::Chunk_t::Debug_t* out );
-	std::string ValueToString( const QScript::Value& value );
 
 	// Object allocation
 	QScript::StringObject* AllocateString( const std::string& string );

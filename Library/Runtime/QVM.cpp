@@ -449,10 +449,22 @@ namespace QVM
 
 				INTERP_DISPATCH;
 			}
+			INTERP_OPCODE( OP_POW ):
+			{
+				auto b = vm.Pop();
+				auto a = vm.Pop();
+
+				if ( !IS_NUMBER(a) || !IS_NUMBER(b) )
+					QVM::RuntimeError( frame, "rt_invalid_operand_type", std::string( "Both operands of \"**\" operation must be numbers" ) );
+
+				vm.Push( a.Pow( b ) );
+				INTERP_DISPATCH;
+			}
 			INTERP_OPCODE( OP_NOP ): INTERP_DISPATCH;
 			INTERP_OPCODE( OP_SUB ): BINARY_OP( -, IS_NUMBER ); INTERP_DISPATCH;
 			INTERP_OPCODE( OP_MUL ): BINARY_OP( *, IS_NUMBER ); INTERP_DISPATCH;
 			INTERP_OPCODE( OP_DIV ): BINARY_OP( /, IS_NUMBER ); INTERP_DISPATCH;
+			INTERP_OPCODE( OP_MOD ): BINARY_OP( %, IS_NUMBER ); INTERP_DISPATCH;
 			INTERP_OPCODE( OP_EQUALS ): BINARY_OP( ==, IS_ANY ); INTERP_DISPATCH;
 			INTERP_OPCODE( OP_NOT_EQUALS ): BINARY_OP( !=, IS_ANY ); INTERP_DISPATCH;
 			INTERP_OPCODE( OP_GREATERTHAN ): BINARY_OP( >, IS_ANY ); INTERP_DISPATCH;

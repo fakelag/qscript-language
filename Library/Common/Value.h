@@ -79,8 +79,7 @@ FORCEINLINE Value operator op ( const Value& other ) const { return MAKE_BOOL( m
 
 #define VALUE_ARIT_OP( op ) \
 FORCEINLINE Value operator op ( const Value& other ) const { \
-	if ( IS_NUMBER( *this ) ) return MAKE_NUMBER( AS_NUMBER( *this ) op AS_NUMBER( other ) ); \
-	else return MAKE_NULL; \
+	return MAKE_NUMBER( AS_NUMBER( *this ) op AS_NUMBER( other ) ); \
 }
 
 #define VALUE_CMP_OP_BOOLNUM( op ) \
@@ -121,10 +120,7 @@ FORCEINLINE Value operator op ( const Value& other ) { \
 
 #define VALUE_ARIT_OP( op ) \
 FORCEINLINE Value operator op ( const Value& other ) { \
-	switch ( m_Type ) { \
-		case VT_NUMBER: return MAKE_NUMBER( AS_NUMBER( *this ) op AS_NUMBER( other ) ); \
-		default: return MAKE_NULL; \
-	} \
+	return MAKE_NUMBER( AS_NUMBER( *this ) op AS_NUMBER( other ) ); \
 }
 #endif
 
@@ -273,6 +269,14 @@ namespace QScript
 		VALUE_CMP_OP_BOOLNUM( <= );
 		VALUE_CMP_OP_BOOLNUM( >= );
 #endif
+
+	FORCEINLINE Value operator %( const Value& other ) {
+		return MAKE_NUMBER( std::fmod( AS_NUMBER( *this ), AS_NUMBER( other ) ) );
+	}
+
+	FORCEINLINE Value Pow( const Value& other ) {
+		return MAKE_NUMBER( std::pow( AS_NUMBER( *this ), AS_NUMBER( other ) ) );
+	}
 
 	template<ObjectType Type>
 	FORCEINLINE bool IsObjectOfType() const

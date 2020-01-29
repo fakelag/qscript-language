@@ -313,6 +313,8 @@ namespace Compiler
 			case TOK_PLUS:
 			case TOK_SLASH:
 			case TOK_STAR:
+			case TOK_PERCENT:
+			case TOK_2STAR:
 			{
 				builder->m_Led = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder, BaseNode* left )
 				{
@@ -321,6 +323,8 @@ namespace Compiler
 						{ TOK_STAR, 	NODE_MUL },
 						{ TOK_SLASH, 	NODE_DIV },
 						{ TOK_PLUS, 	NODE_ADD },
+						{ TOK_2STAR, 	NODE_POW },
+						{ TOK_PERCENT, 	NODE_MOD },
 					};
 
 					return parserState.AllocateNode< ComplexNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,

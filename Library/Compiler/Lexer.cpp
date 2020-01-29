@@ -18,8 +18,15 @@ namespace Compiler
 		{ TOK_MINUS,		{ TOK_MINUS, 		"-", 		BP_ARITHMETIC_ADDSUB,		false } },
 		{ TOK_STAR,			{ TOK_STAR, 		"*", 		BP_ARITHMETIC_MULDIV,		false } },
 		{ TOK_SLASH,		{ TOK_SLASH, 		"/", 		BP_ARITHMETIC_MULDIV,		false } },
+		{ TOK_PERCENT,		{ TOK_PERCENT, 		"%",		BP_ARITHMETIC_POWMOD,		false } },
+		{ TOK_2STAR,		{ TOK_2STAR, 		"**",		BP_ARITHMETIC_POWMOD,		false } },
 
 		{ TOK_EQUALS,		{ TOK_EQUALS,		"=",		BP_ASSIGN,					false } },
+		{ TOK_EQUALSADD,	{ TOK_EQUALSADD, 	"+=",		BP_ASSIGN,					false } },
+		{ TOK_EQUALSSUB,	{ TOK_EQUALSSUB, 	"-=",		BP_ASSIGN,					false } },
+		{ TOK_EQUALSMUL,	{ TOK_EQUALSMUL, 	"*=",		BP_ASSIGN,					false } },
+		{ TOK_EQUALSDIV,	{ TOK_EQUALSDIV, 	"/=",		BP_ASSIGN,					false } },
+		{ TOK_EQUALSMOD,	{ TOK_EQUALSMOD, 	"%=",		BP_ASSIGN,					false } },
 
 		{ TOK_2EQUALS, 		{ TOK_2EQUALS, 		"==", 		BP_EQUALITY, 				false } },
 		{ TOK_NOTEQUALS, 	{ TOK_NOTEQUALS, 	"!=", 		BP_EQUALITY, 				false } },
@@ -30,16 +37,18 @@ namespace Compiler
 
 		{ TOK_AND,			{ TOK_AND, 			"&&", 		BP_LOGIC, 					false } },
 		{ TOK_OR,			{ TOK_OR, 			"||", 		BP_LOGIC, 					false } },
+		{ TOK_BANG, 		{ TOK_BANG, 		"!", 		BP_LOGIC_NOT,				false } },
 
 		{ TOK_PAREN_LEFT,	{ TOK_PAREN_LEFT, 	"(", 		BP_OPENPAREN,				false } },
 		{ TOK_PAREN_RIGHT,	{ TOK_PAREN_RIGHT, 	")", 		BP_NONE,					false } },
 
 		{ TOK_SCOLON,		{ TOK_SCOLON, 		";", 		BP_NONE,					false } },
-		{ TOK_BANG, 		{ TOK_BANG, 		"!", 		BP_LOGIC_NOT,				false } },
 		{ TOK_BRACE_LEFT, 	{ TOK_BRACE_LEFT, 	"{", 		BP_NONE,					false } },
 		{ TOK_BRACE_RIGHT, 	{ TOK_BRACE_RIGHT, 	"}", 		BP_NONE,					false } },
 		{ TOK_COMMA, 		{ TOK_COMMA, 		",", 		BP_NONE,					false } },
 
+		{ TOK_2PLUS,		{ TOK_2PLUS, 		"++",		BP_INCDEC,					false } },
+		{ TOK_2MINUS,		{ TOK_2MINUS, 		"--",		BP_INCDEC,					false } },
 		{ TOK_ARROW,		{ TOK_ARROW, 		"->", 		BP_NONE,					false } },
 
 		{ TOK_DO,			{ TOK_DO,			"do",		BP_NONE,					true } },

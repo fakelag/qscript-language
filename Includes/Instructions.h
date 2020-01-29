@@ -47,6 +47,7 @@ fmt(OP_LOAD_UPVALUE_SHORT), \
 fmt(OP_LOAD_UPVALUE_LONG), \
 fmt(OP_LESSTHAN), \
 fmt(OP_LESSTHAN_OR_EQUAL), \
+fmt(OP_MOD), \
 fmt(OP_MUL), \
 fmt(OP_NEGATE), \
 fmt(OP_NOP), \
@@ -54,6 +55,7 @@ fmt(OP_NOT_EQUALS), \
 fmt(OP_NOT), \
 fmt(OP_LOAD_NULL), \
 fmt(OP_POP), \
+fmt(OP_POW), \
 fmt(OP_PRINT), \
 fmt(OP_RETURN), \
 fmt(OP_SET_GLOBAL_LONG), \
