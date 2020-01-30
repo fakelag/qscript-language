@@ -24,7 +24,7 @@ bool Tests::TestCompiler()
 
 	UTEST_CASE( "Generate simple bytecode" )
 	{
-		auto fn = QScript::Compile( "return 2 + 2;" );
+		auto fn = QScript::Compile( "return 2.5 + 2.5;" );
 
 		/*
 			LOAD 2.0
@@ -108,6 +108,44 @@ bool Tests::TestCompiler()
 		UTEST_CASE_CLOSED();
 	}( );
 
+	/*UTEST_CASE( "Valid/Invalid assignment targets (--, ++, =, +=, -=, *=, /=, %=)" )
+	{
+		#define ASSIGN_VALID( pre, post, operand ) \
+			QScript::FreeFunction( QScript::Compile( "var x;" pre "x" post operand ";" ) );
+
+		#define ASSIGN_INVALID( pre, post, operand ) \
+			UTEST_THROW_EXCEPTION( QScript::Compile( pre "1" post operand ";" ), \
+				const std::vector< CompilerException >& e, \
+				e.size() == 1 && e[ 0 ].id() == "cp_invalid_assign_target" );
+
+		ASSIGN_VALID( "++", "", "" );
+		ASSIGN_VALID( "", "++", "" );
+		ASSIGN_VALID( "--", "", "" );
+		ASSIGN_VALID( "", "--", "" );
+
+		ASSIGN_VALID( "", "=", "42" );
+		ASSIGN_VALID( "", "+=", "42" );
+		ASSIGN_VALID( "", "-=", "42" );
+		ASSIGN_VALID( "", "*=", "42" );
+		ASSIGN_VALID( "", "/=", "42" );
+		ASSIGN_VALID( "", "%=", "42" );
+
+		ASSIGN_INVALID( "++", "", "" );
+		ASSIGN_INVALID( "", "++", "" );
+		ASSIGN_INVALID( "--", "", "" );
+		ASSIGN_INVALID( "", "--", "" );
+
+		ASSIGN_INVALID( "", "+=", "42" );
+		ASSIGN_INVALID( "", "-=", "42" );
+		ASSIGN_INVALID( "", "*=", "42" );
+		ASSIGN_INVALID( "", "/=", "42" );
+		ASSIGN_INVALID( "", "%=", "42" );
+
+		#undef ASSIGN_VALID
+		#undef ASSIGN_INVALID
+		UTEST_CASE_CLOSED();
+	}( );*/
+
 	UTEST_CASE( "Constant stacking" )
 	{
 		QScript::Config_t config;
@@ -117,7 +155,7 @@ bool Tests::TestCompiler()
 			return "+" + std::to_string( iter % 2 == 0 ? iter : 8000 ) + std::string( ".00" );
 		}, "var f = 0.00 ", ";" ), config );
 
-		UTEST_ASSERT( fn->GetChunk()->m_Constants.size() == 258 );
+		UTEST_ASSERT( fn->GetChunk()->m_Constants.size() <= 258 );
 
 		QScript::FreeFunction( fn );
 

@@ -687,5 +687,31 @@ bool Tests::TestInterpreter()
 		UTEST_CASE_CLOSED();
 	}( );
 
+	UTEST_CASE( "Additional operators (%, **, +=, -=, /=, *=, %=, ++, --)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "var g1 = 5;							\
+			if (1 % 3 != 1 || 3 % 3 != 0) return false;							\
+			if (2**2 != 4 || 10**2 != 100) return false;						\
+			if ((g1 += 5) != 10 || g1 != 10) return false;						\
+			if ((g1 -= 5) != 5 || g1 != 5) return false;						\
+			if ((g1 *= 2) != 10 || g1 != 10) return false;						\
+			if ((g1 /= 2) != 5 || g1 != 5) return false;						\
+			if ((g1 %= 2) != 1 || g1 != 1) return false;						\
+			if (++g1 != 2 || g1 != 2) return false;								\
+			if (g1++ != 2 || g1 != 3) return false;								\
+			if (--g1 != 2 || g1 != 2) return false;								\
+			if (g1-- != 2 || g1 != 1) return false;								\
+			{ ++g1; --g1; g1--; g1++; }											\
+			++g1; --g1; g1--; g1++;												\
+			return true;", &exitCode ) );
+
+		UTEST_ASSERT( IS_BOOL( exitCode ) );
+		UTEST_ASSERT( AS_BOOL( exitCode ) == true );
+
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
 	UTEST_END();
 }
