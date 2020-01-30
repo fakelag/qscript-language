@@ -368,6 +368,24 @@ namespace Compiler
 				};
 				break;
 			}
+			case TOK_2PLUS:
+			case TOK_2MINUS:
+			{
+				builder->m_Led = [ &parserState ]( const IrBuilder_t& irBuilder, BaseNode* left ) -> BaseNode*
+				{
+					return parserState.AllocateNode< ComplexNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+						irBuilder.m_Token.m_String, irBuilder.m_Token.m_Id == TOK_2PLUS ? NODE_INC : NODE_DEC,
+						left, ( BaseNode* ) NULL );
+				};
+
+				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder ) -> BaseNode*
+				{
+					return parserState.AllocateNode< ComplexNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+						irBuilder.m_Token.m_String, irBuilder.m_Token.m_Id == TOK_2PLUS ? NODE_INC : NODE_DEC,
+						( BaseNode* ) NULL, nextExpression( irBuilder.m_Token.m_LBP ) );
+				};
+				break;
+			}
 			case TOK_IF:
 			{
 				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder ) -> BaseNode*

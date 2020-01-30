@@ -374,7 +374,9 @@ namespace Compiler
 			if ( IS_STATEMENT( options ) )
 				throw EXPECTED_STATEMENT;
 
-			if ( IS_NULL( m_Value ) )
+			if ( IS_NUMBER( m_Value ) && AS_NUMBER( m_Value ) >= -1 && AS_NUMBER( m_Value ) < QScript::OP_LOAD_MAX )
+				EmitByte( QScript::OP_LOAD_0 + AS_NUMBER( m_Value ), chunk );
+			else if ( IS_NULL( m_Value ) )
 				EmitByte( QScript::OP_LOAD_NULL, chunk );
 			else
 				EmitConstant( chunk, m_Value, QScript::OpCode::OP_LOAD_CONSTANT_SHORT, QScript::OpCode::OP_LOAD_CONSTANT_LONG, assembler );
@@ -516,6 +518,38 @@ namespace Compiler
 			uint32_t patchSize = PlaceJump( chunk, endJump, ( uint32_t ) chunk->m_Code.size() - endJump, QScript::OpCode::OP_JUMP_SHORT, QScript::OpCode::OP_JUMP_LONG );
 
 			PlaceJump( chunk, endJump, patchSize, QScript::OpCode::OP_JUMP_IF_ZERO_SHORT, QScript::OpCode::OP_JUMP_IF_ZERO_LONG );
+			break;
+		}
+		case NODE_DEC:
+		case NODE_INC:
+		{
+			bool isPost = ( m_Left != NULL ) && !IS_STATEMENT( options );
+			auto node = ( m_Left ? m_Left : m_Right );
+
+			RequireAssignability( node );
+
+			// Place target variable's value on the stack
+			node->Compile( assembler, COMPILE_EXPRESSION( options ) );
+
+			if ( isPost )
+			{
+				// Once again, place the current value on top of the stack.
+				// We'll use the previously pushed value as the result of this
+				// expression (original value of the variable)
+				node->Compile( assembler, COMPILE_EXPRESSION( options ) );
+			}
+
+			// Load number 1 & add/sub
+			EmitByte( QScript::OP_LOAD_1, chunk );
+			EmitByte( m_NodeId == NODE_INC ? QScript::OP_ADD : QScript::OP_SUB, chunk );
+
+			// Assign to target (compile setter)
+			node->Compile( assembler, COMPILE_REASSIGN_TARGET( options ) );
+
+			// If it is post inc/dec, pop updated value off stack
+			if ( isPost )
+				EmitByte( QScript::OP_POP, chunk );
+
 			break;
 		}
 		default:
@@ -864,9 +898,6 @@ namespace Compiler
 					}
 
 					EmitConstant( chunk, varName, QScript::OpCode::OP_SET_GLOBAL_SHORT, QScript::OpCode::OP_SET_GLOBAL_LONG, assembler );
-
-					if ( IS_STATEMENT( options ) )
-						EmitByte( QScript::OpCode::OP_POP, chunk );
 				}
 				else
 				{
