@@ -333,11 +333,25 @@ namespace Compiler
 				break;
 			}
 			case TOK_EQUALS:
+			case TOK_EQUALSADD:
+			case TOK_EQUALSDIV:
+			case TOK_EQUALSSUB:
+			case TOK_EQUALSMUL:
+			case TOK_EQUALSMOD:
 			{
 				builder->m_Led = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder, BaseNode* left )
 				{
+					std::map<Token, NodeId> map = {
+						{ TOK_EQUALS, 		NODE_ASSIGN },
+						{ TOK_EQUALSADD, 	NODE_ASSIGNADD },
+						{ TOK_EQUALSDIV, 	NODE_ASSIGNDIV },
+						{ TOK_EQUALSSUB, 	NODE_ASSIGNSUB },
+						{ TOK_EQUALSMUL, 	NODE_ASSIGNMUL },
+						{ TOK_EQUALSMOD, 	NODE_ASSIGNMOD },
+					};
+
 					return parserState.AllocateNode< ComplexNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-						irBuilder.m_Token.m_String, NODE_ASSIGN, left, nextExpression( irBuilder.m_Token.m_LBP ) );
+						irBuilder.m_Token.m_String, map[ irBuilder.m_Token.m_Id ], left, nextExpression( irBuilder.m_Token.m_LBP ) );
 				};
 				break;
 			}

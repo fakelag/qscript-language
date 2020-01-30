@@ -374,11 +374,25 @@ namespace Compiler
 			if ( IS_STATEMENT( options ) )
 				throw EXPECTED_STATEMENT;
 
-			if ( IS_NUMBER( m_Value ) && AS_NUMBER( m_Value ) >= -1 && AS_NUMBER( m_Value ) < QScript::OP_LOAD_MAX )
-				EmitByte( QScript::OP_LOAD_0 + AS_NUMBER( m_Value ), chunk );
+			bool fastLoad = false;
+
+			if ( IS_NUMBER( m_Value ) )
+			{
+				auto number = AS_NUMBER( m_Value );
+
+				if ( std::floor( number ) == number && number >= -1 && number < QScript::OP_LOAD_MAX )
+				{
+					fastLoad = true;
+					EmitByte( QScript::OP_LOAD_0 + ( uint8_t ) number, chunk );
+				}
+			}
 			else if ( IS_NULL( m_Value ) )
+			{
+				fastLoad = true;
 				EmitByte( QScript::OP_LOAD_NULL, chunk );
-			else
+			}
+
+			if ( !fastLoad )
 				EmitConstant( chunk, m_Value, QScript::OpCode::OP_LOAD_CONSTANT_SHORT, QScript::OpCode::OP_LOAD_CONSTANT_LONG, assembler );
 
 			break;
@@ -461,6 +475,33 @@ namespace Compiler
 				m_Right->Compile( assembler, COMPILE_EXPRESSION( options ) );
 				m_Left->Compile( assembler, COMPILE_REASSIGN_TARGET( options ) );
 			}
+			break;
+		}
+		case NODE_ASSIGNADD:
+		case NODE_ASSIGNDIV:
+		case NODE_ASSIGNMOD:
+		case NODE_ASSIGNMUL:
+		case NODE_ASSIGNSUB:
+		{
+			RequireAssignability( m_Left );
+
+			// Load both values to the top of the stack
+			m_Left->Compile( assembler, COMPILE_EXPRESSION( options ) );
+			m_Right->Compile( assembler, COMPILE_EXPRESSION( options ) );
+
+			// Add respective nullary operator
+			std::map< NodeId, QScript::OpCode > map = {
+				{ NODE_ASSIGNADD, 	QScript::OpCode::OP_ADD },
+				{ NODE_ASSIGNDIV, 	QScript::OpCode::OP_DIV },
+				{ NODE_ASSIGNSUB, 	QScript::OpCode::OP_SUB },
+				{ NODE_ASSIGNMUL, 	QScript::OpCode::OP_MUL },
+				{ NODE_ASSIGNMOD, 	QScript::OpCode::OP_MOD },
+			};
+
+			EmitByte( map[ m_NodeId ], chunk );
+
+			// Compile setter
+			m_Left->Compile( assembler, COMPILE_REASSIGN_TARGET( options ) );
 			break;
 		}
 		case NODE_AND:
@@ -898,6 +939,7 @@ namespace Compiler
 					}
 
 					EmitConstant( chunk, varName, QScript::OpCode::OP_SET_GLOBAL_SHORT, QScript::OpCode::OP_SET_GLOBAL_LONG, assembler );
+					EmitByte( QScript::OpCode::OP_POP, chunk );
 				}
 				else
 				{
