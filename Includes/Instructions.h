@@ -54,6 +54,13 @@ fmt(OP_NOP), \
 fmt(OP_NOT_EQUALS), \
 fmt(OP_NOT), \
 fmt(OP_LOAD_NULL), \
+fmt(OP_LOAD_MINUS_1), \
+fmt(OP_LOAD_0), \
+fmt(OP_LOAD_1), \
+fmt(OP_LOAD_2), \
+fmt(OP_LOAD_3), \
+fmt(OP_LOAD_4), \
+fmt(OP_LOAD_5), \
 fmt(OP_POP), \
 fmt(OP_POW), \
 fmt(OP_PRINT), \
@@ -83,6 +90,8 @@ namespace QScript
 	enum OpCode : uint8_t
 	{
 		QS_OPCODES( QS_OPCODE_PLAIN )
+		OP_OPCODE_COUNT,
+		OP_LOAD_MAX = OP_LOAD_5 - OP_LOAD_0 + 1,
 		OP_CALL_MAX = OP_CALL_7 - OP_CALL,
 		OP_LOAD_LOCAL_MAX = OP_LOAD_LOCAL_11 - OP_LOAD_LOCAL_0 + 1,
 		OP_SET_LOCAL_MAX = OP_SET_LOCAL_11 - OP_SET_LOCAL_0 + 1,

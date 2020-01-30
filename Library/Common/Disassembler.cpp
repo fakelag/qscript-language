@@ -197,6 +197,13 @@ uint32_t Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32
 	SIMPLE_INST( OP_PRINT, "PRINT" );
 	SIMPLE_INST( OP_POP, "POP" );
 	SIMPLE_INST( OP_LOAD_NULL, "LOAD_NULL" );
+	SIMPLE_INST( OP_LOAD_MINUS_1, "LOAD_NEG_1" );
+	SIMPLE_INST( OP_LOAD_0, "LOAD_0" );
+	SIMPLE_INST( OP_LOAD_1, "LOAD_1" );
+	SIMPLE_INST( OP_LOAD_2, "LOAD_2" );
+	SIMPLE_INST( OP_LOAD_3, "LOAD_3" );
+	SIMPLE_INST( OP_LOAD_4, "LOAD_4" );
+	SIMPLE_INST( OP_LOAD_5, "LOAD_5" );
 	case QScript::OpCode::OP_CLOSURE_SHORT:
 	{
 		uint32_t constant = ( uint32_t ) chunk.m_Code[ offset + 1 ];
@@ -312,7 +319,15 @@ int Compiler::InstructionSize( uint8_t inst )
 	case QScript::OpCode::OP_RETURN: return 1;
 	case QScript::OpCode::OP_PRINT: return 1;
 	case QScript::OpCode::OP_POP: return 1;
-	case QScript::OpCode::OP_LOAD_NULL: return 1;
+	case QScript::OpCode::OP_LOAD_NULL:
+	case QScript::OpCode::OP_LOAD_MINUS_1:
+	case QScript::OpCode::OP_LOAD_0:
+	case QScript::OpCode::OP_LOAD_1:
+	case QScript::OpCode::OP_LOAD_2:
+	case QScript::OpCode::OP_LOAD_3:
+	case QScript::OpCode::OP_LOAD_4:
+	case QScript::OpCode::OP_LOAD_5:
+		return 1;
 	case QScript::OpCode::OP_CALL_0:
 	case QScript::OpCode::OP_CALL_1:
 	case QScript::OpCode::OP_CALL_2:
