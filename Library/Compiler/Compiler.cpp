@@ -23,7 +23,11 @@ namespace QScript
 	FunctionObject* Compile( const std::string& source, const Config_t& config )
 	{
 		BEGIN_COMPILER;
+
 		Chunk_t* chunk = AllocChunk();
+		Compiler::Assembler assembler( chunk, config );
+
+		std::vector< Compiler::BaseNode* > astNodes;
 
 		try
 		{
@@ -31,23 +35,21 @@ namespace QScript
 			auto tokens = Compiler::Lexer( source );
 
 			// Generate IR
-			auto entryNodes = Compiler::GenerateIR( tokens );
+			astNodes = Compiler::GenerateIR( tokens );
 
 			// Run IR optimizers
 
 			// Compile bytecode
-			Compiler::Assembler assembler( chunk, config );
-
-			for ( auto node : entryNodes )
+			for ( auto node : astNodes )
 				node->Compile( assembler );
 
-			for ( auto node : entryNodes )
+			for ( auto node : astNodes )
 			{
 				node->Release();
 				delete node;
 			}
 
-			entryNodes.clear();
+			astNodes.clear();
 
 			// Compiled funtions
 			auto functions = assembler.Finish();
@@ -66,8 +68,16 @@ namespace QScript
 			// Free created objects
 			Compiler::GarbageCollect( std::vector<QScript::FunctionObject*>{ } );
 
-			// Delete chunk manually (FreeChunk would lead to double deletions)
-			delete chunk;
+			// Free compilation materials (also frees main chunk)
+			assembler.Release();
+
+			// Free AST
+			for ( auto node : astNodes )
+			{
+				node->Release();
+				delete node;
+			}
+			astNodes.clear();
 
 			// Rethrow
 			throw std::vector< CompilerException >{ exception };
@@ -77,8 +87,16 @@ namespace QScript
 			// Free created objects
 			Compiler::GarbageCollect( std::vector<QScript::FunctionObject*>{ } );
 
-			// Delete chunk manually (FreeChunk would lead to double deletions)
-			delete chunk;
+			// Free compilation materials (also frees main chunk)
+			assembler.Release();
+
+			// Free AST
+			for ( auto node : astNodes )
+			{
+				node->Release();
+				delete node;
+			}
+			astNodes.clear();
 
 			// Rethrow
 			throw;
@@ -179,10 +197,26 @@ namespace Compiler
 		CreateFunction( "<main>", 0, true, chunk );
 	}
 
+	void Assembler::Release()
+	{
+		// Called when a compilation error occurred and all previously compiled
+		// materials need to be freed
+
+		for ( auto context : m_Functions )
+		{
+			delete context.m_Func->GetChunk();
+			delete context.m_Func;
+			delete context.m_Stack;
+		}
+	}
+
 	std::vector< QScript::FunctionObject* > Assembler::Finish()
 	{
+		if ( m_Functions.size() != 1 )
+			throw Exception( "cp_unescaped_function", "Abort: Compiler was left with unfinished functions" );
+
 		delete CurrentStack();
-		m_Compiled.push_back( CurrentFunction() );
+		m_Compiled.push_back( m_Functions[ 0 ].m_Func );
 		m_Functions.pop_back();
 
 		return m_Compiled;

@@ -94,6 +94,7 @@ namespace Compiler
 		Local_t*									GetLocal( int local );
 		void										PopScope();
 		void										PushScope();
+		void										Release();
 		bool 										RequestUpvalue( const std::string name, uint32_t* out, Variable_t* varInfo );
 		int											StackDepth();
 		int											OptimizationFlags() const;
