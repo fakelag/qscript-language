@@ -68,26 +68,19 @@ namespace Compiler
 	{
 		uint32_t constant = 0;
 
-		if ( assembler.OptimizationFlags() & QScript::Config_t::OF_CONSTANT_STACKING )
+		bool found = false;
+		for ( uint32_t i = 0; i < chunk->m_Constants.size(); ++i )
 		{
-			bool found = false;
-			for ( uint32_t i = 0; i < chunk->m_Constants.size(); ++i )
+			if ( ( chunk->m_Constants[ i ] == value ).IsTruthy() )
 			{
-				if ( ( chunk->m_Constants[ i ] == value ).IsTruthy() )
-				{
-					constant = i;
-					found = true;
-					break;
-				}
+				constant = i;
+				found = true;
+				break;
 			}
+		}
 
-			if ( !found )
-				constant = AddConstant( value, chunk );
-		}
-		else
-		{
+		if ( !found )
 			constant = AddConstant( value, chunk );
-		}
 
 		if ( constant > 255 )
 		{

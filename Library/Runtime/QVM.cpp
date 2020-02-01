@@ -842,7 +842,6 @@ void QScript::Repl()
 		try
 		{
 			QScript::Config_t config;
-			config.m_OptFlags |= QScript::Config_t::OF_CONSTANT_STACKING;
 
 			// Load globals (user defined + natives)
 			for ( auto global : vm.m_Globals )

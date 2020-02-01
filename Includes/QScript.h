@@ -23,7 +23,6 @@ namespace QScript
 		enum OptimizationFlags : uint8_t
 		{
 			OF_NONE = 0,
-			OF_CONSTANT_STACKING = ( 1<<0 ),
 		};
 
 		Config_t()
