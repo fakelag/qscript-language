@@ -108,7 +108,7 @@ bool Tests::TestCompiler()
 		UTEST_CASE_CLOSED();
 	}( );
 
-	/*UTEST_CASE( "Valid/Invalid assignment targets (--, ++, =, +=, -=, *=, /=, %=)" )
+	UTEST_CASE( "Valid/Invalid assignment targets (--, ++, =, +=, -=, *=, /=, %=)" )
 	{
 		#define ASSIGN_VALID( pre, post, operand ) \
 			QScript::FreeFunction( QScript::Compile( "var x;" pre "x" post operand ";" ) );
@@ -144,16 +144,13 @@ bool Tests::TestCompiler()
 		#undef ASSIGN_VALID
 		#undef ASSIGN_INVALID
 		UTEST_CASE_CLOSED();
-	}( );*/
+	}( );
 
 	UTEST_CASE( "Constant stacking" )
 	{
-		QScript::Config_t config;
-		config.m_OptFlags |= QScript::Config_t::OF_CONSTANT_STACKING;
-
 		auto fn = QScript::Compile( TestUtils::GenerateSequence( 512, []( int iter ) {
 			return "+" + std::to_string( iter % 2 == 0 ? iter : 8000 ) + std::string( ".00" );
-		}, "var f = 0.00 ", ";" ), config );
+		}, "var f = 0.00 ", ";" ) );
 
 		UTEST_ASSERT( fn->GetChunk()->m_Constants.size() <= 258 );
 
