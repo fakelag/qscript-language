@@ -1,6 +1,6 @@
 #pragma once
 
-#ifndef QVM_DEBUG
+#if not defined(QVM_DEBUG) and not defined(_DEBUG)
 #define QS_NAN_BOXING
 #endif
 
@@ -101,7 +101,7 @@ FORCEINLINE Value operator op ( const Value& other ) { \
 		case VT_NULL: return MAKE_NULL; \
 		case VT_BOOL: return MAKE_BOOL( AS_BOOL( *this ) op AS_BOOL( other ) ); \
 		case VT_NUMBER: return MAKE_BOOL( AS_NUMBER( *this ) op AS_NUMBER( other ) ); \
-		case VT_OBJECT: return MAKE_BOOL( AS_OBJECT( *this ) op AS_OBJECT( other ) ); \
+		case VT_OBJECT: return MAKE_BOOL( ( ( void* ) AS_OBJECT( *this ) ) op  ( ( void* ) AS_OBJECT( other ) ) ); \
 		default: return nullCase; \
 	} \
 }
