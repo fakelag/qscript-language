@@ -148,7 +148,7 @@ bool Tests::TestCompiler()
 
 	UTEST_CASE( "Constant stacking" )
 	{
-		auto fn = QScript::Compile( TestUtils::GenerateSequence( 512, []( int iter ) {
+		auto fn = QScript::Compile( TestUtils::GenerateSequence( 300, []( int iter ) {
 			return "+" + std::to_string( iter % 2 == 0 ? iter : 8000 ) + std::string( ".00" );
 		}, "var f = 0.00 ", ";" ) );
 

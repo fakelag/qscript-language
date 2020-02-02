@@ -46,11 +46,13 @@ namespace Compiler
 		{ TOK_BRACE_LEFT, 	{ TOK_BRACE_LEFT, 	"{", 		BP_NONE,					false } },
 		{ TOK_BRACE_RIGHT, 	{ TOK_BRACE_RIGHT, 	"}", 		BP_NONE,					false } },
 		{ TOK_COMMA, 		{ TOK_COMMA, 		",", 		BP_NONE,					false } },
+		{ TOK_DOT, 			{ TOK_DOT, 			".", 		BP_DOT,						false } },
 
 		{ TOK_2PLUS,		{ TOK_2PLUS, 		"++",		BP_INCDEC,					false } },
 		{ TOK_2MINUS,		{ TOK_2MINUS, 		"--",		BP_INCDEC,					false } },
 		{ TOK_ARROW,		{ TOK_ARROW, 		"->", 		BP_NONE,					false } },
 
+		{ TOK_CLASS, 		{ TOK_CLASS, 		"class", 	BP_NONE,					true } },
 		{ TOK_DO,			{ TOK_DO,			"do",		BP_NONE,					true } },
 		{ TOK_ELSE,			{ TOK_ELSE,			"else",		BP_NONE,					true } },
 		{ TOK_FALSE,		{ TOK_FALSE, 		"false", 	BP_NONE,					true } },

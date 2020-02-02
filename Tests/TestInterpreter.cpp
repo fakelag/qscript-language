@@ -11,12 +11,12 @@ using namespace Tests;
 bool Tests::TestInterpreter()
 {
 	// Generate a body of more than 255 instructions
-	auto largeBodyOfCode = TestUtils::GenerateSequence( 516, []( int iter ) {
+	auto largeBodyOfCode = TestUtils::GenerateSequence( 300, []( int iter ) {
 		return "_tmp = _tmp+" + std::to_string( iter ) + std::string( ".00;" );
 	}, "var _tmp = 0;" );
 
-	auto largeExpression = TestUtils::GenerateSequence( 516, []( int iter ) {
-		return "0.00" + std::string( iter == 515 ? "" : "+" );
+	auto largeExpression = TestUtils::GenerateSequence( 300, []( int iter ) {
+		return "0.00" + std::string( iter == 299 ? "" : "+" );
 	} );
 
 	UTEST_BEGIN( "Interpreter Tests" );
@@ -708,6 +708,36 @@ bool Tests::TestInterpreter()
 
 		UTEST_ASSERT( IS_BOOL( exitCode ) );
 		UTEST_ASSERT( AS_BOOL( exitCode ) == true );
+
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "Classes (WIP)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "var x = 0; class Vector {};	\
+			var v = Vector();											\
+			v.x = 1.1;													\
+			v.y = 2.2;													\
+			v.z = 1.0;													\
+			v.inverse = Vector();										\
+			v.inverse.x = -1.0;											\
+			v.inverse.y = -2.2;											\
+			v.inverse.z = -1.0;											\
+			v.x = 1.0;													\
+			v.x += 1.0;													\
+			x += v.x;													\
+			x += v.x + 1.0;												\
+			x = x + (v.x += 10.0);										\
+			v.inverse.x += 1.0;											\
+			x += v.inverse.x;											\
+			v.inverse.x = 0;											\
+			v.x = (v.inverse.x = 0);									\
+			return x;", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 17.0 );
 
 		TestUtils::FreeExitCode( exitCode );
 		UTEST_CASE_CLOSED();

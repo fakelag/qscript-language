@@ -31,6 +31,9 @@ namespace Compiler
 	QScript::NativeFunctionObject* AllocateNative( void* nativeFn );
 	QScript::ClosureObject* AllocateClosure( QScript::FunctionObject* function );
 	QScript::UpvalueObject* AllocateUpvalue( QScript::Value* valuePtr );
+	QScript::ClassObject* AllocateClass( const std::string& name );
+	QScript::InstanceObject* AllocateInstance( QScript::ClassObject* classDef );
+
 	void GarbageCollect( const std::vector< QScript::FunctionObject* >& functions );
 
 	class Assembler
@@ -92,6 +95,7 @@ namespace Compiler
 		void										FinishFunction( QScript::FunctionObject** func, std::vector< Upvalue_t >* upvalues );
 		std::vector< QScript::FunctionObject* >		Finish();
 		Local_t*									GetLocal( int local );
+		bool										IsTopLevel();
 		void										PopScope();
 		void										PushScope();
 		void										Release();

@@ -10,11 +10,14 @@ fmt(OP_CALL_4), \
 fmt(OP_CALL_5), \
 fmt(OP_CALL_6), \
 fmt(OP_CALL_7), \
+fmt(OP_CLASS), \
 fmt(OP_CLOSE_UPVALUE), \
 fmt(OP_CLOSURE_SHORT), \
 fmt(OP_CLOSURE_LONG), \
 fmt(OP_DIV), \
 fmt(OP_EQUALS), \
+fmt(OP_SET_PROP_SHORT), \
+fmt(OP_SET_PROP_LONG), \
 fmt(OP_SET_UPVALUE_SHORT), \
 fmt(OP_SET_UPVALUE_LONG), \
 fmt(OP_GREATERTHAN), \
@@ -43,6 +46,8 @@ fmt(OP_LOAD_LOCAL_8), \
 fmt(OP_LOAD_LOCAL_9), \
 fmt(OP_LOAD_LOCAL_10), \
 fmt(OP_LOAD_LOCAL_11), \
+fmt(OP_LOAD_PROP_SHORT), \
+fmt(OP_LOAD_PROP_LONG), \
 fmt(OP_LOAD_UPVALUE_SHORT), \
 fmt(OP_LOAD_UPVALUE_LONG), \
 fmt(OP_LESSTHAN), \

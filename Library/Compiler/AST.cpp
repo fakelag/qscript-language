@@ -8,6 +8,7 @@
 #define COMPILE_STATEMENT( options ) (options & ~CO_EXPRESSION)
 #define COMPILE_ASSIGN_TARGET( options ) (options | CO_ASSIGN)
 #define COMPILE_REASSIGN_TARGET( options ) (options | CO_ASSIGN | CO_REASSIGN)
+#define COMPILE_NON_ASSIGN( options ) (options & ~(CO_ASSIGN | CO_REASSIGN))
 
 #define IS_STATEMENT( options ) (!(options & CO_EXPRESSION))
 #define IS_ASSIGN_TARGET( options ) ((options & (CO_ASSIGN | CO_REASSIGN)))
@@ -66,21 +67,7 @@ namespace Compiler
 
 	uint32_t EmitConstant( QScript::Chunk_t* chunk, const QScript::Value& value, QScript::OpCode shortOpCode, QScript::OpCode longOpCode, Compiler::Assembler& assembler )
 	{
-		uint32_t constant = 0;
-
-		bool found = false;
-		for ( uint32_t i = 0; i < chunk->m_Constants.size(); ++i )
-		{
-			if ( ( chunk->m_Constants[ i ] == value ).IsTruthy() )
-			{
-				constant = i;
-				found = true;
-				break;
-			}
-		}
-
-		if ( !found )
-			constant = AddConstant( value, chunk );
+		uint32_t constant = AddConstant( value, chunk );
 
 		if ( constant > 255 )
 		{
@@ -174,6 +161,7 @@ namespace Compiler
 		switch ( node->Id() )
 		{
 		case NODE_NAME:
+		case NODE_ACCESS_PROP:
 			break;
 		default:
 			throw CompilerException( "cp_invalid_assign_target", "Invalid assignment target", node->LineNr(), node->ColNr(), node->Token() );
@@ -439,8 +427,36 @@ namespace Compiler
 		auto chunk = assembler.CurrentChunk();
 		uint32_t start = ( uint32_t ) chunk->m_Code.size();
 
+		bool discardResult = IS_STATEMENT( options );
+
 		switch ( m_NodeId )
 		{
+		case NODE_ACCESS_PROP:
+		{
+			// Left operand should just produce a value on the stack.
+			// Compile a setter
+			m_Left->Compile( assembler, COMPILE_EXPRESSION( COMPILE_NON_ASSIGN( options ) ) );
+
+			// Right hand property string
+			auto propString = static_cast< ValueNode* >( m_Right )->GetValue();
+
+			if ( IS_ASSIGN_TARGET( options ) )
+			{
+				// stack@0: value_to_be_assigned
+				// stack@1: left_hand_of_access
+				EmitConstant( chunk, propString, QScript::OpCode::OP_SET_PROP_SHORT, QScript::OpCode::OP_SET_PROP_LONG, assembler );
+
+				// Assign node will discard the assignment result if necessary
+				discardResult = false;
+			}
+			else
+			{
+				// stack@0: left_hand_of_access
+				EmitConstant( chunk, propString, QScript::OpCode::OP_LOAD_PROP_SHORT, QScript::OpCode::OP_LOAD_PROP_LONG, assembler );
+			}
+
+			break;
+		}
 		case NODE_ASSIGN:
 		{
 			RequireAssignability( m_Left );
@@ -618,7 +634,7 @@ namespace Compiler
 		}
 		}
 
-		if ( IS_STATEMENT( options ) )
+		if ( discardResult )
 			EmitByte( QScript::OpCode::OP_POP, chunk );
 
 		AddDebugSymbol( chunk, start, m_LineNr, m_ColNr, m_Token );
@@ -702,8 +718,33 @@ namespace Compiler
 
 		switch ( m_NodeId )
 		{
+		case NODE_CLASS:
+		{
+			if ( !IS_STATEMENT( options ) )
+				throw EXPECTED_EXPRESSION;
+
+			if ( !assembler.IsTopLevel() || assembler.StackDepth() > 0 )
+				throw CompilerException( "cp_non_top_level_class", "Classes must be declared at top-level only", m_LineNr, m_ColNr, m_Token );
+
+			auto className = static_cast< ValueNode* >( m_NodeList[ 0 ] )->GetValue();
+			uint32_t constIndex = AddConstant( className, chunk );
+
+			// Create class object in runtime with name string
+			EmitByte( QScript::OpCode::OP_CLASS, chunk );
+			EmitByte( ENCODE_LONG( constIndex, 0 ), chunk );
+			EmitByte( ENCODE_LONG( constIndex, 1 ), chunk );
+			EmitByte( ENCODE_LONG( constIndex, 2 ), chunk );
+			EmitByte( ENCODE_LONG( constIndex, 3 ), chunk );
+
+			// Let compiler know about the identifier
+			assembler.AddGlobal( AS_STRING( className )->GetString(), true, QScript::VT_OBJECT, QScript::OT_CLASS );
+			break;
+		}
 		case NODE_DO:
 		{
+			if ( !IS_STATEMENT( options ) )
+				throw EXPECTED_EXPRESSION;
+
 			// Jump over wrapper to pop conditional value
 			uint32_t condWrapperJump = ( uint32_t ) chunk->m_Code.size();
 

@@ -14,10 +14,6 @@ namespace QScript
 			m_String = string;
 		}
 
-		~StringObject()
-		{
-		}
-
 		FORCEINLINE std::string& GetString() { return m_String; }
 
 	private:
@@ -34,10 +30,6 @@ namespace QScript
 			m_Arity = arity;
 			m_NumUpvalues = 0;
 			m_Chunk = chunk;
-		}
-
-		~FunctionObject()
-		{
 		}
 
 		FORCEINLINE void Rename( const std::string& newName ) 		{ m_Name = newName; }
@@ -64,10 +56,6 @@ namespace QScript
 			m_Native = native;
 		}
 
-		~NativeFunctionObject()
-		{
-		}
-
 		FORCEINLINE NativeFn GetNative() { return m_Native; }
 	private:
 		NativeFn m_Native;
@@ -82,10 +70,6 @@ namespace QScript
 			m_Slot = value;
 			m_Next = NULL;
 			m_Closed = MAKE_NULL;
-		}
-
-		~UpvalueObject()
-		{
 		}
 
 		FORCEINLINE Value* GetValue() { return m_Slot; }
@@ -110,15 +94,43 @@ namespace QScript
 			m_Fn = function;
 		}
 
-		~ClosureObject()
-		{
-		}
-
 		FORCEINLINE	const FunctionObject* GetFunction() const { return m_Fn; }
 		FORCEINLINE	std::vector< UpvalueObject* >& GetUpvalues() { return m_Upvalues; }
 
 	private:
 		const FunctionObject* 			m_Fn;
 		std::vector< UpvalueObject* >	m_Upvalues;
+	};
+
+	class ClassObject : public Object
+	{
+	public:
+		FORCEINLINE ClassObject( const std::string& name )
+		{
+			m_Type = OT_CLASS;
+			m_Name = name;
+		}
+
+		FORCEINLINE	const std::string& GetName() const { return m_Name; }
+
+	private:
+		std::string						m_Name;
+	};
+
+	class InstanceObject : public Object
+	{
+	public:
+		FORCEINLINE InstanceObject( ClassObject* classDef )
+		{
+			m_Type = OT_INSTANCE;
+			m_Class = classDef;
+		}
+
+		FORCEINLINE	ClassObject*								GetClass() const { return m_Class; }
+		FORCEINLINE std::unordered_map< std::string, Value >&	GetFields() { return m_Fields; }
+
+	private:
+		ClassObject*								m_Class;
+		std::unordered_map< std::string, Value >	m_Fields;
 	};
 }

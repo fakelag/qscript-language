@@ -17,6 +17,7 @@ namespace Compiler
 	enum NodeId
 	{
 		NODE_INVALID = -1,
+		NODE_ACCESS_PROP,
 		NODE_ADD,
 		NODE_AND,
 		NODE_ARGUMENTS,
@@ -27,6 +28,7 @@ namespace Compiler
 		NODE_ASSIGNMUL,
 		NODE_ASSIGNSUB,
 		NODE_CALL,
+		NODE_CLASS,
 		NODE_CONSTANT,
 		NODE_CONSTVAR,
 		NODE_DEC,

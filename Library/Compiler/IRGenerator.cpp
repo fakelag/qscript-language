@@ -127,7 +127,14 @@ namespace Compiler
 
 					switch ( headNode->Id() )
 					{
+					case NODE_CLASS:
+					{
+						parserState.Expect( TOK_BRACE_RIGHT, "Expected end of class declaration" );
 
+						// Allow trailing semicolon on class definitions
+						parserState.MatchCurrent( TOK_SCOLON );
+						break;
+					}
 					case NODE_FUNC:
 					{
 						// Allow trailing semicolon on function definitions
@@ -509,6 +516,42 @@ namespace Compiler
 
 					return parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
 						irBuilder.m_Token.m_String, NODE_FOR, forStatement );
+				};
+				break;
+			}
+			case TOK_CLASS:
+			{
+				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder ) -> BaseNode*
+				{
+					auto className = nextExpression( BP_VAR );
+
+					if ( !className->IsString() )
+					{
+						throw CompilerException( "ir_class_name", "Invalid class name: \"" + className->Token() + "\"",
+							className->LineNr(), className->ColNr(), className->Token() );
+					}
+
+					parserState.Expect( TOK_BRACE_LEFT, "Expected \"{\" before class body, got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
+
+					return parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+						irBuilder.m_Token.m_String, NODE_CLASS, std::vector< BaseNode* >{ className } );
+				};
+				break;
+			}
+			case TOK_DOT:
+			{
+				builder->m_Led = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder, BaseNode* left ) -> BaseNode*
+				{
+					auto propName = nextExpression( irBuilder.m_Token.m_LBP );
+
+					if ( !propName->IsString() )
+					{
+						throw CompilerException( "ir_property_name", "Invalid property name: \"" + propName->Token() + "\"",
+							propName->LineNr(), propName->ColNr(), propName->Token() );
+					}
+
+					return parserState.AllocateNode< ComplexNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+						irBuilder.m_Token.m_String, NODE_ACCESS_PROP, left, propName );
 				};
 				break;
 			}

@@ -6,7 +6,7 @@
 #include "../Library/Runtime/QVM.h"
 #include "../Library/Compiler/Compiler.h"
 
-// Dangerous copy functions
+// Dangerous copy functions (not recursion safe!)
 void DeepCopy( QScript::Value* target, QScript::Value* other );
 QScript::Object* DeepCopyObject( const QScript::Object* object )
 {
@@ -21,7 +21,7 @@ QScript::Object* DeepCopyObject( const QScript::Object* object )
 		for ( auto upvalue : oldClosure->GetUpvalues() )
 			upvalueList.push_back( ( QScript::UpvalueObject* ) DeepCopyObject( upvalue ) );
 
-		auto newClosureObject = new QScript::ClosureObject( newFunctionObject );
+		auto newClosureObject = QS_NEW QScript::ClosureObject( newFunctionObject );
 		newClosureObject->GetUpvalues() = upvalueList;
 
 		return newClosureObject;
@@ -40,10 +40,39 @@ QScript::Object* DeepCopyObject( const QScript::Object* object )
 		QScript::Value newValue;
 		DeepCopy( &newValue, oldValue );
 		
-		auto newUpvalueObject = new QScript::UpvalueObject( &newValue );
+		auto newUpvalueObject = QS_NEW QScript::UpvalueObject( &newValue );
 		newUpvalueObject->Close();
 
 		return newUpvalueObject;
+	}
+	case QScript::ObjectType::OT_INSTANCE:
+	{
+		auto oldInstance = ( ( QScript::InstanceObject* )( object ) );
+
+		auto oldClass = oldInstance->GetClass();
+		auto oldFields = oldInstance->GetFields();
+
+		auto newClass = ( QScript::ClassObject* ) DeepCopyObject( oldClass );
+		std::unordered_map< std::string, QScript::Value > newFields;
+
+		for ( auto oldField : oldFields )
+		{
+			QScript::Value newField;
+			DeepCopy( &newField, &oldField.second );
+
+			newFields[ oldField.first ] = newField;
+		}
+
+		auto newInstance = QS_NEW QScript::InstanceObject( newClass );
+		newInstance->GetFields() = newFields;
+
+		return newInstance;
+	}
+	case QScript::ObjectType::OT_CLASS:
+	{
+		auto oldClass = ( ( QScript::ClassObject* )( object ) );
+		auto newClass = QS_NEW QScript::ClassObject( oldClass->GetName() );
+		return newClass;
 	}
 	case QScript::ObjectType::OT_NATIVE:
 		throw Exception( "test_objcpy_invalid_target", "Invalid target object: Native" );
@@ -64,6 +93,7 @@ void DeepCopy( QScript::Value* target, QScript::Value* other )
 	}
 }
 
+// Stripped down version of releasing objects
 void FreeObject( const QScript::Object* object )
 {
 	switch ( object->m_Type )
@@ -76,6 +106,19 @@ void FreeObject( const QScript::Object* object )
 	case QScript::OT_CLOSURE:
 	{
 		FreeObject( ( ( QScript::ClosureObject* ) object )->GetFunction() );
+		break;
+	}
+	case QScript::OT_INSTANCE:
+	{
+		auto instObject = ( QScript::InstanceObject* ) object;
+		FreeObject( instObject->GetClass() );
+
+		for ( auto field : instObject->GetFields() )
+		{
+			if ( IS_OBJECT( field.second ) )
+				FreeObject( AS_OBJECT( field.second ) );
+		}
+
 		break;
 	}
 	default:

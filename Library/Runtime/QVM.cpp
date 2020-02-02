@@ -13,14 +13,18 @@ QScript::Object::AllocateString = &QVM::AllocateString; \
 QScript::Object::AllocateFunction = &QVM::AllocateFunction; \
 QScript::Object::AllocateNative = &QVM::AllocateNative; \
 QScript::Object::AllocateClosure = &QVM::AllocateClosure; \
-QScript::Object::AllocateUpvalue = &QVM::AllocateUpvalue;
+QScript::Object::AllocateUpvalue = &QVM::AllocateUpvalue; \
+QScript::Object::AllocateClass = &QVM::AllocateClass; \
+QScript::Object::AllocateInstance = &QVM::AllocateInstance
 
 #define INTERP_SHUTDOWN \
 QScript::Object::AllocateString = NULL; \
 QScript::Object::AllocateFunction = NULL; \
 QScript::Object::AllocateNative = NULL; \
 QScript::Object::AllocateClosure = NULL; \
-QScript::Object::AllocateUpvalue = NULL;
+QScript::Object::AllocateUpvalue = NULL; \
+QScript::Object::AllocateClass = NULL; \
+QScript::Object::AllocateInstance = NULL
 
 #if !defined(QVM_DEBUG) && defined(_OSX)
 #define _INTERP_JMP_PREFIX( opcode ) &&code_##opcode
@@ -97,6 +101,48 @@ namespace QVM
 		}
 
 		throw RuntimeException( id, desc, lineNr, colNr, token );
+	}
+
+	FORCEINLINE void LoadField( VM_t& vm, Frame_t* frame, QScript::Value& name )
+	{
+		auto propName = AS_STRING( name )->GetString();
+		auto value = vm.Peek( 0 );
+
+		if ( !IS_INSTANCE( value ) )
+		{
+			QVM::RuntimeError( frame, "rt_invalid_instance",
+				"Can not read property \"" + propName + "\" of invalid instance \"" + value.ToString() + "\"" );
+		}
+
+		auto instObj = AS_INSTANCE( value );
+		auto& fields = instObj->GetFields();
+
+		auto prop = fields.find( propName );
+
+		if ( prop == fields.end() )
+		{
+			QVM::RuntimeError( frame, "rt_unknown_property",
+				"Unknown property \"" + propName + "\" of \"" + value.ToString() + "\"" );
+		}
+
+		vm.Peek( 0 ) = prop->second;
+	}
+
+	FORCEINLINE void SetField( VM_t& vm, Frame_t* frame, QScript::Value& name )
+	{
+		auto propName = AS_STRING( name )->GetString();
+		auto value = vm.Pop();
+
+		if ( !IS_INSTANCE( value ) )
+		{
+			QVM::RuntimeError( frame, "rt_invalid_instance",
+				"Can not read property \"" + propName + "\" of invalid instance \"" + value.ToString() + "\"" );
+		}
+
+		auto instObj = AS_INSTANCE( value );
+		auto& fields = instObj->GetFields();
+
+		fields[ propName ] = vm.Peek( 0 );
 	}
 
 	QScript::Value Run( VM_t& vm )
@@ -219,9 +265,9 @@ namespace QVM
 				vm.Push( constant );
 				INTERP_DISPATCH;
 			}
-			INTERP_OPCODE( OP_LOAD_GLOBAL_LONG ):
+			INTERP_OPCODE( OP_LOAD_GLOBAL_SHORT ) :
 			{
-				READ_CONST_LONG( constant );
+				auto constant = READ_CONST_SHORT();
 				auto global = vm.m_Globals.find( AS_STRING( constant )->GetString() );
 
 				if ( global == vm.m_Globals.end() )
@@ -233,9 +279,9 @@ namespace QVM
 				vm.Push( global->second );
 				INTERP_DISPATCH;
 			}
-			INTERP_OPCODE( OP_LOAD_GLOBAL_SHORT ):
+			INTERP_OPCODE( OP_LOAD_GLOBAL_LONG ):
 			{
-				auto constant = READ_CONST_SHORT();
+				READ_CONST_LONG( constant );
 				auto global = vm.m_Globals.find( AS_STRING( constant )->GetString() );
 
 				if ( global == vm.m_Globals.end() )
@@ -257,6 +303,30 @@ namespace QVM
 			{
 				READ_CONST_LONG( constant );
 				vm.m_Globals[ AS_STRING( constant )->GetString() ] = vm.Peek( 0 );
+				INTERP_DISPATCH;
+			}
+			INTERP_OPCODE( OP_LOAD_PROP_SHORT ) :
+			{
+				auto constant = READ_CONST_SHORT();
+				LoadField( vm, frame, constant );
+				INTERP_DISPATCH;
+			}
+			INTERP_OPCODE( OP_LOAD_PROP_LONG ) :
+			{
+				READ_CONST_LONG( constant );
+				LoadField( vm, frame, constant );
+				INTERP_DISPATCH;
+			}
+			INTERP_OPCODE( OP_SET_PROP_SHORT ) :
+			{
+				auto constant = READ_CONST_SHORT();
+				SetField( vm, frame, constant );
+				INTERP_DISPATCH;
+			}
+			INTERP_OPCODE( OP_SET_PROP_LONG ) :
+			{
+				READ_CONST_LONG( constant );
+				SetField( vm, frame, constant );
 				INTERP_DISPATCH;
 			}
 			INTERP_OPCODE( OP_LOAD_LOCAL_0 ) :
@@ -399,6 +469,15 @@ namespace QVM
 				vm.Push( closure );
 
 				ip = vm.OpenUpvalues( AS_CLOSURE( closure ), frame, ip );
+				INTERP_DISPATCH;
+			}
+			INTERP_OPCODE( OP_CLASS ):
+			{
+				READ_CONST_LONG( constant );
+
+				auto className = AS_STRING( constant );
+				vm.m_Globals[ className->GetString() ] = MAKE_CLASS( className->GetString() );
+
 				INTERP_DISPATCH;
 			}
 			INTERP_OPCODE( OP_CLOSE_UPVALUE ) :
@@ -547,6 +626,20 @@ namespace QVM
 		VirtualMachine->AddObject( ( QScript::Object* ) upvalueObject );
 		return upvalueObject;
 	}
+
+	QScript::ClassObject* AllocateClass( const std::string& name )
+	{
+		auto classObject = QS_NEW QScript::ClassObject( name );
+		VirtualMachine->AddObject( ( QScript::Object* ) classObject );
+		return classObject;
+	}
+
+	QScript::InstanceObject* AllocateInstance( QScript::ClassObject* classDef )
+	{
+		auto instObject = QS_NEW QScript::InstanceObject( classDef );
+		VirtualMachine->AddObject( ( QScript::Object* ) instObject );
+		return instObject;
+	}
 }
 
 void VM_t::Init( const QScript::FunctionObject* mainFunction )
@@ -619,6 +712,14 @@ void VM_t::Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target )
 		m_StackTop -= numArgs + 1;
 
 		Push( returnValue );
+		break;
+	}
+	case QScript::ObjectType::OT_CLASS:
+	{
+		auto instance = MAKE_INSTANCE( AS_CLASS( target ) );
+		m_StackTop -= numArgs + 1;
+
+		Push( instance );
 		break;
 	}
 	default:
@@ -711,12 +812,21 @@ void VM_t::MarkObject( QScript::Object* object )
 
 			break;
 		}
-		case QScript::OT_NATIVE:
-		case QScript::OT_FUNCTION:
-		case QScript::OT_STRING:
+		case QScript::OT_INSTANCE:
+		{
+			auto instObj = ( ( QScript::InstanceObject* ) object );
+			MarkObject( instObj->GetClass() );
+
+			for ( auto field : instObj->GetFields() )
+			{
+				if ( IS_OBJECT( field.second ) )
+					MarkObject( AS_OBJECT( field.second ) );
+			}
+
 			break;
+		}
 		default:
-			UNREACHABLE();
+			break;
 	}
 }
 

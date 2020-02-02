@@ -6,6 +6,8 @@ QScript::Object::FunctionAllocatorFn QScript::Object::AllocateFunction = NULL;
 QScript::Object::NativeAllocatorFn QScript::Object::AllocateNative = NULL;
 QScript::Object::ClosureAllocatorFn QScript::Object::AllocateClosure = NULL;
 QScript::Object::UpvalueAllocatorFn QScript::Object::AllocateUpvalue = NULL;
+QScript::Object::ClassAllocatorFn QScript::Object::AllocateClass = NULL;
+QScript::Object::InstanceAllocatorFn QScript::Object::AllocateInstance = NULL;
 
 QScript::Chunk_t* QScript::AllocChunk()
 {

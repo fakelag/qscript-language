@@ -17,8 +17,8 @@ namespace Compiler
 		BP_INCDEC					= 90,
 		BP_VAR						= 100,
 		BP_OPENPAREN				= 110,
-		BP_DOT						= 120,
-		BP_TYPE						= 130,
+		BP_DOT						= 110,
+		BP_TYPE						= 120,
 	};
 
 	enum Token
@@ -32,10 +32,12 @@ namespace Compiler
 		TOK_BANG,
 		TOK_BRACE_LEFT,
 		TOK_BRACE_RIGHT,
+		TOK_CLASS,
 		TOK_COMMA,
 		TOK_CONST,
 		TOK_DBL,
 		TOK_DO,
+		TOK_DOT,
 		TOK_ELSE,
 		TOK_EQUALS,
 		TOK_EQUALSADD,

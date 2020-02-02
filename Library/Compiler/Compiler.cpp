@@ -9,14 +9,18 @@ Object::AllocateString = &Compiler::AllocateString; \
 Object::AllocateFunction = &Compiler::AllocateFunction; \
 Object::AllocateNative = &Compiler::AllocateNative; \
 Object::AllocateClosure = &Compiler::AllocateClosure; \
-Object::AllocateUpvalue = &Compiler::AllocateUpvalue;
+Object::AllocateUpvalue = &Compiler::AllocateUpvalue; \
+Object::AllocateClass = &Compiler::AllocateClass; \
+Object::AllocateInstance = &Compiler::AllocateInstance
 
 #define END_COMPILER \
 Object::AllocateString = NULL; \
 Object::AllocateFunction = NULL; \
 Object::AllocateNative = NULL; \
 Object::AllocateClosure = NULL; \
-Object::AllocateUpvalue = NULL;
+Object::AllocateUpvalue = NULL; \
+Object::AllocateClass = NULL; \
+Object::AllocateInstance = NULL
 
 namespace QScript
 {
@@ -26,6 +30,10 @@ namespace QScript
 
 		Chunk_t* chunk = AllocChunk();
 		Compiler::Assembler assembler( chunk, config );
+
+		// TODO: Import names from actual module system
+		assembler.AddGlobal( "clock", true, QScript::VT_OBJECT, QScript::OT_NATIVE );
+		assembler.AddGlobal( "exit", true, QScript::VT_OBJECT, QScript::OT_NATIVE );
 
 		std::vector< Compiler::BaseNode* > astNodes;
 
@@ -111,6 +119,13 @@ namespace Compiler
 
 	uint32_t AddConstant( const QScript::Value& value, QScript::Chunk_t* chunk )
 	{
+		for ( uint32_t i = 0; i < chunk->m_Constants.size(); ++i )
+		{
+			// TODO: fix this since equality is checked via pointer identity
+			if ( ( chunk->m_Constants[ i ] == value ).IsTruthy() )
+				return i;
+		}
+
 		chunk->m_Constants.push_back( value );
 		return ( uint32_t ) chunk->m_Constants.size() - 1;
 	}
@@ -159,6 +174,20 @@ namespace Compiler
 		auto upvalueObject = QS_NEW QScript::UpvalueObject( valuePtr );
 		ObjectList.push_back( ( QScript::Object* ) upvalueObject );
 		return upvalueObject;
+	}
+
+	QScript::ClassObject* AllocateClass( const std::string& name )
+	{
+		auto classObject = QS_NEW QScript::ClassObject( name );
+		ObjectList.push_back( ( QScript::Object* ) classObject );
+		return classObject;
+	}
+
+	QScript::InstanceObject* AllocateInstance( QScript::ClassObject* classDef )
+	{
+		auto instObject = QS_NEW QScript::InstanceObject( classDef );
+		ObjectList.push_back( ( QScript::Object* ) instObject );
+		return instObject;
 	}
 
 	void GarbageCollect( const std::vector< QScript::FunctionObject* >& functions )
@@ -378,6 +407,11 @@ namespace Compiler
 	int Assembler::StackDepth()
 	{
 		return CurrentStack()->m_CurrentDepth;
+	}
+
+	bool Assembler::IsTopLevel()
+	{
+		return m_Functions.size() == 1;
 	}
 
 	void Assembler::PushScope()

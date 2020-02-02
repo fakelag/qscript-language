@@ -14,15 +14,18 @@ Compiler 			cp_unknown_identifier				Referenced an unknown identifier: "%tokenSt
 Compiler 			cp_identifier_already_exists		Identifier already exits: "%tokenString%"
 Compiler 			cp_assign_to_const					Assigning to constant variable: "%tokenString%"
 Compiler 			cp_unescaped_function				Abort: Compiler was left with unfinished functions
+Compiler 			cp_non_top_level_class				Classes must be declared at top-level only
 IRGenerator 		ir_expect_lvalue_or_statement		Expected a left-value or statement
 IRGenerator 		ir_expect_rvalue					Expected a right-value
 IRGenerator			ir_unknown_token					Unknown token id: %tokenId% "%tokenString%"
 IRGenerator			ir_missing_rparen					Expected an end of expression, got: "%tokenString%"
 IRGenerator 		ir_invalid_token 					Invalid token: "%tokenString%"
 IRGenerator 		ir_empty_forloop					Empty forloop. Expected a list of expressions
-IRGenerator 		ir_expect							Expected end of expression, got: "%tokenString%" | Expected "while" after "do <block>", got: "%tokenString%" | "Expected "(" after "for", got: "%tokenString" | "Expected ")", got: "%tokenString" | Expected "=" after "function <name>", got: "%tokenString%" | Expected "(" after "function <name> =", got: "%tokenString%" | Expected ")" after "function <name> = (...", got: "%tokenString%" | Expected ")" after function call, got: "%tokenString%" | Expected end of if/for/while-statement | Expected "->" after "var <name> = (...)", got: " %tokenString" 
+IRGenerator 		ir_expect							Expected end of expression, got: "%tokenString%" | Expected "while" after "do <block>", got: "%tokenString%" | "Expected "(" after "for", got: "%tokenString" | "Expected ")", got: "%tokenString" | Expected "=" after "function <name>", got: "%tokenString%" | Expected "(" after "function <name> =", got: "%tokenString%" | Expected ")" after "function <name> = (...", got: "%tokenString%" | Expected ")" after function call, got: "%tokenString%" | Expected end of if/for/while-statement | Expected "->" after "var <name> = (...)", got: " %tokenString" | "Expected "{" before class body, got: "%tokenString" | Expected end of class declaration |
 IRGenerator			ir_parsing_past_eof					Parsing past end of file
-IRGenerator 		ir_variable_name 					Invalid variable name: %tokenString%
+IRGenerator 		ir_variable_name 					Invalid variable name: "%tokenString%"
+IRGenerator 		ir_class_name						Invalid class name: "%tokenString%"
+IRGenerator 		ir_property_name					Invalid property name: "%tokenString%"
 Disassembler		disasm_invalid_value				Invalid value type: %valueType%
 Disassembler 		disasm_invalid_value_object			Invalid object type: %objectType%
 Runtime				rt_invalid_operand_type				Both operands of "%op%" operation must be numbers | Negation operand must be of number type | Not operand must be of boolean type | Operands of + operation must be numbers or strings | Operand must be of string type
@@ -30,6 +33,8 @@ Runtime 			rt_unknown_opcode					Unknown opcode: %opcode%
 Runtime				rt_unknown_global 					Referring to an unknown global: "%identifierString%"
 Runtime 			rt_invalid_call_arity				Arguments provided is different from what the callee accepts, got: %numArgs% expected: %fnArity%
 Runtime				rt_invalid_call_target				Call value was not object type | Invalid call value object type
+Runtime 			rt_invalid_instance					Can not read property "%propName%" of invalid instance "%value%"
+Runtime 			rt_unknown_property					Unknown property "%propName%" of "%instance%"
 Runtime 			rt_exit								exit() called
 
 Generic Exceptions

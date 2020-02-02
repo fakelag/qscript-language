@@ -131,6 +131,11 @@ uint32_t Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32
 	CNST_INST_LONG( OP_SET_GLOBAL_LONG, "SET_GLOBAL" );
 	CNST_INST_SHORT( OP_LOAD_GLOBAL_SHORT, "LOAD_GLOBAL" );
 	CNST_INST_LONG( OP_LOAD_GLOBAL_LONG, "LOAD_GLOBAL" );
+	CNST_INST_SHORT( OP_SET_PROP_SHORT, "SET_PROP" );
+	CNST_INST_LONG( OP_SET_PROP_LONG, "SET_PROP" );
+	CNST_INST_SHORT( OP_LOAD_PROP_SHORT, "LOAD_PROP" );
+	CNST_INST_LONG( OP_LOAD_PROP_LONG, "LOAD_PROP" );
+	CNST_INST_LONG( OP_CLASS, "CLASS" );
 	INST_SHORT( OP_LOAD_LOCAL_SHORT, "LOAD_LOCAL" );
 	INST_LONG( OP_LOAD_LOCAL_LONG, "LOAD_LOCAL" );
 	INST_SHORT( OP_SET_LOCAL_SHORT, "SET_LOCAL" );
@@ -286,10 +291,14 @@ int Compiler::InstructionSize( uint8_t inst )
 	case QScript::OpCode::OP_LOAD_GLOBAL_LONG: return 5;
 	case QScript::OpCode::OP_LOAD_LOCAL_SHORT: return 2;
 	case QScript::OpCode::OP_LOAD_LOCAL_LONG: return 5;
+	case QScript::OpCode::OP_LOAD_PROP_SHORT: return 2;
+	case QScript::OpCode::OP_LOAD_PROP_LONG: return 5;
 	case QScript::OpCode::OP_LOAD_UPVALUE_SHORT: return 2;
 	case QScript::OpCode::OP_LOAD_UPVALUE_LONG: return 5;
 	case QScript::OpCode::OP_SET_LOCAL_SHORT: return 2;
 	case QScript::OpCode::OP_SET_LOCAL_LONG: return 5;
+	case QScript::OpCode::OP_SET_PROP_SHORT: return 2;
+	case QScript::OpCode::OP_SET_PROP_LONG: return 5;
 	case QScript::OpCode::OP_SET_UPVALUE_SHORT: return 2;
 	case QScript::OpCode::OP_SET_UPVALUE_LONG: return 5;
 	case QScript::OpCode::OP_JUMP_IF_ZERO_SHORT: return 2;
@@ -306,6 +315,7 @@ int Compiler::InstructionSize( uint8_t inst )
 	case QScript::OpCode::OP_POW: return 1;
 	case QScript::OpCode::OP_MOD: return 1;
 	case QScript::OpCode::OP_CALL: return 2;
+	case QScript::OpCode::OP_CLASS: return 5;
 	case QScript::OpCode::OP_CLOSURE_LONG: return 5;
 	case QScript::OpCode::OP_CLOSURE_SHORT: return 2;
 	case QScript::OpCode::OP_NEGATE: return 1;
@@ -394,7 +404,7 @@ void Compiler::DumpGlobals( const VM_t& vm )
 	std::cout << "GLOBALS (" << ( vm.m_Globals.size() ) << ")" << std::endl;
 	for ( auto global : vm.m_Globals )
 	{
-		std::cout << global.first << std::setfill( ' ' ) << std::left << std::setw( 10 ) << " ";
-		std::cout << global.second.ToString() << std::setfill( ' ' ) << std::right << std::setw( 0 ) << std::endl;
+		std::cout << std::setfill( ' ' ) << std::left << std::setw( 25 ) << global.first << " ";
+		std::cout << std::setfill( ' ' ) << std::right << std::setw( 0 ) << global.second.ToString() << std::endl;
 	}
 }

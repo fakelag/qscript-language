@@ -24,30 +24,19 @@
 #define MAKE_NULL					(QScript::Value(NULL_BITS))
 #define MAKE_BOOL(value)			((bool)(value) ? (QScript::Value(TRUE_BITS)) : (QScript::Value(FALSE_BITS)))
 #define MAKE_NUMBER( value )		(QScript::Value( ((double)(value) )))
-#define MAKE_STRING( string )		(MAKE_OBJECT( QScript::Object::AllocateString( string ) ))
-#define MAKE_CLOSURE( function )	(MAKE_OBJECT( QScript::Object::AllocateClosure( function ) ))
-#define MAKE_UPVALUE( valuePtr )	(MAKE_OBJECT( QScript::Object::AllocateUpvalue( valuePtr ) ))
 
 #define AS_OBJECT( value )			((QScript::Object*)(( uintptr_t )( ( (value).m_Data.m_UInt64 ) & ~(NAN_SIGN_BIT | NAN_QUIET ))))
 #define AS_BOOL( value )			((value).m_Data.m_UInt64 == TRUE_BITS)
 #define AS_NUMBER( value )			((value).m_Data.m_Number)
-#define AS_STRING( value )			((QScript::StringObject*)(AS_OBJECT(value)))
-#define AS_FUNCTION( value )		((QScript::FunctionObject*)(AS_OBJECT(value)))
-#define AS_NATIVE( value )			((QScript::NativeFunctionObject*)(AS_OBJECT(value)))
-#define AS_CLOSURE( value )			((QScript::ClosureObject*)(AS_OBJECT(value)))
 
 #define IS_NUMBER( value )			(((value).m_Data.m_UInt64 & NAN_QUIET) != NAN_QUIET)
 #define IS_OBJECT( value )			(((value).m_Data.m_UInt64 & (NAN_QUIET | NAN_SIGN_BIT)) == (NAN_QUIET | NAN_SIGN_BIT))
 #define IS_NULL( value )			((value).m_Data.m_UInt64 == NULL_BITS)
 #define IS_BOOL( value )			((value).IsBool())
 #else
+#define AS_OBJECT( value )			((value).m_Data.m_Object)
 #define AS_BOOL( value )			((value).m_Data.m_Bool)
 #define AS_NUMBER( value )			((value).m_Data.m_Number)
-#define AS_OBJECT( value )			((value).m_Data.m_Object)
-#define AS_STRING( value )			((QScript::StringObject*)((value).m_Data.m_Object))
-#define AS_FUNCTION( value )		((QScript::FunctionObject*)((value).m_Data.m_Object))
-#define AS_NATIVE( value )			((QScript::NativeFunctionObject*)((value).m_Data.m_Object))
-#define AS_CLOSURE( value )			((QScript::ClosureObject*)((value).m_Data.m_Object))
 
 #define IS_NULL( value )			((value).m_Type == QScript::VT_NULL)
 #define IS_BOOL( value )			((value).m_Type == QScript::VT_BOOL)
@@ -58,10 +47,20 @@
 #define MAKE_NULL					(QScript::Value())
 #define MAKE_BOOL( value )			(QScript::Value( ((bool)(value) )))
 #define MAKE_NUMBER( value )		(QScript::Value( ((double)(value) )))
-#define MAKE_STRING( string )		((QScript::Value( QScript::Object::AllocateString( string ) )))
-#define MAKE_CLOSURE( function )	((QScript::Value( QScript::Object::AllocateClosure( function ) )))
-#define MAKE_UPVALUE( valuePtr )	((QScript::Value( QScript::Object::AllocateUpvalue( valuePtr ) )))
 #endif
+
+#define MAKE_STRING( string )		(MAKE_OBJECT( QScript::Object::AllocateString( string ) ))
+#define MAKE_CLOSURE( function )	(MAKE_OBJECT( QScript::Object::AllocateClosure( function ) ))
+#define MAKE_UPVALUE( valuePtr )	(MAKE_OBJECT( QScript::Object::AllocateUpvalue( valuePtr ) ))
+#define MAKE_CLASS( name )			(MAKE_OBJECT( QScript::Object::AllocateClass( name ) ))
+#define MAKE_INSTANCE( classDef )	(MAKE_OBJECT( QScript::Object::AllocateInstance( classDef ) ))
+
+#define AS_STRING( value )			((QScript::StringObject*)(AS_OBJECT(value)))
+#define AS_FUNCTION( value )		((QScript::FunctionObject*)(AS_OBJECT(value)))
+#define AS_NATIVE( value )			((QScript::NativeFunctionObject*)(AS_OBJECT(value)))
+#define AS_CLOSURE( value )			((QScript::ClosureObject*)(AS_OBJECT(value)))
+#define AS_CLASS( value )			((QScript::ClassObject*)(AS_OBJECT(value)))
+#define AS_INSTANCE( value )		((QScript::InstanceObject*)(AS_OBJECT(value)))
 
 #define IS_ANY( value ) 			(true)
 #define IS_STRING( value )			((value).IsObjectOfType<QScript::ObjectType::OT_STRING>())
@@ -69,6 +68,8 @@
 #define IS_NATIVE( value )			((value).IsObjectOfType<QScript::ObjectType::OT_NATIVE>())
 #define IS_CLOSURE( value )			((value).IsObjectOfType<QScript::ObjectType::OT_CLOSURE>())
 #define IS_UPVALUE( value )			((value).IsObjectOfType<QScript::ObjectType::OT_UPVALUE>())
+#define IS_CLASS( value )			((value).IsObjectOfType<QScript::ObjectType::OT_CLASS>())
+#define IS_INSTANCE( value )		((value).IsObjectOfType<QScript::ObjectType::OT_INSTANCE>())
 
 #define ENCODE_LONG( a, index ) (( uint8_t )( ( a >> ( 8 * index ) ) & 0xFF ))
 #define DECODE_LONG( a, b, c, d ) (( uint32_t ) ( a + 0x100UL * b + 0x10000UL * c + 0x1000000UL * d ))
@@ -140,8 +141,10 @@ namespace QScript
 	class NativeFunctionObject;
 	class ClosureObject;
 	class UpvalueObject;
+	class ClassObject;
+	class InstanceObject;
 
-	enum ValueType
+	enum ValueType : char
 	{
 		VT_INVALID = -1,
 		VT_NULL = 0,
@@ -150,13 +153,15 @@ namespace QScript
 		VT_OBJECT,
 	};
 
-	enum ObjectType
+	enum ObjectType : char
 	{
 		OT_INVALID = -1,
-		OT_STRING,
-		OT_FUNCTION,
-		OT_NATIVE,
+		OT_CLASS,
 		OT_CLOSURE,
+		OT_FUNCTION,
+		OT_INSTANCE,
+		OT_NATIVE,
+		OT_STRING,
 		OT_UPVALUE,
 	};
 
@@ -173,12 +178,16 @@ namespace QScript
 		using NativeAllocatorFn = NativeFunctionObject * ( *)( void* nativeFn );
 		using ClosureAllocatorFn = ClosureObject* ( *)( FunctionObject* function );
 		using UpvalueAllocatorFn = UpvalueObject * ( *)( Value* valuePtr );
+		using ClassAllocatorFn = ClassObject * ( *)( const std::string& name );
+		using InstanceAllocatorFn = InstanceObject * ( *)( ClassObject* classDef );
 
 		static StringAllocatorFn AllocateString;
 		static FunctionAllocatorFn AllocateFunction;
 		static NativeAllocatorFn AllocateNative;
 		static ClosureAllocatorFn AllocateClosure;
 		static UpvalueAllocatorFn AllocateUpvalue;
+		static ClassAllocatorFn AllocateClass;
+		static InstanceAllocatorFn AllocateInstance;
 	};
 
 	// Value struct -- must be trivially copyable for stack relocations to work
@@ -299,10 +308,6 @@ namespace QScript
 	}
 
 	std::string ToString() const;
-
-	private:
-		// Don't allow copying!
-		// Value operator=( const Value& other );
 	};
 }
 
