@@ -4,6 +4,8 @@
 #include "Compiler.h"
 #include "Instructions.h"
 
+#include "STL/NativeModule.h"
+
 #define COMPILE_EXPRESSION( options ) (options | CO_EXPRESSION)
 #define COMPILE_STATEMENT( options ) (options & ~CO_EXPRESSION)
 #define COMPILE_ASSIGN_TARGET( options ) (options | CO_ASSIGN)
@@ -23,9 +25,14 @@ namespace Compiler
 		if ( lineNr == -1 )
 			return;
 
+		uint32_t end = ( uint32_t ) chunk->m_Code.size();
+
+		if ( start == end )
+			return;
+
 		chunk->m_Debug.push_back( QScript::Chunk_t::Debug_t{
 			start,
-			( uint32_t ) chunk->m_Code.size(),
+			end,
 			lineNr,
 			colNr,
 			token,
@@ -665,22 +672,45 @@ namespace Compiler
 		auto chunk = assembler.CurrentChunk();
 		uint32_t start = ( uint32_t ) chunk->m_Code.size();
 
-		std::map< NodeId, QScript::OpCode > singleByte ={
-			{ NODE_PRINT, 			QScript::OpCode::OP_PRINT },
-			{ NODE_RETURN, 			QScript::OpCode::OP_RETURN },
-			{ NODE_NOT, 			QScript::OpCode::OP_NOT },
-			{ NODE_NEG, 			QScript::OpCode::OP_NEGATE },
-		};
-
-		auto opCode = singleByte.find( m_NodeId );
-		if ( opCode != singleByte.end() )
+		if ( m_NodeId == NODE_IMPORT )
 		{
-			m_Node->Compile( assembler, COMPILE_EXPRESSION( options ) );
-			EmitByte( opCode->second, chunk );
+			if ( !assembler.IsTopLevel() || assembler.StackDepth() > 0 )
+			{
+				throw CompilerException( "cp_non_top_level_import", "Imports must be declared at top-level only",
+					LineNr(), ColNr(), m_Token );
+			}
+
+			auto moduleName = static_cast< ValueNode* >( m_Node )->GetValue();
+			auto module = QScript::ResolveModule( AS_STRING( moduleName )->GetString() );
+
+			if ( module == NULL )
+			{
+				throw CompilerException( "cp_unknown_module",
+					"Unknown module: \"" + AS_STRING( moduleName )->GetString() + "\"",
+					LineNr(), ColNr(), m_Token );
+			}
+
+			module->Import( &assembler );
 		}
 		else
 		{
-			throw CompilerException( "cp_invalid_simple_node", "Unknown simple node: " + std::to_string( m_NodeId ), m_LineNr, m_ColNr, m_Token );
+			std::map< NodeId, QScript::OpCode > singleByte ={
+				{ NODE_PRINT, 			QScript::OpCode::OP_PRINT },
+				{ NODE_RETURN, 			QScript::OpCode::OP_RETURN },
+				{ NODE_NOT, 			QScript::OpCode::OP_NOT },
+				{ NODE_NEG, 			QScript::OpCode::OP_NEGATE },
+			};
+
+			auto opCode = singleByte.find( m_NodeId );
+			if ( opCode != singleByte.end() )
+			{
+				m_Node->Compile( assembler, COMPILE_EXPRESSION( options ) );
+				EmitByte( opCode->second, chunk );
+			}
+			else
+			{
+				throw CompilerException( "cp_invalid_simple_node", "Unknown simple node: " + std::to_string( m_NodeId ), m_LineNr, m_ColNr, m_Token );
+			}
 		}
 
 		AddDebugSymbol( chunk, start, m_LineNr, m_ColNr, m_Token );

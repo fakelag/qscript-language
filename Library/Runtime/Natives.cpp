@@ -2,14 +2,14 @@
 #include "Natives.h"
 #include "../Common/Chunk.h"
 
-#include <time.h>
+// #include <time.h>
 
 namespace Native
 {
-	QScript::Value clock( const QScript::Value* args, int numArgs )
-	{
-		return MAKE_NUMBER( (double) ::clock() / CLOCKS_PER_SEC );
-	}
+	// QScript::Value clock( const QScript::Value* args, int numArgs )
+	// {
+	// 	return MAKE_NUMBER( (double) ::clock() / CLOCKS_PER_SEC );
+	// }
 
 	QScript::Value exit( const QScript::Value* args, int numArgs )
 	{

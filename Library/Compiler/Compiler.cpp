@@ -121,7 +121,6 @@ namespace Compiler
 	{
 		for ( uint32_t i = 0; i < chunk->m_Constants.size(); ++i )
 		{
-			// TODO: fix this since equality is checked via pointer identity
 			if ( ( chunk->m_Constants[ i ] == value ).IsTruthy() )
 				return i;
 		}
@@ -139,6 +138,18 @@ namespace Compiler
 	{
 		// Compiler object allocation must use pure 'new'
 		// keyword, since FreeChunk() is also responsible for releasing these objects
+
+		// For const-stacking to work with objects, check if one already exists
+		for ( auto object : ObjectList )
+		{
+			if ( object->m_Type == QScript::OT_STRING )
+			{
+				auto stringObject = static_cast< QScript::StringObject* >( object );
+
+				if ( stringObject->GetString() == string )
+					return stringObject;
+			}
+		}
 		auto stringObject = QS_NEW QScript::StringObject( string );
 		ObjectList.push_back( ( QScript::Object* ) stringObject );
 		return stringObject;
@@ -153,6 +164,8 @@ namespace Compiler
 
 	QScript::NativeFunctionObject* AllocateNative( void* nativeFn )
 	{
+		assert( 0 );
+
 		auto nativeObject = QS_NEW QScript::NativeFunctionObject( ( QScript::NativeFn ) nativeFn );
 		ObjectList.push_back( ( QScript::Object* ) nativeObject );
 		return nativeObject;
@@ -178,6 +191,8 @@ namespace Compiler
 
 	QScript::ClassObject* AllocateClass( const std::string& name )
 	{
+		assert( 0 );
+
 		auto classObject = QS_NEW QScript::ClassObject( name );
 		ObjectList.push_back( ( QScript::Object* ) classObject );
 		return classObject;
@@ -185,6 +200,8 @@ namespace Compiler
 
 	QScript::InstanceObject* AllocateInstance( QScript::ClassObject* classDef )
 	{
+		assert( 0 );
+
 		auto instObject = QS_NEW QScript::InstanceObject( classDef );
 		ObjectList.push_back( ( QScript::Object* ) instObject );
 		return instObject;
