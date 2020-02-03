@@ -407,6 +407,24 @@ namespace Compiler
 				};
 				break;
 			}
+			case TOK_IMPORT:
+			{
+				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder )
+				{
+					auto moduleName = nextExpression( BP_VAR );
+
+					if ( !moduleName->IsString() )
+					{
+						throw CompilerException( "ir_invalid_import",
+							"Invalid import target \"" + moduleName->Token() + "\"",
+							moduleName->LineNr(), moduleName->ColNr(), moduleName->Token() );
+					}
+
+					return parserState.AllocateNode< SimpleNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+						irBuilder.m_Token.m_String, NODE_IMPORT, moduleName );
+				};
+				break;
+			}
 			case TOK_IF:
 			{
 				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder ) -> BaseNode*

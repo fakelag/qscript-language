@@ -58,6 +58,7 @@ namespace Compiler
 		{ TOK_FALSE,		{ TOK_FALSE, 		"false", 	BP_NONE,					true } },
 		{ TOK_FOR,			{ TOK_FOR, 			"for", 		BP_NONE,					true } },
 		{ TOK_IF,			{ TOK_IF,			"if",		BP_NONE,					true } },
+		{ TOK_IMPORT,		{ TOK_IMPORT,		"import",	BP_NONE,					true } },
 		{ TOK_NULL,			{ TOK_NULL, 		"null", 	BP_NONE,					true } },
 		{ TOK_RETURN,		{ TOK_RETURN, 		"return", 	BP_NONE,					true } },
 		{ TOK_TRUE,			{ TOK_TRUE, 		"true", 	BP_NONE,					true } },
