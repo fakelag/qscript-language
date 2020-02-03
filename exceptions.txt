@@ -15,6 +15,8 @@ Compiler 			cp_identifier_already_exists		Identifier already exits: "%tokenStrin
 Compiler 			cp_assign_to_const					Assigning to constant variable: "%tokenString%"
 Compiler 			cp_unescaped_function				Abort: Compiler was left with unfinished functions
 Compiler 			cp_non_top_level_class				Classes must be declared at top-level only
+Compiler 			cp_non_top_level_import				Imports must be declared at top-level only
+Compiler 			cp_unknown_module					Unknown module: "%tokenString%"
 IRGenerator 		ir_expect_lvalue_or_statement		Expected a left-value or statement
 IRGenerator 		ir_expect_rvalue					Expected a right-value
 IRGenerator			ir_unknown_token					Unknown token id: %tokenId% "%tokenString%"
@@ -26,6 +28,7 @@ IRGenerator			ir_parsing_past_eof					Parsing past end of file
 IRGenerator 		ir_variable_name 					Invalid variable name: "%tokenString%"
 IRGenerator 		ir_class_name						Invalid class name: "%tokenString%"
 IRGenerator 		ir_property_name					Invalid property name: "%tokenString%"
+IRGenerator			ir_invalid_import					Invalid import target "%tokenString%"
 Disassembler		disasm_invalid_value				Invalid value type: %valueType%
 Disassembler 		disasm_invalid_value_object			Invalid object type: %objectType%
 Runtime				rt_invalid_operand_type				Both operands of "%op%" operation must be numbers | Negation operand must be of number type | Not operand must be of boolean type | Operands of + operation must be numbers or strings | Operand must be of string type
