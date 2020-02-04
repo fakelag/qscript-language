@@ -60,14 +60,14 @@ bool Tests::TestCompiler()
 		auto fn = QScript::Compile( "var known123 = 10;" );
 		QScript::FreeFunction( fn );
 
-		fn = QScript::Compile( "var k; k = 10; k = k + 1; print k;" );
+		fn = QScript::Compile( "var k; k = 10; k = k + 1; print(k);" );
 		QScript::FreeFunction( fn );
 
 		UTEST_THROW_EXCEPTION( QScript::Compile( "k = 10;" ),
 			const std::vector< CompilerException >& e,
 			e.size() == 1 && e[ 0 ].id() == "cp_unknown_identifier" );
 
-		UTEST_THROW_EXCEPTION( QScript::Compile( "print k;" ),
+		UTEST_THROW_EXCEPTION( QScript::Compile( "print(k);" ),
 			const std::vector< CompilerException >& e,
 			e.size() == 1 && e[ 0 ].id() == "cp_unknown_identifier" );
 
@@ -87,11 +87,11 @@ bool Tests::TestCompiler()
 		auto fn = QScript::Compile( "const x; const y = 10 * 10 + x;" );
 		QScript::FreeFunction( fn );
 
-		fn = QScript::Compile( "{ const x = 10; const z; print z; }" );
+		fn = QScript::Compile( "{ const x = 10; const z; print(z); }" );
 		QScript::FreeFunction( fn );
 
 		fn = QScript::Compile( "const z = () -> { const localVal = 10; 	\
-		const localFunc = () -> { print localVal + 1; } 				\
+		const localFunc = () -> { print(localVal + 1); } 				\
 		}" );
 		QScript::FreeFunction( fn );
 
