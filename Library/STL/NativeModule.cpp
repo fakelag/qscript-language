@@ -1,6 +1,10 @@
 #include "QLibPCH.h"
 #include "NativeModule.h"
 
+// Modules
+#include "System.h"
+#include "Time.h"
+
 std::vector< QScript::QNativeModule* > NativeModules;
 
 namespace QScript
@@ -16,8 +20,12 @@ namespace QScript
 		return NULL;
 	}
 
-	void RegisterModule( QNativeModule* module )
+	void InitModules()
 	{
-		NativeModules.push_back( module );
+		if ( NativeModules.size() > 0 )
+			return;
+
+		NativeModules.push_back( new QSystem() );
+		NativeModules.push_back( new QTime() );
 	}
 }

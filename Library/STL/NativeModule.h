@@ -17,8 +17,11 @@ namespace QScript
 
 		virtual void Import( VM_t* vm ) const = 0;
 		virtual void Import( Compiler::Assembler* assembler ) const = 0;
+
+	protected:
+		std::string m_Name;
 	};
 
 	const QNativeModule* ResolveModule( const std::string& name );
-	void RegisterModule( QNativeModule* module );
+	void InitModules();
 }

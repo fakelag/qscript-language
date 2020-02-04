@@ -256,16 +256,8 @@ namespace Compiler
 			{
 				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder ) -> BaseNode*
 				{
-					if ( irBuilder.m_Token.m_String == "print" )
-					{
-						return parserState.AllocateNode< SimpleNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-							irBuilder.m_Token.m_String, NODE_PRINT, nextExpression( irBuilder.m_Token.m_LBP ) );
-					}
-					else
-					{
-						return parserState.AllocateNode< ValueNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-							irBuilder.m_Token.m_String, NODE_NAME, MAKE_STRING( irBuilder.m_Token.m_String ) );
-					}
+					return parserState.AllocateNode< ValueNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+						irBuilder.m_Token.m_String, NODE_NAME, MAKE_STRING( irBuilder.m_Token.m_String ) );
 				};
 				break;
 			}

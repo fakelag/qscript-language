@@ -74,7 +74,6 @@ struct VM_t
 
 	uint8_t* OpenUpvalues( QScript::ClosureObject* closure, Frame_t* frame, uint8_t* ip );
 	void CloseUpvalues( QScript::Value* last );
-	void ResolveImports();
 
 	void CreateNative( const std::string name, QScript::NativeFn native );
 	void Release();

@@ -16,12 +16,9 @@ fmt(OP_CLOSURE_SHORT), \
 fmt(OP_CLOSURE_LONG), \
 fmt(OP_DIV), \
 fmt(OP_EQUALS), \
-fmt(OP_SET_PROP_SHORT), \
-fmt(OP_SET_PROP_LONG), \
-fmt(OP_SET_UPVALUE_SHORT), \
-fmt(OP_SET_UPVALUE_LONG), \
 fmt(OP_GREATERTHAN), \
 fmt(OP_GREATERTHAN_OR_EQUAL), \
+fmt(OP_IMPORT), \
 fmt(OP_JUMP_BACK_SHORT), \
 fmt(OP_JUMP_BACK_LONG), \
 fmt(OP_JUMP_SHORT), \
@@ -68,7 +65,6 @@ fmt(OP_LOAD_4), \
 fmt(OP_LOAD_5), \
 fmt(OP_POP), \
 fmt(OP_POW), \
-fmt(OP_PRINT), \
 fmt(OP_RETURN), \
 fmt(OP_SET_GLOBAL_LONG), \
 fmt(OP_SET_GLOBAL_SHORT), \
@@ -86,6 +82,10 @@ fmt(OP_SET_LOCAL_8), \
 fmt(OP_SET_LOCAL_9), \
 fmt(OP_SET_LOCAL_10), \
 fmt(OP_SET_LOCAL_11), \
+fmt(OP_SET_PROP_SHORT), \
+fmt(OP_SET_PROP_LONG), \
+fmt(OP_SET_UPVALUE_SHORT), \
+fmt(OP_SET_UPVALUE_LONG), \
 fmt(OP_SUB),
 
 #define QS_OPCODE_PLAIN( opcode ) opcode

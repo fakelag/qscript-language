@@ -4,7 +4,7 @@
 #include "Compiler.h"
 #include "Instructions.h"
 
-#include "STL/NativeModule.h"
+#include "../STL/NativeModule.h"
 
 #define COMPILE_EXPRESSION( options ) (options | CO_EXPRESSION)
 #define COMPILE_STATEMENT( options ) (options & ~CO_EXPRESSION)
@@ -690,12 +690,20 @@ namespace Compiler
 					LineNr(), ColNr(), m_Token );
 			}
 
+			// Import into compiler context
 			module->Import( &assembler );
+
+			// Import in VM
+			uint32_t constIndex = AddConstant( moduleName, chunk );
+			EmitByte( QScript::OpCode::OP_IMPORT, chunk );
+			EmitByte( ENCODE_LONG( constIndex, 0 ), chunk );
+			EmitByte( ENCODE_LONG( constIndex, 1 ), chunk );
+			EmitByte( ENCODE_LONG( constIndex, 2 ), chunk );
+			EmitByte( ENCODE_LONG( constIndex, 3 ), chunk );
 		}
 		else
 		{
 			std::map< NodeId, QScript::OpCode > singleByte ={
-				{ NODE_PRINT, 			QScript::OpCode::OP_PRINT },
 				{ NODE_RETURN, 			QScript::OpCode::OP_RETURN },
 				{ NODE_NOT, 			QScript::OpCode::OP_NOT },
 				{ NODE_NEG, 			QScript::OpCode::OP_NEGATE },

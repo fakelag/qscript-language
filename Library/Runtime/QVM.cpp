@@ -5,7 +5,7 @@
 #include "QVM.h"
 #include "../Compiler/Compiler.h"
 
-#include "Natives.h"
+#include "../STL/NativeModule.h"
 
 #define INTERP_INIT \
 QVM::VirtualMachine = &vm; \
@@ -546,6 +546,21 @@ namespace QVM
 				vm.Push( a.Pow( b ) );
 				INTERP_DISPATCH;
 			}
+			INTERP_OPCODE( OP_IMPORT ):
+			{
+				READ_CONST_LONG( constant );
+
+				auto module = QScript::ResolveModule( AS_STRING( constant )->GetString() );
+
+				if ( !module )
+				{
+					QVM::RuntimeError( frame, "rt_unknown_module",
+						"Unknown module: \"" + AS_STRING( constant )->GetString() + "\"" );
+				}
+
+				module->Import( &vm );
+				INTERP_DISPATCH;
+			}
 			INTERP_OPCODE( OP_NOP ): INTERP_DISPATCH;
 			INTERP_OPCODE( OP_SUB ): BINARY_OP( -, IS_NUMBER ); INTERP_DISPATCH;
 			INTERP_OPCODE( OP_MUL ): BINARY_OP( *, IS_NUMBER ); INTERP_DISPATCH;
@@ -558,7 +573,6 @@ namespace QVM
 			INTERP_OPCODE( OP_LESSTHAN_OR_EQUAL ): BINARY_OP( <=, IS_ANY ); INTERP_DISPATCH;
 			INTERP_OPCODE( OP_GREATERTHAN_OR_EQUAL ): BINARY_OP( >=, IS_ANY ); INTERP_DISPATCH;
 			INTERP_OPCODE( OP_POP ): vm.Pop(); INTERP_DISPATCH;
-			INTERP_OPCODE( OP_PRINT ): std::cout << (vm.Pop().ToString()) << std::endl; INTERP_DISPATCH;
 			INTERP_OPCODE( OP_RETURN ):
 			{
 				auto returnValue = vm.Pop();
@@ -644,9 +658,13 @@ namespace QVM
 
 void VM_t::Init( const QScript::FunctionObject* mainFunction )
 {
+	// Make sure module system is initialized
+	QScript::InitModules();
+
 	m_Objects.clear();
 	m_Globals.clear();
 
+	// Allocate initial stack
 	m_Stack = QS_NEW QScript::Value[ s_InitStackSize ];
 	m_StackCapacity = s_InitStackSize;
 	m_StackTop = &m_Stack[ 0 ];
@@ -664,6 +682,7 @@ void VM_t::Init( const QScript::FunctionObject* mainFunction )
 	// the VM garbage collection won't ever release it
 	Push( MAKE_OBJECT( m_Main ) );
 
+	// Init upvalues linked list
 	m_LivingUpvalues = NULL;
 }
 
@@ -918,13 +937,6 @@ void VM_t::CloseUpvalues( QScript::Value* last )
 	}
 }
 
-void VM_t::ResolveImports()
-{
-	// Add a native for testing
-	CreateNative( "clock", Native::clock );
-	CreateNative( "exit", Native::exit );
-}
-
 void VM_t::CreateNative( const std::string name, QScript::NativeFn native )
 {
 	auto global = std::pair<std::string, QScript::Value>( name, MAKE_OBJECT( QVM::AllocateNative( ( void* ) native ) ) );
@@ -941,7 +953,10 @@ void QScript::Repl()
 	VM_t vm( function );
 
 	INTERP_INIT;
-	vm.ResolveImports();
+
+	// Import main system module
+	auto systemModule = QScript::ResolveModule( "System" );
+	systemModule->Import( &vm );
 
 	for ( ;; )
 	{
@@ -1020,7 +1035,9 @@ void QScript::Interpret( const QScript::FunctionObject& function )
 
 	INTERP_INIT;
 
-	vm.ResolveImports();
+	// Import main system module
+	auto systemModule = QScript::ResolveModule( "System" );
+	systemModule->Import( &vm );
 
 	auto exitCode = QVM::Run( vm );
 
@@ -1034,7 +1051,9 @@ void QScript::Interpret( VM_t& vm, Value* out )
 {
 	INTERP_INIT;
 
-	vm.ResolveImports();
+	// Import main system module
+	auto systemModule = QScript::ResolveModule( "System" );
+	systemModule->Import( &vm );
 
 	auto exitCode = QVM::Run( vm );
 

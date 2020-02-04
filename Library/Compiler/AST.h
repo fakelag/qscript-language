@@ -52,7 +52,6 @@ namespace Compiler
 		NODE_NOTEQUALS,
 		NODE_OR,
 		NODE_POW,
-		NODE_PRINT,
 		NODE_RETURN,
 		NODE_SCOPE,
 		NODE_SUB,

@@ -1,5 +1,6 @@
 #include "QLibPCH.h"
 #include "../Common/Chunk.h"
+#include "../STL/NativeModule.h"
 
 #include "Instructions.h"
 #include "Compiler.h"
@@ -28,12 +29,15 @@ namespace QScript
 	{
 		BEGIN_COMPILER;
 
+		// Make sure module system is initialized
+		QScript::InitModules();
+
 		Chunk_t* chunk = AllocChunk();
 		Compiler::Assembler assembler( chunk, config );
 
-		// TODO: Import names from actual module system
-		assembler.AddGlobal( "clock", true, QScript::VT_OBJECT, QScript::OT_NATIVE );
-		assembler.AddGlobal( "exit", true, QScript::VT_OBJECT, QScript::OT_NATIVE );
+		// Import main system module (functions like exit(), print(), etc)
+		auto systemModule = QScript::ResolveModule( "System" );
+		systemModule->Import( &assembler );
 
 		std::vector< Compiler::BaseNode* > astNodes;
 

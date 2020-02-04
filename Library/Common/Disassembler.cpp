@@ -136,6 +136,7 @@ uint32_t Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32
 	CNST_INST_SHORT( OP_LOAD_PROP_SHORT, "LOAD_PROP" );
 	CNST_INST_LONG( OP_LOAD_PROP_LONG, "LOAD_PROP" );
 	CNST_INST_LONG( OP_CLASS, "CLASS" );
+	CNST_INST_LONG( OP_IMPORT, "IMPORT" );
 	INST_SHORT( OP_LOAD_LOCAL_SHORT, "LOAD_LOCAL" );
 	INST_LONG( OP_LOAD_LOCAL_LONG, "LOAD_LOCAL" );
 	INST_SHORT( OP_SET_LOCAL_SHORT, "SET_LOCAL" );
@@ -199,7 +200,6 @@ uint32_t Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32
 	SIMPLE_INST( OP_GREATERTHAN_OR_EQUAL, "GREATERTHAN_OR_EQUAL" );
 	SIMPLE_INST( OP_LESSTHAN_OR_EQUAL, "LESSTHAN_OR_EQUAL" );
 	SIMPLE_INST( OP_RETURN, "RETUN" );
-	SIMPLE_INST( OP_PRINT, "PRINT" );
 	SIMPLE_INST( OP_POP, "POP" );
 	SIMPLE_INST( OP_LOAD_NULL, "LOAD_NULL" );
 	SIMPLE_INST( OP_LOAD_MINUS_1, "LOAD_NEG_1" );
@@ -316,6 +316,7 @@ int Compiler::InstructionSize( uint8_t inst )
 	case QScript::OpCode::OP_MOD: return 1;
 	case QScript::OpCode::OP_CALL: return 2;
 	case QScript::OpCode::OP_CLASS: return 5;
+	case QScript::OpCode::OP_IMPORT: return 5;
 	case QScript::OpCode::OP_CLOSURE_LONG: return 5;
 	case QScript::OpCode::OP_CLOSURE_SHORT: return 2;
 	case QScript::OpCode::OP_NEGATE: return 1;
@@ -327,7 +328,6 @@ int Compiler::InstructionSize( uint8_t inst )
 	case QScript::OpCode::OP_GREATERTHAN_OR_EQUAL: return 1;
 	case QScript::OpCode::OP_LESSTHAN_OR_EQUAL: return 1;
 	case QScript::OpCode::OP_RETURN: return 1;
-	case QScript::OpCode::OP_PRINT: return 1;
 	case QScript::OpCode::OP_POP: return 1;
 	case QScript::OpCode::OP_LOAD_NULL:
 	case QScript::OpCode::OP_LOAD_MINUS_1:
