@@ -1,5 +1,6 @@
 #include "QLibPCH.h"
 #include "../Common/Chunk.h"
+#include "../STL/NativeModule.h"
 
 #include "Instructions.h"
 #include "Compiler.h"
@@ -28,12 +29,15 @@ namespace QScript
 	{
 		BEGIN_COMPILER;
 
+		// Make sure module system is initialized
+		QScript::InitModules();
+
 		Chunk_t* chunk = AllocChunk();
 		Compiler::Assembler assembler( chunk, config );
 
-		// TODO: Import names from actual module system
-		assembler.AddGlobal( "clock", true, QScript::VT_OBJECT, QScript::OT_NATIVE );
-		assembler.AddGlobal( "exit", true, QScript::VT_OBJECT, QScript::OT_NATIVE );
+		// Import main system module (functions like exit(), print(), etc)
+		auto systemModule = QScript::ResolveModule( "System" );
+		systemModule->Import( &assembler );
 
 		std::vector< Compiler::BaseNode* > astNodes;
 
@@ -119,11 +123,26 @@ namespace Compiler
 
 	uint32_t AddConstant( const QScript::Value& value, QScript::Chunk_t* chunk )
 	{
-		for ( uint32_t i = 0; i < chunk->m_Constants.size(); ++i )
+		if ( IS_STRING( value ) )
 		{
-			// TODO: fix this since equality is checked via pointer identity
-			if ( ( chunk->m_Constants[ i ] == value ).IsTruthy() )
-				return i;
+			// De-duplicate strings
+			for ( uint32_t i = 0; i < chunk->m_Constants.size(); ++i )
+			{
+				if ( !IS_STRING( chunk->m_Constants[ i ] ) )
+					continue;
+
+				if ( AS_STRING( value )->GetString() == AS_STRING( chunk->m_Constants[ i ] )->GetString() )
+					return i;
+			}
+		}
+		else
+		{
+			// De-duplicate normal values
+			for ( uint32_t i = 0; i < chunk->m_Constants.size(); ++i )
+			{
+				if ( ( chunk->m_Constants[ i ] == value ).IsTruthy() )
+					return i;
+			}
 		}
 
 		chunk->m_Constants.push_back( value );
@@ -139,6 +158,7 @@ namespace Compiler
 	{
 		// Compiler object allocation must use pure 'new'
 		// keyword, since FreeChunk() is also responsible for releasing these objects
+
 		auto stringObject = QS_NEW QScript::StringObject( string );
 		ObjectList.push_back( ( QScript::Object* ) stringObject );
 		return stringObject;
@@ -153,6 +173,8 @@ namespace Compiler
 
 	QScript::NativeFunctionObject* AllocateNative( void* nativeFn )
 	{
+		assert( 0 );
+
 		auto nativeObject = QS_NEW QScript::NativeFunctionObject( ( QScript::NativeFn ) nativeFn );
 		ObjectList.push_back( ( QScript::Object* ) nativeObject );
 		return nativeObject;
@@ -178,6 +200,8 @@ namespace Compiler
 
 	QScript::ClassObject* AllocateClass( const std::string& name )
 	{
+		assert( 0 );
+
 		auto classObject = QS_NEW QScript::ClassObject( name );
 		ObjectList.push_back( ( QScript::Object* ) classObject );
 		return classObject;
@@ -185,6 +209,8 @@ namespace Compiler
 
 	QScript::InstanceObject* AllocateInstance( QScript::ClassObject* classDef )
 	{
+		assert( 0 );
+
 		auto instObject = QS_NEW QScript::InstanceObject( classDef );
 		ObjectList.push_back( ( QScript::Object* ) instObject );
 		return instObject;

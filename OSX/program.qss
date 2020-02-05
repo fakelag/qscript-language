@@ -1,12 +1,14 @@
+import Time;
+
 var start = clock();
 
-function fib = (num) {
+const fib = (num) -> {
     if (num <= 1) return 1;
     return fib(num-1) + fib(num-2);
 }
 
-print fib(40);
+print(fib(40));
 
 var end = clock();
 
-print end - start;
+print(end - start);

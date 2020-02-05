@@ -47,7 +47,8 @@ void QScript::FreeChunk( QScript::Chunk_t* chunk )
 		if ( !IS_OBJECT( constant ) )
 			continue;
 
-		FreeObject( AS_OBJECT( constant ) );
+		auto object = AS_OBJECT( constant );
+		FreeObject( object );
 	}
 
 	delete chunk;

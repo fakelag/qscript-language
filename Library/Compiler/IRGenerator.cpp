@@ -256,16 +256,8 @@ namespace Compiler
 			{
 				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder ) -> BaseNode*
 				{
-					if ( irBuilder.m_Token.m_String == "print" )
-					{
-						return parserState.AllocateNode< SimpleNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-							irBuilder.m_Token.m_String, NODE_PRINT, nextExpression( irBuilder.m_Token.m_LBP ) );
-					}
-					else
-					{
-						return parserState.AllocateNode< ValueNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-							irBuilder.m_Token.m_String, NODE_NAME, MAKE_STRING( irBuilder.m_Token.m_String ) );
-					}
+					return parserState.AllocateNode< ValueNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+						irBuilder.m_Token.m_String, NODE_NAME, MAKE_STRING( irBuilder.m_Token.m_String ) );
 				};
 				break;
 			}
@@ -404,6 +396,24 @@ namespace Compiler
 					return parserState.AllocateNode< ComplexNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
 						irBuilder.m_Token.m_String, irBuilder.m_Token.m_Id == TOK_2PLUS ? NODE_INC : NODE_DEC,
 						( BaseNode* ) NULL, nextExpression( irBuilder.m_Token.m_LBP ) );
+				};
+				break;
+			}
+			case TOK_IMPORT:
+			{
+				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder )
+				{
+					auto moduleName = nextExpression( BP_VAR );
+
+					if ( !moduleName->IsString() )
+					{
+						throw CompilerException( "ir_invalid_import",
+							"Invalid import target \"" + moduleName->Token() + "\"",
+							moduleName->LineNr(), moduleName->ColNr(), moduleName->Token() );
+					}
+
+					return parserState.AllocateNode< SimpleNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+						irBuilder.m_Token.m_String, NODE_IMPORT, moduleName );
 				};
 				break;
 			}
