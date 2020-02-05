@@ -123,10 +123,26 @@ namespace Compiler
 
 	uint32_t AddConstant( const QScript::Value& value, QScript::Chunk_t* chunk )
 	{
-		for ( uint32_t i = 0; i < chunk->m_Constants.size(); ++i )
+		if ( IS_STRING( value ) )
 		{
-			if ( ( chunk->m_Constants[ i ] == value ).IsTruthy() )
-				return i;
+			// De-duplicate strings
+			for ( uint32_t i = 0; i < chunk->m_Constants.size(); ++i )
+			{
+				if ( !IS_STRING( chunk->m_Constants[ i ] ) )
+					continue;
+
+				if ( AS_STRING( value )->GetString() == AS_STRING( chunk->m_Constants[ i ] )->GetString() )
+					return i;
+			}
+		}
+		else
+		{
+			// De-duplicate normal values
+			for ( uint32_t i = 0; i < chunk->m_Constants.size(); ++i )
+			{
+				if ( ( chunk->m_Constants[ i ] == value ).IsTruthy() )
+					return i;
+			}
 		}
 
 		chunk->m_Constants.push_back( value );
@@ -143,17 +159,6 @@ namespace Compiler
 		// Compiler object allocation must use pure 'new'
 		// keyword, since FreeChunk() is also responsible for releasing these objects
 
-		// For const-stacking to work with objects, check if one already exists
-		for ( auto object : ObjectList )
-		{
-			if ( object->m_Type == QScript::OT_STRING )
-			{
-				auto stringObject = static_cast< QScript::StringObject* >( object );
-
-				if ( stringObject->GetString() == string )
-					return stringObject;
-			}
-		}
 		auto stringObject = QS_NEW QScript::StringObject( string );
 		ObjectList.push_back( ( QScript::Object* ) stringObject );
 		return stringObject;
