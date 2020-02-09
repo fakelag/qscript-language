@@ -146,7 +146,67 @@ namespace Compiler
 		}
 	}
 
-	void CompileFunction( bool isAnonymous, const std::string& name, ListNode* funcNode, Assembler& assembler )
+	uint32_t ResolveReturnType( ListNode* funcNode, Assembler& assembler )
+	{
+		// Combine all return statement types
+		uint32_t returnTypes = TYPE_NULL;
+
+		std::function< void( const BaseNode* ) > visitNode;
+		visitNode = [ &visitNode, &returnTypes, &assembler ]( const BaseNode* node ) -> void
+		{
+			if ( !node )
+				return;
+
+			switch ( node->Type() )
+			{
+			case NT_TERM:
+			{
+				if ( node->Id() == NODE_RETURN )
+					returnTypes |= TYPE_NULL;
+
+				break;
+			}
+			case NT_SIMPLE:
+			{
+				auto simple = static_cast< const SimpleNode* >( node );
+
+				if ( simple->Id() == NODE_RETURN )
+					returnTypes |= simple->GetNode()->ExprType( assembler );
+				else
+					visitNode( node );
+
+				break;
+			}
+			case NT_VALUE:
+				break;
+			case NT_COMPLEX:
+			{
+				auto complex = static_cast< const ComplexNode* >( node );
+
+				visitNode( complex->GetLeft() );
+				visitNode( complex->GetRight() );
+
+				break;
+			}
+			case NT_LIST:
+			{
+				auto list = static_cast< const ListNode* >( node );
+
+				for ( auto subNode : list->GetList() )
+					visitNode( subNode );
+
+				break;
+			}
+			default:
+				break;
+			}
+		};
+
+		visitNode( funcNode );
+		return returnTypes;
+	}
+
+	void CompileFunction( bool isAnonymous, bool isConst, const std::string& name, ListNode* funcNode, Assembler& assembler )
 	{
 		auto chunk = assembler.CurrentChunk();
 		auto& nodeList = funcNode->GetList();
@@ -155,12 +215,12 @@ namespace Compiler
 		auto functionArity = ( uint32_t ) argNode->GetList().size();
 
 		// Allocate chunk & create function
-		auto function = assembler.CreateFunction( name, functionArity, isAnonymous, QScript::AllocChunk() );
+		auto function = assembler.CreateFunction( name, isConst, ResolveReturnType( funcNode, assembler ), functionArity, isAnonymous, QScript::AllocChunk() );
 		assembler.PushScope();
 
 		// Create args in scope
 		for ( auto arg : argNode->GetList() )
-			assembler.CreateLocal( AS_STRING( static_cast< ValueNode* >( arg )->GetValue() )->GetString() );
+			assembler.AddLocal( AS_STRING( static_cast< ValueNode* >( arg )->GetValue() )->GetString() );
 
 		// Compile function body
 		for ( auto node : static_cast< ListNode* >( nodeList[ 1 ] )->GetList() )
@@ -492,12 +552,12 @@ namespace Compiler
 				{
 					// Compile a named function
 					auto& varName = static_cast< ValueNode* >( m_Left )->GetValue();
-					CompileFunction( false, AS_STRING( varName )->GetString(), static_cast< ListNode* >( m_Right ), assembler );
+					CompileFunction( false, false, AS_STRING( varName )->GetString(), static_cast< ListNode* >( m_Right ), assembler );
 				}
 				else
 				{
 					// Anonymous function
-					CompileFunction( true, "<anonymous>", static_cast< ListNode* >( m_Right ), assembler );
+					CompileFunction( true, false, "<anonymous>", static_cast< ListNode* >( m_Right ), assembler );
 				}
 
 				m_Left->Compile( assembler, COMPILE_REASSIGN_TARGET( options ) );
@@ -968,7 +1028,7 @@ namespace Compiler
 			if ( IS_STATEMENT( options ) )
 				throw EXPECTED_STATEMENT;
 
-			CompileFunction( true, "<anonymous>", this, assembler );
+			CompileFunction( true, false, "<anonymous>", this, assembler );
 			break;
 		}
 		case NODE_IF:
@@ -1040,7 +1100,7 @@ namespace Compiler
 				if ( m_NodeList[ 1 ]->Id() == NODE_FUNC )
 				{
 					// Compile a named function
-					CompileFunction( false, varString, static_cast< ListNode* >( m_NodeList[ 1 ] ), assembler );
+					CompileFunction( false, isConst, varString, static_cast< ListNode* >( m_NodeList[ 1 ] ), assembler );
 				}
 				else
 				{
@@ -1050,7 +1110,7 @@ namespace Compiler
 
 				if ( isLocal )
 				{
-					assembler.CreateLocal( varString, isConst, valueType );
+					assembler.AddLocal( varString, isConst, valueType );
 				}
 				else
 				{
@@ -1089,7 +1149,7 @@ namespace Compiler
 				else
 				{
 					// Local variable
-					assembler.CreateLocal( varString, isConst, TYPE_NULL );
+					assembler.AddLocal( varString, isConst, TYPE_NULL );
 				}
 			}
 			break;

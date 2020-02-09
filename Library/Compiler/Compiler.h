@@ -81,12 +81,12 @@ namespace Compiler
 		Assembler( QScript::Chunk_t* chunk, const QScript::Config_t& config );
 
 		bool 										AddGlobal( const std::string& name );
-		bool 										AddGlobal( const std::string& name, bool isConstant, uint32_t type );
+		bool 										AddGlobal( const std::string& name, bool isConstant, uint32_t type, uint32_t returnType = TYPE_UNKNOWN );
+		uint32_t 									AddLocal( const std::string& name, bool isConstant, uint32_t type, uint32_t returnType = TYPE_UNKNOWN );
+		uint32_t									AddLocal( const std::string& name );
 		uint32_t 									AddUpvalue( FunctionContext_t* context, uint32_t index, bool isLocal );
 		const QScript::Config_t&					Config() const;
-		QScript::FunctionObject*					CreateFunction( const std::string& name, int arity, bool isAnonymous, QScript::Chunk_t* chunk );
-		uint32_t 									CreateLocal( const std::string& name, bool isConstant, uint32_t type );
-		uint32_t									CreateLocal( const std::string& name );
+		QScript::FunctionObject*					CreateFunction( const std::string& name, bool isConst, uint32_t retType, int arity, bool isAnonymous, QScript::Chunk_t* chunk );
 		QScript::Chunk_t*							CurrentChunk();
 		QScript::FunctionObject*					CurrentFunction();
 		Stack_t*									CurrentStack();
