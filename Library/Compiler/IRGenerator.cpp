@@ -7,6 +7,14 @@
 
 namespace Compiler
 {
+	bool IsString( BaseNode* node )
+	{
+		if ( node->Type() != NT_VALUE )
+			return false;
+
+		return IS_STRING( static_cast< ValueNode* >( node )->GetValue() );
+	}
+
 	bool IsFunctionDefinition( ParserState& parserState )
 	{
 		int offset = parserState.Offset();
@@ -268,7 +276,7 @@ namespace Compiler
 				{
 					auto varName = nextExpression( irBuilder.m_Token.m_LBP );
 
-					if ( !varName->IsString() )
+					if ( !IsString( varName ) )
 					{
 						throw CompilerException( "ir_variable_name", "Invalid variable name: \"" + varName->Token() + "\"",
 							varName->LineNr(), varName->ColNr(), varName->Token() );
@@ -405,7 +413,7 @@ namespace Compiler
 				{
 					auto moduleName = nextExpression( BP_VAR );
 
-					if ( !moduleName->IsString() )
+					if ( !IsString( moduleName ) )
 					{
 						throw CompilerException( "ir_invalid_import",
 							"Invalid import target \"" + moduleName->Token() + "\"",
@@ -535,7 +543,7 @@ namespace Compiler
 				{
 					auto className = nextExpression( BP_VAR );
 
-					if ( !className->IsString() )
+					if ( !IsString( className ) )
 					{
 						throw CompilerException( "ir_class_name", "Invalid class name: \"" + className->Token() + "\"",
 							className->LineNr(), className->ColNr(), className->Token() );
@@ -554,7 +562,7 @@ namespace Compiler
 				{
 					auto propName = nextExpression( irBuilder.m_Token.m_LBP );
 
-					if ( !propName->IsString() )
+					if ( !IsString( propName ) )
 					{
 						throw CompilerException( "ir_property_name", "Invalid property name: \"" + propName->Token() + "\"",
 							propName->LineNr(), propName->ColNr(), propName->Token() );
@@ -603,7 +611,7 @@ namespace Compiler
 							do {
 								auto argName = nextExpression( BP_VAR );
 
-								if ( !argName->IsString() )
+								if ( !IsString( argName ) )
 								{
 									throw CompilerException( "ir_variable_name", "Invalid variable name: \"" + argName->Token() + "\"",
 										argName->LineNr(), argName->ColNr(), argName->Token() );

@@ -70,6 +70,27 @@ namespace Compiler
 		CO_EXPRESSION			= ( 1 << 2 ),
 	};
 
+	enum CompileTypeInfo : uint32_t
+	{
+		// Primitives
+		TYPE_UNKNOWN			= ( 0 << 0 ),
+		TYPE_NULL				= ( 1 << 0 ),
+		TYPE_NUMBER				= ( 1 << 1 ),
+		TYPE_BOOL				= ( 1 << 2 ),
+
+		// Objects
+		TYPE_CLASS				= ( 1 << 3 ),
+		TYPE_CLOSURE			= ( 1 << 4 ),
+		TYPE_FUNCTION			= ( 1 << 5 ),
+		TYPE_INSTANCE			= ( 1 << 6 ),
+		TYPE_NATIVE				= ( 1 << 7 ),
+		TYPE_STRING				= ( 1 << 8 ),
+		TYPE_UPVALUE			= ( 1 << 9 ),
+
+		// No type (statements)
+		TYPE_NONE				= ( 1 << 10 ),
+	};
+
 	class BaseNode
 	{
 	public:
@@ -85,7 +106,7 @@ namespace Compiler
 		virtual void Release() {};
 		virtual void Compile( Assembler& assembler, uint32_t options = CO_NONE ) = 0;
 
-		virtual bool IsString() const { return false; }
+		virtual uint32_t ExprType( Assembler& assembler ) const { return Compiler::TYPE_NONE; }
 
 	protected:
 		NodeId				m_NodeId;
@@ -107,8 +128,7 @@ namespace Compiler
 	public:
 		ValueNode( int lineNr, int colNr, const std::string token, NodeId id, const QScript::Value& value );
 		void Compile( Assembler& assembler, uint32_t options = CO_NONE ) override;
-
-		bool IsString() const override;
+		uint32_t ExprType( Assembler& assembler ) const override;
 
 		QScript::Value& GetValue() { return m_Value; }
 	private:
@@ -122,6 +142,7 @@ namespace Compiler
 
 		void Release() override;
 		void Compile( Assembler& assembler, uint32_t options = CO_NONE ) override;
+		uint32_t ExprType( Assembler& assembler ) const override;
 
 		const BaseNode* GetLeft() const;
 		const BaseNode* GetRight() const;
@@ -138,6 +159,7 @@ namespace Compiler
 
 		void Release() override;
 		void Compile( Assembler& assembler, uint32_t options = CO_NONE ) override;
+		uint32_t ExprType( Assembler& assembler ) const override;
 
 		const BaseNode* GetNode() const;
 
@@ -152,6 +174,7 @@ namespace Compiler
 
 		void Release() override;
 		void Compile( Assembler& assembler, uint32_t options = CO_NONE ) override;
+		uint32_t ExprType( Assembler& assembler ) const override;
 		const std::vector< BaseNode* >& GetList() const;
 
 	private:

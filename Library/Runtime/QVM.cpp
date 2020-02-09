@@ -512,7 +512,33 @@ namespace QVM
 			INTERP_OPCODE( OP_LOAD_3 ): vm.Push( MAKE_NUMBER( 3 ) ); INTERP_DISPATCH;
 			INTERP_OPCODE( OP_LOAD_4 ): vm.Push( MAKE_NUMBER( 4 ) ); INTERP_DISPATCH;
 			INTERP_OPCODE( OP_LOAD_5 ): vm.Push( MAKE_NUMBER( 5 ) ); INTERP_DISPATCH;
-			INTERP_OPCODE( OP_ADD ):
+			INTERP_OPCODE( OP_IMPORT ):
+			{
+				READ_CONST_LONG( constant );
+
+				auto module = QScript::ResolveModule( AS_STRING( constant )->GetString() );
+
+				if ( !module )
+				{
+					QVM::RuntimeError( frame, "rt_unknown_module",
+						"Unknown module: \"" + AS_STRING( constant )->GetString() + "\"" );
+				}
+
+				module->Import( &vm );
+				INTERP_DISPATCH;
+			}
+			INTERP_OPCODE( OP_POW ) :
+			{
+				auto b = vm.Pop();
+				auto a = vm.Pop();
+
+				if ( !IS_NUMBER( a ) || !IS_NUMBER( b ) )
+					QVM::RuntimeError( frame, "rt_invalid_operand_type", std::string( "Both operands of \"**\" operation must be numbers" ) );
+
+				vm.Push( a.Pow( b ) );
+				INTERP_DISPATCH;
+			}
+			INTERP_OPCODE( OP_ADD ) :
 			{
 				auto b = vm.Pop();
 				auto a = vm.Pop();
@@ -533,32 +559,6 @@ namespace QVM
 					QVM::RuntimeError( frame, "rt_invalid_operand_type", "Operands of \"+\" operation must be numbers or strings" );
 				}
 
-				INTERP_DISPATCH;
-			}
-			INTERP_OPCODE( OP_POW ):
-			{
-				auto b = vm.Pop();
-				auto a = vm.Pop();
-
-				if ( !IS_NUMBER(a) || !IS_NUMBER(b) )
-					QVM::RuntimeError( frame, "rt_invalid_operand_type", std::string( "Both operands of \"**\" operation must be numbers" ) );
-
-				vm.Push( a.Pow( b ) );
-				INTERP_DISPATCH;
-			}
-			INTERP_OPCODE( OP_IMPORT ):
-			{
-				READ_CONST_LONG( constant );
-
-				auto module = QScript::ResolveModule( AS_STRING( constant )->GetString() );
-
-				if ( !module )
-				{
-					QVM::RuntimeError( frame, "rt_unknown_module",
-						"Unknown module: \"" + AS_STRING( constant )->GetString() + "\"" );
-				}
-
-				module->Import( &vm );
 				INTERP_DISPATCH;
 			}
 			INTERP_OPCODE( OP_NOP ): INTERP_DISPATCH;

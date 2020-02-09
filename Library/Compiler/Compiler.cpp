@@ -323,14 +323,14 @@ namespace Compiler
 
 	uint32_t Assembler::CreateLocal( const std::string& name )
 	{
-		return CreateLocal( name, false, QScript::VT_INVALID, QScript::OT_INVALID );
+		return CreateLocal( name, false, TYPE_UNKNOWN );
 	}
 
-	uint32_t Assembler::CreateLocal( const std::string& name, bool isConstant, QScript::ValueType type, QScript::ObjectType objType )
+	uint32_t Assembler::CreateLocal( const std::string& name, bool isConstant, uint32_t type )
 	{
 		auto stack = CurrentStack();
 
-		auto variable = Variable_t{ name, isConstant, type, objType };
+		auto variable = Variable_t{ name, isConstant, type };
 
 		stack->m_Locals.push_back( Assembler::Local_t{ variable, stack->m_CurrentDepth, false } );
 		return ( uint32_t ) stack->m_Locals.size() - 1;
@@ -399,15 +399,15 @@ namespace Compiler
 
 	bool Assembler::AddGlobal( const std::string& name )
 	{
-		return AddGlobal( name, false, QScript::VT_INVALID, QScript::OT_INVALID );
+		return AddGlobal( name, false, TYPE_UNKNOWN );
 	}
 
-	bool Assembler::AddGlobal( const std::string& name, bool isConstant, QScript::ValueType type, QScript::ObjectType objType )
+	bool Assembler::AddGlobal( const std::string& name, bool isConstant, uint32_t type )
 	{
 		if ( m_Globals.find( name ) != m_Globals.end() )
 			return false;
 
-		Variable_t global = Variable_t{ name, isConstant, type, objType };
+		Variable_t global = Variable_t{ name, isConstant, type };
 		m_Globals.insert( std::make_pair( name, global ) );
 		return true;
 	}

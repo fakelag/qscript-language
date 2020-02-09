@@ -43,8 +43,8 @@ namespace Compiler
 		{
 			std::string				m_Name;
 			bool					m_IsConst;
-			QScript::ValueType		m_Type;
-			QScript::ObjectType		m_ObjType;
+			uint32_t				m_Type;
+			uint32_t				m_ReturnType;
 		};
 
 		struct Local_t
@@ -81,11 +81,11 @@ namespace Compiler
 		Assembler( QScript::Chunk_t* chunk, const QScript::Config_t& config );
 
 		bool 										AddGlobal( const std::string& name );
-		bool 										AddGlobal( const std::string& name, bool isConstant, QScript::ValueType type, QScript::ObjectType objType );
+		bool 										AddGlobal( const std::string& name, bool isConstant, uint32_t type );
 		uint32_t 									AddUpvalue( FunctionContext_t* context, uint32_t index, bool isLocal );
 		const QScript::Config_t&					Config() const;
 		QScript::FunctionObject*					CreateFunction( const std::string& name, int arity, bool isAnonymous, QScript::Chunk_t* chunk );
-		uint32_t 									CreateLocal( const std::string& name, bool isConstant, QScript::ValueType type, QScript::ObjectType objType );
+		uint32_t 									CreateLocal( const std::string& name, bool isConstant, uint32_t type );
 		uint32_t									CreateLocal( const std::string& name );
 		QScript::Chunk_t*							CurrentChunk();
 		QScript::FunctionObject*					CurrentFunction();
