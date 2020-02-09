@@ -20,11 +20,15 @@
 
 namespace Compiler
 {
-	void AddDebugSymbol( QScript::Chunk_t* chunk, uint32_t start, int lineNr, int colNr, const std::string token )
+	void AddDebugSymbol( Compiler::Assembler& assembler, uint32_t start, int lineNr, int colNr, const std::string token )
 	{
+		if ( !assembler.Config().m_DebugSymbols )
+			return;
+
 		if ( lineNr == -1 )
 			return;
 
+		auto chunk = assembler.CurrentChunk();
 		uint32_t end = ( uint32_t ) chunk->m_Code.size();
 
 		if ( start == end )
@@ -245,7 +249,7 @@ namespace Compiler
 			throw CompilerException( "cp_invalid_term_node", "Unknown terminating node: " + std::to_string( m_NodeId ), m_LineNr, m_ColNr, m_Token );
 		}
 
-		AddDebugSymbol( chunk, start, m_LineNr, m_ColNr, m_Token );
+		AddDebugSymbol( assembler, start, m_LineNr, m_ColNr, m_Token );
 	}
 
 	ValueNode::ValueNode( int lineNr, int colNr, const std::string token, NodeId id, const QScript::Value& value )
@@ -389,7 +393,7 @@ namespace Compiler
 			throw CompilerException( "cp_invalid_value_node", "Unknown value node: " + std::to_string( m_NodeId ), m_LineNr, m_ColNr, m_Token );
 		}
 
-		AddDebugSymbol( chunk, start, m_LineNr, m_ColNr, m_Token );
+		AddDebugSymbol( assembler, start, m_LineNr, m_ColNr, m_Token );
 	}
 
 	bool ValueNode::IsString() const
@@ -644,7 +648,7 @@ namespace Compiler
 		if ( discardResult )
 			EmitByte( QScript::OpCode::OP_POP, chunk );
 
-		AddDebugSymbol( chunk, start, m_LineNr, m_ColNr, m_Token );
+		AddDebugSymbol( assembler, start, m_LineNr, m_ColNr, m_Token );
 	}
 
 	SimpleNode::SimpleNode( int lineNr, int colNr, const std::string token, NodeId id, BaseNode* node )
@@ -721,7 +725,7 @@ namespace Compiler
 			}
 		}
 
-		AddDebugSymbol( chunk, start, m_LineNr, m_ColNr, m_Token );
+		AddDebugSymbol( assembler, start, m_LineNr, m_ColNr, m_Token );
 	}
 
 	ListNode::ListNode( int lineNr, int colNr, const std::string token, NodeId id, const std::vector< BaseNode* >& nodeList )
@@ -1055,6 +1059,6 @@ namespace Compiler
 			throw CompilerException( "cp_invalid_list_node", "Unknown list node: " + std::to_string( m_NodeId ), m_LineNr, m_ColNr, m_Token );
 		}
 
-		AddDebugSymbol( chunk, start, m_LineNr, m_ColNr, m_Token );
+		AddDebugSymbol( assembler, start, m_LineNr, m_ColNr, m_Token );
 	}
 }

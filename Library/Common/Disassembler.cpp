@@ -115,9 +115,9 @@ uint32_t Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32
 	QScript::Chunk_t::Debug_t debug;
 	bool hasSymbols = FindDebugSymbol( chunk, offset, &debug );
 
-	std::string debugString = "[" + ( hasSymbols
-		? std::to_string( debug.m_Line ) + ", " + std::to_string( debug.m_Column ) + ", \"" + debug.m_Token + "\""
-		: "-,-,-" ) + "]";
+	std::string debugString = hasSymbols
+		? "[" + std::to_string( debug.m_Line ) + ", " + std::to_string( debug.m_Column ) + ", \"" + debug.m_Token + "\"]"
+		: "";
 
 	std::string instString;
 	uint32_t instOffset;

@@ -242,9 +242,8 @@ namespace Compiler
 	}
 
 	Assembler::Assembler( QScript::Chunk_t* chunk, const QScript::Config_t& config )
+		: m_Config( config )
 	{
-		m_OptimizationFlags = config.m_OptFlags;
-
 		for ( auto identifier : config.m_Globals )
 			AddGlobal( identifier );
 
@@ -467,8 +466,8 @@ namespace Compiler
 		--stack->m_CurrentDepth;
 	}
 
-	int Assembler::OptimizationFlags() const
+	const QScript::Config_t& Assembler::Config() const
 	{
-		return m_OptimizationFlags;
+		return m_Config;
 	}
 }

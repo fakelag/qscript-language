@@ -83,6 +83,7 @@ namespace Compiler
 		bool 										AddGlobal( const std::string& name );
 		bool 										AddGlobal( const std::string& name, bool isConstant, QScript::ValueType type, QScript::ObjectType objType );
 		uint32_t 									AddUpvalue( FunctionContext_t* context, uint32_t index, bool isLocal );
+		const QScript::Config_t&					Config() const;
 		QScript::FunctionObject*					CreateFunction( const std::string& name, int arity, bool isAnonymous, QScript::Chunk_t* chunk );
 		uint32_t 									CreateLocal( const std::string& name, bool isConstant, QScript::ValueType type, QScript::ObjectType objType );
 		uint32_t									CreateLocal( const std::string& name );
@@ -101,11 +102,10 @@ namespace Compiler
 		void										Release();
 		bool 										RequestUpvalue( const std::string name, uint32_t* out, Variable_t* varInfo );
 		int											StackDepth();
-		int											OptimizationFlags() const;
 
 	private:
 		std::vector< FunctionContext_t >				m_Functions;
-		int												m_OptimizationFlags;
+		QScript::Config_t								m_Config;
 
 		std::vector< QScript::FunctionObject* >			m_Compiled;
 		std::map< std::string, Variable_t >				m_Globals;

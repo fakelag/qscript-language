@@ -25,17 +25,26 @@ namespace QScript
 			OF_NONE = 0,
 		};
 
-		Config_t()
+		Config_t( bool debugSymbols )
 		{
-			m_OptFlags = OF_NONE;
+			m_CompilerFlags = OF_NONE;
+			m_DebugSymbols = debugSymbols;
 		}
 
-		uint8_t							m_OptFlags;
+		Config_t( const Config_t& other )
+		{
+			m_CompilerFlags = other.m_CompilerFlags;
+			m_Globals = other.m_Globals;
+			m_DebugSymbols = other.m_DebugSymbols;
+		}
+
+		uint8_t							m_CompilerFlags;
 		std::vector< std::string >		m_Globals;
+		bool							m_DebugSymbols;
 	};
 
 	Chunk_t* AllocChunk();
-	FunctionObject* Compile( const std::string& source, const Config_t& config = Config_t() );
+	FunctionObject* Compile( const std::string& source, const Config_t& config = Config_t( true ) );
 
 	void FreeChunk( Chunk_t* chunk );
 	void FreeFunction( FunctionObject* function );

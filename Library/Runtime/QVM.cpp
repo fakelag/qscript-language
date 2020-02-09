@@ -966,7 +966,7 @@ void QScript::Repl()
 
 		try
 		{
-			QScript::Config_t config;
+			QScript::Config_t config( true );
 
 			// Load globals (user defined + natives)
 			for ( auto global : vm.m_Globals )
