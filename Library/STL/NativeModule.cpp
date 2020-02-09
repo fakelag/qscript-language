@@ -5,11 +5,16 @@
 #include "System.h"
 #include "Time.h"
 
-std::vector< QScript::QNativeModule* > NativeModules;
+#define NATIVE_MODULE( moduleClass ) \
+static moduleClass __##moduleClass; \
+NativeModules.push_back( &__##moduleClass )
+
+
+std::vector< QScript::NativeModule* > NativeModules;
 
 namespace QScript
 {
-	const QNativeModule* ResolveModule( const std::string& name )
+	const NativeModule* ResolveModule( const std::string& name )
 	{
 		for ( auto module : NativeModules )
 		{
@@ -25,7 +30,7 @@ namespace QScript
 		if ( NativeModules.size() > 0 )
 			return;
 
-		NativeModules.push_back( new QSystem() );
-		NativeModules.push_back( new QTime() );
+		NATIVE_MODULE( SystemModule );
+		NATIVE_MODULE( TimeModule );
 	}
 }

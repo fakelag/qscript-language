@@ -154,9 +154,11 @@
     <ClCompile Include="Compiler\Compiler.cpp" />
     <ClCompile Include="Compiler\IRGenerator.cpp" />
     <ClCompile Include="Compiler\Lexer.cpp" />
-    <ClCompile Include="Runtime\Natives.cpp" />
     <ClCompile Include="Runtime\QVM.cpp" />
     <ClCompile Include="Common\Disassembler.cpp" />
+    <ClCompile Include="STL\NativeModule.cpp" />
+    <ClCompile Include="STL\System.cpp" />
+    <ClCompile Include="STL\Time.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Includes\Exception.h" />
@@ -170,8 +172,10 @@
     <ClInclude Include="Compiler\Compiler.h" />
     <ClInclude Include="Compiler\IR.h" />
     <ClInclude Include="Compiler\Tokens.h" />
-    <ClInclude Include="Runtime\Natives.h" />
     <ClInclude Include="Runtime\QVM.h" />
+    <ClInclude Include="STL\NativeModule.h" />
+    <ClInclude Include="STL\System.h" />
+    <ClInclude Include="STL\Time.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

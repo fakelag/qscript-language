@@ -168,8 +168,10 @@
     <ClCompile Include="..\Library\Compiler\Compiler.cpp" />
     <ClCompile Include="..\Library\Compiler\IRGenerator.cpp" />
     <ClCompile Include="..\Library\Compiler\Lexer.cpp" />
-    <ClCompile Include="..\Library\Runtime\Natives.cpp" />
     <ClCompile Include="..\Library\Runtime\QVM.cpp" />
+    <ClCompile Include="..\Library\STL\NativeModule.cpp" />
+    <ClCompile Include="..\Library\STL\System.cpp" />
+    <ClCompile Include="..\Library\STL\Time.cpp" />
     <ClCompile Include="TestCompiler.cpp" />
     <ClCompile Include="TestInterpreter.cpp" />
     <ClCompile Include="TestLexer.cpp" />

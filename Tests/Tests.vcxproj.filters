@@ -60,7 +60,13 @@
     <ClCompile Include="..\Library\Common\Value.cpp">
       <Filter>Code</Filter>
     </ClCompile>
-    <ClCompile Include="..\Library\Runtime\Natives.cpp">
+    <ClCompile Include="..\Library\STL\NativeModule.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Library\STL\System.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Library\STL\Time.cpp">
       <Filter>Code</Filter>
     </ClCompile>
   </ItemGroup>

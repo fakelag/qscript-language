@@ -1,10 +1,10 @@
 #pragma once
 #include "NativeModule.h"
 
-class QSystem : public QScript::QNativeModule
+class SystemModule : public QScript::NativeModule
 {
 public:
-	QSystem();
+	SystemModule();
 
 	const std::string& GetName() const { return m_Name; }
 

@@ -10,17 +10,17 @@
 
 QScript::Value Native_Clock( const QScript::Value* args, int numArgs );
 
-QTime::QTime()
+TimeModule::TimeModule()
 {
 	m_Name = "Time";
 }
 
-void QTime::Import( VM_t* vm ) const
+void TimeModule::Import( VM_t* vm ) const
 {
 	vm->CreateNative( "clock", &Native_Clock );
 }
 
-void QTime::Import( Compiler::Assembler* assembler ) const
+void TimeModule::Import( Compiler::Assembler* assembler ) const
 {
 	assembler->AddGlobal( "clock", true, QScript::VT_OBJECT, QScript::OT_NATIVE );
 }

@@ -11,18 +11,18 @@
 QScript::Value Native_Exit( const QScript::Value* args, int numArgs );
 QScript::Value Native_Print( const QScript::Value* args, int numArgs );
 
-QSystem::QSystem()
+SystemModule::SystemModule()
 {
 	m_Name = "System";
 }
 
-void QSystem::Import( VM_t* vm ) const
+void SystemModule::Import( VM_t* vm ) const
 {
 	vm->CreateNative( "exit", &Native_Exit );
 	vm->CreateNative( "print", &Native_Print );
 }
 
-void QSystem::Import( Compiler::Assembler* assembler ) const
+void SystemModule::Import( Compiler::Assembler* assembler ) const
 {
 	assembler->AddGlobal( "exit", true, QScript::VT_OBJECT, QScript::OT_NATIVE );
 	assembler->AddGlobal( "print", true, QScript::VT_OBJECT, QScript::OT_NATIVE );

@@ -13,6 +13,9 @@
     <Filter Include="Includes">
       <UniqueIdentifier>{01b8b401-94db-416d-ad9d-e475d8075670}</UniqueIdentifier>
     </Filter>
+    <Filter Include="STL">
+      <UniqueIdentifier>{ef0bbe23-d734-4ff2-8808-ad8db101e84c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\Disassembler.cpp">
@@ -42,8 +45,14 @@
     <ClCompile Include="Common\Value.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="Runtime\Natives.cpp">
-      <Filter>Runtime</Filter>
+    <ClCompile Include="STL\NativeModule.cpp">
+      <Filter>STL</Filter>
+    </ClCompile>
+    <ClCompile Include="STL\System.cpp">
+      <Filter>STL</Filter>
+    </ClCompile>
+    <ClCompile Include="STL\Time.cpp">
+      <Filter>STL</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -83,8 +92,14 @@
     <ClInclude Include="Common\Object.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="Runtime\Natives.h">
-      <Filter>Runtime</Filter>
+    <ClInclude Include="STL\NativeModule.h">
+      <Filter>STL</Filter>
+    </ClInclude>
+    <ClInclude Include="STL\System.h">
+      <Filter>STL</Filter>
+    </ClInclude>
+    <ClInclude Include="STL\Time.h">
+      <Filter>STL</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

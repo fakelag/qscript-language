@@ -9,10 +9,10 @@ namespace Compiler
 
 namespace QScript
 {
-	class QNativeModule
+	class NativeModule
 	{
 	public:
-		virtual ~QNativeModule() {};
+		virtual ~NativeModule() {};
 		virtual const std::string& GetName() const = 0;
 
 		virtual void Import( VM_t* vm ) const = 0;
@@ -22,6 +22,6 @@ namespace QScript
 		std::string m_Name;
 	};
 
-	const QNativeModule* ResolveModule( const std::string& name );
+	const NativeModule* ResolveModule( const std::string& name );
 	void InitModules();
 }
