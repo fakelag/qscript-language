@@ -111,7 +111,7 @@ bool Tests::TestCompiler()
 	UTEST_CASE( "Valid/Invalid assignment targets (--, ++, =, +=, -=, *=, /=, %=)" )
 	{
 		#define ASSIGN_VALID( pre, post, operand ) \
-			QScript::FreeFunction( QScript::Compile( "var x;" pre "x" post operand ";" ) );
+			QScript::FreeFunction( QScript::Compile( "var x = 0;" pre "x" post operand ";" ) );
 
 		#define ASSIGN_INVALID( pre, post, operand ) \
 			UTEST_THROW_EXCEPTION( QScript::Compile( pre "1" post operand ";" ), \
