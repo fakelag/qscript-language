@@ -15,6 +15,23 @@ namespace Compiler
 		return IS_STRING( static_cast< ValueNode* >( node )->GetValue() );
 	}
 
+	CompileTypeInfo ResolveTypeDef( ParserState& parserState )
+	{
+		std::map< Token, CompileTypeInfo > typeMap = {
+			{ TOK_STRING, TYPE_STRING },
+			{ TOK_NUMBER, TYPE_NUMBER },
+			{ TOK_VAR, TYPE_UNKNOWN },
+		};
+
+		for ( auto type : typeMap )
+		{
+			if ( parserState.MatchCurrent( type.first ) )
+				return type.second;
+		}
+
+		return TYPE_UNKNOWN;
+	}
+
 	bool IsFunctionDefinition( ParserState& parserState )
 	{
 		int offset = parserState.Offset();
@@ -269,11 +286,31 @@ namespace Compiler
 				};
 				break;
 			}
+			case TOK_STRING:
+			case TOK_NUMBER:
 			case TOK_CONST:
 			case TOK_VAR:
 			{
 				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder )
 				{
+					auto varType = TYPE_UNKNOWN;
+
+					switch ( irBuilder.m_Token.m_Id )
+					{
+					case TOK_STRING:
+						varType = TYPE_STRING;
+						break;
+					case TOK_NUMBER:
+						varType = TYPE_NUMBER;
+						break;
+					case TOK_CONST:
+						varType = ResolveTypeDef( parserState );
+						break;
+					case TOK_VAR:
+					default:
+						break;
+					}
+
 					auto varName = nextExpression( irBuilder.m_Token.m_LBP );
 
 					if ( !IsString( varName ) )
@@ -282,19 +319,23 @@ namespace Compiler
 							varName->LineNr(), varName->ColNr(), varName->Token() );
 					}
 
+					// Append type information as a value node
+					auto varTypeNode = parserState.AllocateNode< ValueNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+						irBuilder.m_Token.m_String, NODE_CONSTANT, MAKE_NUMBER( varType ) );
+
 					if ( parserState.CurrentBuilder()->m_Token.m_Id == TOK_EQUALS )
 					{
 						parserState.NextBuilder();
 
 						return parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
 							irBuilder.m_Token.m_String, irBuilder.m_Token.m_Id == TOK_CONST ? NODE_CONSTVAR : NODE_VAR,
-							std::vector< BaseNode* >{ varName, nextExpression( BP_ASSIGN ) } );
+							std::vector< BaseNode* >{ varName, nextExpression( BP_ASSIGN ), varTypeNode } );
 					}
 					else
 					{
 						return parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
 							irBuilder.m_Token.m_String,  irBuilder.m_Token.m_Id == TOK_CONST ? NODE_CONSTVAR : NODE_VAR,
-							std::vector< BaseNode* >{ varName, ( BaseNode* ) NULL } );
+							std::vector< BaseNode* >{ varName, ( BaseNode* ) NULL, varTypeNode } );
 					}
 				};
 				break;
