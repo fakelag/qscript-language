@@ -146,6 +146,50 @@ namespace Compiler
 		}
 	}
 
+	bool TypeCheck( uint32_t targetType, uint32_t exprType, bool strict = true )
+	{
+		if ( targetType == TYPE_UNKNOWN || exprType == TYPE_UNKNOWN )
+			return true;
+
+		if ( !strict && ( targetType & TYPE_NULL ) )
+			return true;
+
+		// Strict type checking
+		return targetType == exprType;
+	}
+
+	std::string TypeToString( uint32_t type )
+	{
+		if ( type == TYPE_UNKNOWN )
+			return "unknown";
+
+		std::string result = "";
+
+		std::map< CompileTypeInfo, std::string > typeStrings = {
+			{ TYPE_NULL, 			"null" },
+			{ TYPE_NUMBER, 			"number" },
+			{ TYPE_BOOL, 			"bool" },
+			{ TYPE_CLASS, 			"class" },
+			{ TYPE_FUNCTION, 		"function" },
+			{ TYPE_NATIVE, 			"native" },
+			{ TYPE_STRING, 			"string" },
+			{ TYPE_NONE, 			"none" },
+		};
+
+		for ( auto typeString : typeStrings )
+		{
+			if ( type & typeString.first )
+			{
+				if ( result.length() > 0 )
+					result += "| " + typeString.second;
+				else
+					result = typeString.second;
+			}
+		}
+
+		return result.length() > 0 ? result : "not_supported";
+	}
+
 	uint32_t ResolveReturnType( ListNode* funcNode, Assembler& assembler )
 	{
 		// Combine all return statement types
@@ -569,6 +613,15 @@ namespace Compiler
 				m_Right->Compile( assembler, COMPILE_EXPRESSION( options ) );
 				m_Left->Compile( assembler, COMPILE_REASSIGN_TARGET( options ) );
 			}
+
+			auto leftType = m_Left->ExprType( assembler );
+			auto rightType = m_Right->ExprType( assembler );
+			if ( !TypeCheck( leftType, rightType, false ) )
+			{
+				throw CompilerException( "cp_invalid_expression_type", "Can not assign expression of type " +
+					TypeToString( rightType ) + " to variable of type " + TypeToString( leftType ),
+					m_LineNr, m_ColNr, m_Token );
+			}
 			break;
 		}
 		case NODE_ASSIGNADD:
@@ -577,11 +630,70 @@ namespace Compiler
 		case NODE_ASSIGNMUL:
 		case NODE_ASSIGNSUB:
 		{
+			// TODO: Faster instruction selection based on number addition or string concatenation
+			bool isStringConcat = false;
+
 			RequireAssignability( m_Left );
 
 			// Load both values to the top of the stack
 			m_Left->Compile( assembler, COMPILE_EXPRESSION( options ) );
 			m_Right->Compile( assembler, COMPILE_EXPRESSION( options ) );
+
+			// Perform type checking
+			if ( m_NodeId == NODE_ASSIGNADD )
+			{
+				// Either add or concat (strings)
+				auto leftType = m_Left->ExprType( assembler );
+				auto rightType = m_Right->ExprType( assembler );
+
+				auto leftString = !!( leftType & TYPE_STRING );
+				auto rightString = !!( rightType & TYPE_STRING );
+
+				if ( !TypeCheck( leftType, TYPE_NUMBER ) && !leftString )
+				{
+					throw CompilerException( "cp_invalid_expression_type", "Expected variable of type " +
+						TypeToString( TYPE_NUMBER | TYPE_STRING ) + ", got: " + TypeToString( leftType ),
+						m_Left->LineNr(), m_Left->ColNr(), m_Left->Token() );
+				}
+
+				if ( !TypeCheck( rightType, TYPE_NUMBER ) && !rightString )
+				{
+					throw CompilerException( "cp_invalid_expression_type", "Expected expression of type " +
+						TypeToString( TYPE_NUMBER | TYPE_STRING ) + ", got: " + TypeToString( rightType ),
+						m_Right->LineNr(), m_Right->ColNr(), m_Right->Token() );
+				}
+
+				// If the variable is a num, but right hand operand is a string, this would
+				// lead to an unexpected type conversion on runtime.
+				if ( ( leftType & TYPE_NUMBER ) && rightString )
+				{
+					throw CompilerException( "cp_invalid_expression_type", "Expected variable of type " +
+						TypeToString( TYPE_STRING ) + ", got: " + TypeToString( leftType ),
+						m_Left->LineNr(), m_Left->ColNr(), m_Left->Token() );
+				}
+
+				isStringConcat = leftString;
+			}
+			else
+			{
+				// Both types must be numbers
+				auto leftType = m_Left->ExprType( assembler );
+				auto rightType = m_Right->ExprType( assembler );
+
+				if ( !TypeCheck( leftType, TYPE_NUMBER ) )
+				{
+					throw CompilerException( "cp_invalid_expression_type", "Can not assign expression of type " +
+						TypeToString( TYPE_NUMBER ) + " to variable of type " + TypeToString( leftType ),
+						m_Left->LineNr(), m_Left->ColNr(), m_Left->Token() );
+				}
+
+				if ( !TypeCheck( rightType, TYPE_NUMBER ) )
+				{
+					throw CompilerException( "cp_invalid_expression_type", "Expected expression of type " +
+						TypeToString( TYPE_NUMBER ) + ", got: " + TypeToString( rightType ),
+						m_Right->LineNr(), m_Right->ColNr(), m_Right->Token() );
+				}
+			}
 
 			// Add respective nullary operator
 			std::map< NodeId, QScript::OpCode > map = {
@@ -663,6 +775,15 @@ namespace Compiler
 
 			RequireAssignability( node );
 
+			// Perform type checking
+			auto targetType = node->ExprType( assembler );
+			if ( !TypeCheck( targetType, TYPE_NUMBER ) )
+			{
+				throw CompilerException( "cp_invalid_expression_type", "Can not assign expression of type " +
+					TypeToString( TYPE_NUMBER ) + " to variable of type " + TypeToString( targetType ),
+					m_LineNr, m_ColNr, m_Token );
+			}
+
 			// Place target variable's value on the stack
 			node->Compile( assembler, COMPILE_EXPRESSION( options ) );
 
@@ -731,7 +852,7 @@ namespace Compiler
 		{
 		case NODE_ACCESS_PROP:
 		{
-			// Compile-time classes
+			// TODO: Compile-time classes
 			return TYPE_UNKNOWN;
 		}
 		case NODE_ASSIGN: return m_Right->ExprType( assembler );
@@ -1088,14 +1209,32 @@ namespace Compiler
 		{
 			// m_NodeList[ 0 ] should be NODE_NAME and is validated during parsing
 			auto& varName = static_cast< ValueNode* >( m_NodeList[ 0 ] )->GetValue();
+			auto& varTypeValue = static_cast< ValueNode* >( m_NodeList[ 2 ] )->GetValue();
+
 			auto varString = AS_STRING( varName )->GetString();
+			uint32_t varType = ( uint32_t ) AS_NUMBER( varTypeValue );
 
 			bool isLocal = ( assembler.StackDepth() > 0 );
 			bool isConst = ( m_NodeId == NODE_CONSTVAR );
 
 			if ( m_NodeList[ 1 ] )
 			{
-				uint32_t valueType = m_NodeList[ 1 ]->ExprType( assembler );
+				uint32_t exprType = m_NodeList[ 1 ]->ExprType( assembler );
+
+				if ( varType != TYPE_UNKNOWN )
+				{
+					if ( !TypeCheck( varType, exprType ) )
+					{
+						throw CompilerException( "cp_invalid_expression_type", "Can not assign expression of type " +
+							TypeToString( exprType ) + " to variable of type " + TypeToString( varType ),
+							m_LineNr, m_ColNr, m_Token );
+					}
+				}
+				else if ( isConst )
+				{
+					// Only deduce var type for constants, otherwise it can be anything!
+					varType = exprType;
+				}
 
 				if ( m_NodeList[ 1 ]->Id() == NODE_FUNC )
 				{
@@ -1110,11 +1249,11 @@ namespace Compiler
 
 				if ( isLocal )
 				{
-					assembler.AddLocal( varString, isConst, valueType );
+					assembler.AddLocal( varString, isConst, varType );
 				}
 				else
 				{
-					if ( !assembler.AddGlobal( varString, isConst, valueType ) )
+					if ( !assembler.AddGlobal( varString, isConst, varType ) )
 					{
 						throw CompilerException( "cp_identifier_already_exists", "Identifier already exits: \"" + varString + "\"",
 							m_LineNr, m_ColNr, m_Token );
@@ -1204,12 +1343,7 @@ namespace Compiler
 		case NODE_WHILE: return TYPE_NONE;
 		case NODE_CONSTVAR:
 		case NODE_VAR:
-		{
-			if ( m_NodeList[ 1 ] )
-				return m_NodeList[ 1 ]->ExprType( assembler );
-
-			return TYPE_NULL;
-		}
+			return m_NodeList[ 2 ]->ExprType( assembler );
 		default:
 			throw CompilerException( "cp_invalid_list_node", "Unknown list node: " + std::to_string( m_NodeId ), m_LineNr, m_ColNr, m_Token );
 		}
