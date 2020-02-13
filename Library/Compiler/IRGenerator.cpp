@@ -61,8 +61,7 @@ namespace Compiler
 		if ( !arrowToken || arrowToken->m_Token.m_Id != Compiler::TOK_ARROW )
 			return false;
 
-		auto blockStart = parserState.Peek( ++offset );
-		return blockStart && blockStart->m_Token.m_Id == Compiler::TOK_BRACE_LEFT;
+		return true;
 	}
 
 	void EndStatement( const BaseNode* node, ParserState& parserState )
@@ -667,13 +666,20 @@ namespace Compiler
 						// Skip over arrow
 						parserState.Expect( TOK_ARROW, "Expected \"->\" after \"var <name> = (...)\", got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
 
+						// Check for explicit return type
+						uint32_t retnType = ResolveTypeDef( parserState );
+
+						// Append type information as a value node
+						auto retnTypeNode = parserState.AllocateNode< ValueNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+							irBuilder.m_Token.m_String, NODE_CONSTANT, MAKE_NUMBER( retnType ) );
+
 						auto body = parserState.ToScope( nextExpression( irBuilder.m_Token.m_LBP ) );
 
 						auto args = parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
 								irBuilder.m_Token.m_String, NODE_ARGUMENTS, argsList );
 
 						return parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-							irBuilder.m_Token.m_String, NODE_FUNC, std::vector< BaseNode* >{ args, body } );
+							irBuilder.m_Token.m_String, NODE_FUNC, std::vector< BaseNode* >{ args, body, retnTypeNode } );
 					}
 					else
 					{

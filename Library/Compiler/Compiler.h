@@ -75,6 +75,7 @@ namespace Compiler
 		{
 			QScript::FunctionObject*	m_Func;
 			Stack_t*					m_Stack;
+			uint32_t 					m_ReturnType;
 			std::vector< Upvalue_t >	m_Upvalues;
 		};
 
@@ -88,11 +89,13 @@ namespace Compiler
 		const QScript::Config_t&					Config() const;
 		QScript::FunctionObject*					CreateFunction( const std::string& name, bool isConst, uint32_t retType, int arity, bool isAnonymous, QScript::Chunk_t* chunk );
 		QScript::Chunk_t*							CurrentChunk();
+		const FunctionContext_t*					CurrentContext();
 		QScript::FunctionObject*					CurrentFunction();
 		Stack_t*									CurrentStack();
 		bool 										FindGlobal( const std::string& name, Variable_t* out );
 		bool										FindLocal( const std::string& name, uint32_t* out, Variable_t* varInfo );
 		bool 										FindLocalFromStack( Stack_t* stack, const std::string& name, uint32_t* out, Variable_t* varInfo );
+		bool 										FindUpvalue( const std::string name, uint32_t* out, Variable_t* varInfo );
 		void										FinishFunction( QScript::FunctionObject** func, std::vector< Upvalue_t >* upvalues );
 		std::vector< QScript::FunctionObject* >		Finish();
 		Local_t*									GetLocal( int local );

@@ -180,4 +180,6 @@ namespace Compiler
 	private:
 		std::vector< BaseNode* >		m_NodeList;
 	};
+
+	uint32_t ResolveReturnType( const ListNode* funcNode, Assembler& assembler );
 }
