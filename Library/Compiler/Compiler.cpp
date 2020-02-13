@@ -114,6 +114,162 @@ namespace QScript
 			throw;
 		}
 	}
+
+	std::vector< std::pair< uint32_t, uint32_t > > Typer( const std::string& source, const Config_t& config )
+	{
+		BEGIN_COMPILER;
+
+		// Make sure module system is initialized
+		QScript::InitModules();
+
+		Chunk_t* chunk = AllocChunk();
+		Compiler::Assembler assembler( chunk, config );
+
+		// Import main system module (functions like exit(), print(), etc)
+		auto systemModule = QScript::ResolveModule( "System" );
+		systemModule->Import( &assembler );
+
+		std::vector< Compiler::BaseNode* > astNodes;
+		std::vector< std::pair< uint32_t, uint32_t > > exprTypes;
+
+		try
+		{
+			// Lexical analysis (tokenization)
+			auto tokens = Compiler::Lexer( source );
+
+			// Generate IR
+			astNodes = Compiler::GenerateIR( tokens );
+
+			// Remove last return node
+			astNodes.erase( astNodes.end() - 1 );
+
+			// Compile bytecode
+			for ( auto node : astNodes )
+			{
+				node->Compile( assembler );
+
+				uint32_t exprType = node->ExprType( assembler );
+				uint32_t retnType = Compiler::TYPE_NONE;
+
+				// Attempt to resolve return type
+				if ( exprType == Compiler::TYPE_FUNCTION || exprType == Compiler::TYPE_NATIVE )
+				{
+					switch ( node->Id() )
+					{
+					case Compiler::NODE_NAME:
+					{
+						auto nameValue = static_cast< Compiler::ValueNode* >( node )->GetValue();
+						auto name = AS_STRING( nameValue )->GetString();
+
+						std::cout << "name: " << name << std::endl;
+
+						uint32_t nameIndex;
+						Compiler::Assembler::Variable_t varInfo;
+
+						if ( assembler.FindGlobal( name, &varInfo ) )
+							retnType = varInfo.m_ReturnType;
+
+						break;
+					}
+					case Compiler::NODE_FUNC:
+					{
+						auto funcNode = static_cast< Compiler::ListNode* >( node );
+						retnType = Compiler::ResolveReturnType( funcNode, assembler );
+						break;
+					}
+					case Compiler::NODE_CONSTVAR:
+					case Compiler::NODE_VAR:
+					{
+						auto varNode = static_cast< Compiler::ListNode* >( node );
+						auto valueNode = varNode->GetList()[ 1 ];
+
+						if ( valueNode && valueNode->Id() == Compiler::NODE_FUNC )
+						{
+							auto funcNode = static_cast< Compiler::ListNode* >( valueNode );
+							retnType = Compiler::ResolveReturnType( funcNode, assembler );
+						}
+						break;
+					}
+					case Compiler::NODE_ASSIGN:
+					{
+						auto assignNode = static_cast< Compiler::ComplexNode* >( node );
+						auto valueNode = assignNode->GetRight();
+
+						if ( valueNode && valueNode->Id() == Compiler::NODE_FUNC )
+						{
+							auto funcNode = static_cast< const Compiler::ListNode* >( valueNode );
+							retnType = Compiler::ResolveReturnType( funcNode, assembler );
+						}
+						break;
+					}
+					default:
+						break;
+					}
+				}
+
+				exprTypes.push_back( std::make_pair( exprType, retnType ) );
+			}
+
+			for ( auto node : astNodes )
+			{
+				node->Release();
+				delete node;
+			}
+
+			astNodes.clear();
+
+			auto functions = assembler.Finish();
+
+			// Clean up objects created in compilation process
+			Compiler::GarbageCollect( functions );
+
+			// Reset allocators
+			END_COMPILER;
+
+			// Free compiled function
+			FreeFunction( functions.back() );
+
+			return exprTypes;
+		}
+		catch ( const CompilerException& exception )
+		{
+			// Free created objects
+			Compiler::GarbageCollect( std::vector<QScript::FunctionObject*>{ } );
+
+			// Free compilation materials (also frees main chunk)
+			assembler.Release();
+
+			// Free AST
+			for ( auto node : astNodes )
+			{
+				node->Release();
+				delete node;
+			}
+			astNodes.clear();
+
+			// Rethrow
+			throw std::vector< CompilerException >{ exception };
+		}
+		catch ( ... )
+		{
+			// Free created objects
+			Compiler::GarbageCollect( std::vector<QScript::FunctionObject*>{ } );
+
+			// Free compilation materials (also frees main chunk)
+			assembler.Release();
+
+			// Free AST
+			for ( auto node : astNodes )
+			{
+				node->Release();
+				delete node;
+			}
+			astNodes.clear();
+
+			// Rethrow
+			throw;
+		}
+	}
 }
 
 namespace Compiler
@@ -247,8 +403,7 @@ namespace Compiler
 		for ( auto identifier : config.m_Globals )
 			AddGlobal( identifier );
 
-		// Main code
-		CreateFunction( "<main>", true, TYPE_NONE, 0, true, chunk );
+		CreateFunction( "<main>", true, Compiler::TYPE_UNKNOWN, 0, true, chunk );
 	}
 
 	void Assembler::Release()
@@ -281,6 +436,11 @@ namespace Compiler
 		return m_Functions.back().m_Func->GetChunk();
 	}
 
+	const Assembler::FunctionContext_t* Assembler::CurrentContext()
+	{
+		return &m_Functions.back();
+	}
+
 	QScript::FunctionObject* Assembler::CurrentFunction()
 	{
 		return m_Functions.back().m_Func;
@@ -294,7 +454,7 @@ namespace Compiler
 	QScript::FunctionObject* Assembler::CreateFunction( const std::string& name, bool isConst, uint32_t retType, int arity, bool isAnonymous, QScript::Chunk_t* chunk )
 	{
 		auto function = QS_NEW QScript::FunctionObject( name, arity, chunk );
-		auto context = FunctionContext_t{ function, QS_NEW Assembler::Stack_t() };
+		auto context = FunctionContext_t{ function, QS_NEW Assembler::Stack_t(), retType };
 
 		m_Functions.push_back( context );
 
@@ -377,6 +537,7 @@ namespace Compiler
 	bool Assembler::RequestUpvalue( const std::string name, uint32_t* out, Variable_t* varInfo )
 	{
 		int thisFunction = ( int ) m_Functions.size() - 1;
+
 		for ( int i = thisFunction; i > 0; --i )
 		{
 			uint32_t upValue = 0;
@@ -389,6 +550,22 @@ namespace Compiler
 			// Link upvalue through the closure chain
 			for ( int j = i; j <= thisFunction; ++j )
 				upValue = AddUpvalue( &m_Functions[ j ], upValue, j == i );
+
+			*out = upValue;
+			return true;
+		}
+
+		return false;
+	}
+
+	bool Assembler::FindUpvalue( const std::string name, uint32_t* out, Variable_t* varInfo )
+	{
+		int thisFunction = ( int ) m_Functions.size() - 1;
+		for ( int i = thisFunction; i > 0; --i )
+		{
+			uint32_t upValue = 0;
+			if ( !FindLocalFromStack( m_Functions[ i - 1 ].m_Stack, name, &upValue, varInfo ) )
+				continue;
 
 			*out = upValue;
 			return true;
