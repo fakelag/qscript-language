@@ -89,6 +89,9 @@ namespace Compiler
 
 		// No type (statements)
 		TYPE_NONE				= ( 1 << 10 ),
+
+		// Hint compiler to deduce type
+		TYPE_AUTO				= ( 1 << 11 ),
 	};
 
 	class BaseNode

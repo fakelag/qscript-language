@@ -18,7 +18,9 @@ namespace Compiler
 	CompileTypeInfo ResolveTypeDef( ParserState& parserState )
 	{
 		std::map< Token, CompileTypeInfo > typeMap = {
+			{ TOK_AUTO, TYPE_AUTO },
 			{ TOK_STRING, TYPE_STRING },
+			{ TOK_BOOL, TYPE_BOOL },
 			{ TOK_NUMBER, TYPE_NUMBER },
 			{ TOK_VAR, TYPE_UNKNOWN },
 		};
@@ -285,6 +287,8 @@ namespace Compiler
 				};
 				break;
 			}
+			case TOK_AUTO:
+			case TOK_BOOL:
 			case TOK_STRING:
 			case TOK_NUMBER:
 			case TOK_CONST:
@@ -296,6 +300,12 @@ namespace Compiler
 
 					switch ( irBuilder.m_Token.m_Id )
 					{
+					case TOK_AUTO:
+						varType = TYPE_AUTO;
+						break;
+					case TOK_BOOL:
+						varType = TYPE_BOOL;
+						break;
 					case TOK_STRING:
 						varType = TYPE_STRING;
 						break;

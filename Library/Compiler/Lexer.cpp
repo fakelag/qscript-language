@@ -52,6 +52,8 @@ namespace Compiler
 		{ TOK_2MINUS,		{ TOK_2MINUS, 		"--",		BP_INCDEC,					false } },
 		{ TOK_ARROW,		{ TOK_ARROW, 		"->", 		BP_NONE,					false } },
 
+		{ TOK_AUTO, 		{ TOK_AUTO, 		"auto", 	BP_VAR,						true } },
+		{ TOK_BOOL, 		{ TOK_BOOL, 		"bool", 	BP_VAR,						true } },
 		{ TOK_CLASS, 		{ TOK_CLASS, 		"class", 	BP_NONE,					true } },
 		{ TOK_DO,			{ TOK_DO,			"do",		BP_NONE,					true } },
 		{ TOK_ELSE,			{ TOK_ELSE,			"else",		BP_NONE,					true } },

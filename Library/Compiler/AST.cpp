@@ -196,7 +196,8 @@ namespace Compiler
 		auto retnTypeNode = static_cast< ValueNode* >( funcNode->GetList()[ 2 ] );
 		uint32_t retnType = ( uint32_t ) AS_NUMBER( retnTypeNode->GetValue() );
 
-		if ( retnType != TYPE_UNKNOWN )
+		// Type shouldn't be deduced by compiler ?
+		if ( !( retnType & TYPE_AUTO ) )
 			return retnType;
 
 		// Combine all return statement types
@@ -1337,7 +1338,7 @@ namespace Compiler
 			{
 				uint32_t exprType = m_NodeList[ 1 ]->ExprType( assembler );
 
-				if ( varType != TYPE_UNKNOWN )
+				if ( varType != TYPE_UNKNOWN && !( varType & TYPE_AUTO ) )
 				{
 					if ( !TypeCheck( varType, exprType ) )
 					{
@@ -1346,9 +1347,9 @@ namespace Compiler
 							m_LineNr, m_ColNr, m_Token );
 					}
 				}
-				else if ( isConst )
+				else if ( varType & TYPE_AUTO )
 				{
-					// Only deduce var type for constants, otherwise it can be anything!
+					// Deduce type from expression
 					varType = exprType;
 				}
 
@@ -1462,7 +1463,7 @@ namespace Compiler
 			auto& varTypeValue = static_cast< ValueNode* >( m_NodeList[ 2 ] )->GetValue();
 			auto assignedType = ( uint32_t ) AS_NUMBER( varTypeValue );
 
-			if ( assignedType != TYPE_UNKNOWN )
+			if ( assignedType != TYPE_UNKNOWN && !( assignedType & TYPE_AUTO ) )
 				return assignedType;
 
 			if ( !m_NodeList[ 1 ] )
@@ -1473,7 +1474,12 @@ namespace Compiler
 		case NODE_VAR:
 		{
 			auto& varTypeValue = static_cast< ValueNode* >( m_NodeList[ 2 ] )->GetValue();
-			return ( uint32_t ) AS_NUMBER( varTypeValue );
+			auto type = ( uint32_t ) AS_NUMBER( varTypeValue );
+
+			if ( ( type & TYPE_AUTO ) && m_NodeList[ 1 ] )
+				return m_NodeList[ 1 ]->ExprType( assembler );
+
+			return type;
 		}
 		default:
 			throw CompilerException( "cp_invalid_list_node", "Unknown list node: " + std::to_string( m_NodeId ), m_LineNr, m_ColNr, m_Token );
