@@ -18,6 +18,8 @@ Compiler 			cp_non_top_level_class				Classes must be declared at top-level only
 Compiler 			cp_non_top_level_import				Imports must be declared at top-level only
 Compiler 			cp_unknown_module					Unknown module: "%tokenString%"
 Compiler 			cp_invalid_expression_type			Can not assign expression of type %exprType% to variable of type %variableType% | Expected expression of type %expectedType% got: %exprType% | Expected variable of type %expectedType% got: %variableType%
+Compiler			cp_invalid_function_arg_type 		Invalid argument type: %varType%
+Compiler			cp_invalid_function_arg 			Unknown argument node: %nodeId%
 IRGenerator 		ir_expect_lvalue_or_statement		Expected a left-value or statement
 IRGenerator 		ir_expect_rvalue					Expected a right-value
 IRGenerator			ir_unknown_token					Unknown token id: %tokenId% "%tokenString%"

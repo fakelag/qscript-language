@@ -272,7 +272,49 @@ namespace Compiler
 
 		// Create args in scope
 		for ( auto arg : argNode->GetList() )
-			assembler.AddLocal( AS_STRING( static_cast< ValueNode* >( arg )->GetValue() )->GetString() );
+		{
+			switch ( arg->Id() )
+			{
+			case NODE_VAR:
+			{
+				auto listNode = static_cast< ListNode* >( arg );
+				auto varNameNode = listNode->GetList()[ 0 ];
+				auto varTypeNode = listNode->GetList()[ 2 ];
+
+				auto varName = static_cast< ValueNode* >( varNameNode )->GetValue();
+				uint32_t varType = AS_NUMBER( static_cast< ValueNode* >( varTypeNode )->GetValue() );
+
+				switch ( varType )
+				{
+				case TYPE_NUMBER:
+				case TYPE_STRING:
+				case TYPE_UNKNOWN:
+				case TYPE_BOOL:
+				{
+					assembler.AddLocal( AS_STRING( varName )->GetString(), true, varType, TYPE_UNKNOWN );
+					break;
+				}
+				default:
+				{
+					throw CompilerException( "cp_invalid_function_arg_type", "Invalid argument type: " + TypeToString( varType ),
+						arg->LineNr(), arg->ColNr(), arg->Token() );
+				}
+				}
+				break;
+			}
+			case NODE_NAME:
+			{
+				assembler.AddLocal( AS_STRING( static_cast< ValueNode* >( arg )->GetValue() )->GetString(),
+					true, TYPE_UNKNOWN, TYPE_UNKNOWN );
+				break;
+			}
+			default:
+			{
+				throw CompilerException( "cp_invalid_function_arg", "Unknown argument node: " + std::to_string( arg->Id() ),
+					arg->LineNr(), arg->ColNr(), arg->Token() );
+			}
+			}
+		}
 
 		// Compile function body
 		for ( auto node : static_cast< ListNode* >( nodeList[ 1 ] )->GetList() )

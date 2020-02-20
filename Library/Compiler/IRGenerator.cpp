@@ -45,6 +45,9 @@ namespace Compiler
 			{
 			case Compiler::TOK_COMMA:
 			case Compiler::TOK_NAME:
+			case Compiler::TOK_BOOL:
+			case Compiler::TOK_STRING:
+			case Compiler::TOK_NUMBER:
 				continue;
 			case Compiler::TOK_PAREN_RIGHT:
 				break;
@@ -343,7 +346,7 @@ namespace Compiler
 					else
 					{
 						return parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-							irBuilder.m_Token.m_String,  irBuilder.m_Token.m_Id == TOK_CONST ? NODE_CONSTVAR : NODE_VAR,
+							irBuilder.m_Token.m_String, irBuilder.m_Token.m_Id == TOK_CONST ? NODE_CONSTVAR : NODE_VAR,
 							std::vector< BaseNode* >{ varName, ( BaseNode* ) NULL, varTypeNode } );
 					}
 				};
@@ -659,6 +662,7 @@ namespace Compiler
 						if ( !parserState.MatchCurrent( TOK_PAREN_RIGHT ) )
 						{
 							do {
+								auto typeDef = ResolveTypeDef( parserState );
 								auto argName = nextExpression( BP_VAR );
 
 								if ( !IsString( argName ) )
@@ -667,7 +671,25 @@ namespace Compiler
 										argName->LineNr(), argName->ColNr(), argName->Token() );
 								}
 
-								argsList.push_back( argName );
+								std::vector< CompileTypeInfo > validTypes = {
+									TYPE_BOOL,
+									TYPE_STRING,
+									TYPE_NUMBER
+								};
+
+								if ( std::find( validTypes.begin(), validTypes.end(), typeDef ) != validTypes.end() )
+								{
+									auto varTypeNode = parserState.AllocateNode< ValueNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+										irBuilder.m_Token.m_String, NODE_CONSTANT, MAKE_NUMBER( typeDef ) );
+
+									argsList.push_back( parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr,
+										irBuilder.m_Token.m_ColNr, irBuilder.m_Token.m_String, NODE_VAR,
+										std::vector< BaseNode* >{ argName, NULL, varTypeNode } ) );
+								}
+								else
+								{
+									argsList.push_back( argName );
+								}
 							} while ( parserState.MatchCurrent( TOK_COMMA ) );
 
 							parserState.Expect( TOK_PAREN_RIGHT, "Expected \")\" after \"var <name> = (...\", got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
