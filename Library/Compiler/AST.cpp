@@ -20,6 +20,12 @@
 
 namespace Compiler
 {
+	struct Argument_t
+	{
+		std::string 	m_Name;
+		uint32_t		m_Type;
+	};
+
 	void AddDebugSymbol( Compiler::Assembler& assembler, uint32_t start, int lineNr, int colNr, const std::string token )
 	{
 		if ( !assembler.Config().m_DebugSymbols )
@@ -41,39 +47,6 @@ namespace Compiler
 			colNr,
 			token,
 		} );
-	}
-
-	bool ResolveExpressionType( BaseNode* node, QScript::ValueType* vtOut, QScript::ObjectType* otOut )
-	{
-		if ( node->Id() == NODE_FUNC )
-		{
-			*vtOut = QScript::VT_OBJECT;
-			*otOut = QScript::OT_FUNCTION;
-			return true;
-		}
-		else if ( node->Id() == NODE_CONSTANT )
-		{
-			auto value = static_cast< ValueNode* >( node )->GetValue();
-
-			auto valueType = QScript::VT_INVALID;
-			auto objectType = QScript::OT_INVALID;
-
-			if ( IS_NUMBER( value ) ) valueType = QScript::VT_NUMBER;
-			else if ( IS_NULL( value ) ) valueType = QScript::VT_NULL;
-			else if ( IS_BOOL( value ) ) valueType = QScript::VT_BOOL;
-			else if ( IS_OBJECT( value ) )
-			{
-				valueType = QScript::VT_OBJECT;
-				objectType = AS_OBJECT( value )->m_Type;
-			}
-
-			*vtOut = valueType;
-			*otOut = objectType;
-
-			return valueType != QScript::VT_INVALID;
-		}
-
-		return false;
 	}
 
 	uint32_t EmitConstant( QScript::Chunk_t* chunk, const QScript::Value& value, QScript::OpCode shortOpCode, QScript::OpCode longOpCode, Compiler::Assembler& assembler )
@@ -179,7 +152,178 @@ namespace Compiler
 		}
 	}
 
-	void CompileFunction( bool isAnonymous, const std::string& name, ListNode* funcNode, Assembler& assembler )
+	bool TypeCheck( uint32_t targetType, uint32_t exprType, bool strict )
+	{
+		if ( targetType == TYPE_UNKNOWN || exprType == TYPE_UNKNOWN )
+			return true;
+
+		if ( !strict && ( targetType & TYPE_NULL ) )
+			return true;
+
+		// Strict type checking
+		return targetType == exprType;
+	}
+
+	std::string TypeToString( uint32_t type )
+	{
+		if ( type == TYPE_UNKNOWN )
+			return "unknown";
+
+		std::string result = "";
+
+		std::map< CompileTypeInfo, std::string > typeStrings = {
+			{ TYPE_NULL, 			"null" },
+			{ TYPE_NUMBER, 			"number" },
+			{ TYPE_BOOL, 			"bool" },
+			{ TYPE_CLASS, 			"class" },
+			{ TYPE_FUNCTION, 		"function" },
+			{ TYPE_NATIVE, 			"native" },
+			{ TYPE_STRING, 			"string" },
+			{ TYPE_NONE, 			"none" },
+		};
+
+		for ( auto typeString : typeStrings )
+		{
+			if ( type & typeString.first )
+			{
+				if ( result.length() > 0 )
+					result += " | " + typeString.second;
+				else
+					result = typeString.second;
+			}
+		}
+
+		return result.length() > 0 ? result : "not_supported";
+	}
+
+	std::vector< Argument_t > ParseArgsList( ListNode* argNode )
+	{
+		std::vector< Argument_t > argsList;
+
+		for ( auto arg : argNode->GetList() )
+		{
+			switch ( arg->Id() )
+			{
+			case NODE_VAR:
+			{
+				auto listNode = static_cast< ListNode* >( arg );
+				auto varNameNode = listNode->GetList()[ 0 ];
+				auto varTypeNode = listNode->GetList()[ 2 ];
+
+				auto varName = static_cast< ValueNode* >( varNameNode )->GetValue();
+				uint32_t varType = ( uint32_t ) AS_NUMBER( static_cast< ValueNode* >( varTypeNode )->GetValue() );
+
+				switch ( varType )
+				{
+				case TYPE_NUMBER:
+				case TYPE_STRING:
+				case TYPE_UNKNOWN:
+				case TYPE_BOOL:
+				{
+					argsList.push_back( Argument_t{ AS_STRING( varName )->GetString(), varType } );
+					break;
+				}
+				default:
+				{
+					throw CompilerException( "cp_invalid_function_arg_type", "Invalid argument type: " + TypeToString( varType ),
+						arg->LineNr(), arg->ColNr(), arg->Token() );
+				}
+				}
+				break;
+			}
+			case NODE_NAME:
+			{
+				argsList.push_back( Argument_t{ AS_STRING( static_cast< ValueNode* >( arg )->GetValue() )->GetString(),
+					TYPE_UNKNOWN } );
+				break;
+			}
+			default:
+			{
+				throw CompilerException( "cp_invalid_function_arg", "Unknown argument node: " + std::to_string( arg->Id() ),
+					arg->LineNr(), arg->ColNr(), arg->Token() );
+			}
+			}
+		}
+
+		return argsList;
+	}
+
+	uint32_t ResolveReturnType( const ListNode* funcNode, Assembler& assembler )
+	{
+		// Is there an explicitly defined return type?
+		auto retnTypeNode = static_cast< ValueNode* >( funcNode->GetList()[ 2 ] );
+		uint32_t retnType = ( uint32_t ) AS_NUMBER( retnTypeNode->GetValue() );
+
+		// Type shouldn't be deduced by compiler ?
+		if ( !( retnType & TYPE_AUTO ) )
+			return retnType;
+
+		// Combine all return statement types
+		uint32_t returnTypes = TYPE_NULL;
+
+		auto argsList = ParseArgsList( static_cast< ListNode* >( funcNode->GetList()[ 0 ] ) );
+
+		for ( auto arg : argsList )
+			assembler.AddArgument( arg.m_Name, true, arg.m_Type, TYPE_UNKNOWN );
+
+		std::function< void( const BaseNode* ) > visitNode;
+		visitNode = [ &visitNode, &returnTypes, &assembler ]( const BaseNode* node ) -> void
+		{
+			if ( !node )
+				return;
+
+			switch ( node->Type() )
+			{
+			case NT_TERM:
+			{
+				if ( node->Id() == NODE_RETURN )
+					returnTypes |= TYPE_NULL;
+
+				break;
+			}
+			case NT_SIMPLE:
+			{
+				auto simple = static_cast< const SimpleNode* >( node );
+
+				if ( simple->Id() == NODE_RETURN )
+					returnTypes |= simple->GetNode()->ExprType( assembler );
+				else
+					visitNode( node );
+
+				break;
+			}
+			case NT_VALUE:
+				break;
+			case NT_COMPLEX:
+			{
+				auto complex = static_cast< const ComplexNode* >( node );
+
+				visitNode( complex->GetLeft() );
+				visitNode( complex->GetRight() );
+
+				break;
+			}
+			case NT_LIST:
+			{
+				auto list = static_cast< const ListNode* >( node );
+
+				for ( auto subNode : list->GetList() )
+					visitNode( subNode );
+
+				break;
+			}
+			default:
+				break;
+			}
+		};
+
+		visitNode( funcNode );
+
+		assembler.ClearArguments();
+		return returnTypes;
+	}
+
+	void CompileFunction( bool isAnonymous, bool isConst, const std::string& name, ListNode* funcNode, Assembler& assembler )
 	{
 		auto chunk = assembler.CurrentChunk();
 		auto& nodeList = funcNode->GetList();
@@ -188,12 +332,14 @@ namespace Compiler
 		auto functionArity = ( uint32_t ) argNode->GetList().size();
 
 		// Allocate chunk & create function
-		auto function = assembler.CreateFunction( name, functionArity, isAnonymous, QScript::AllocChunk() );
+		auto function = assembler.CreateFunction( name, isConst, ResolveReturnType( funcNode, assembler ), functionArity, isAnonymous, QScript::AllocChunk() );
 		assembler.PushScope();
 
 		// Create args in scope
-		for ( auto arg : argNode->GetList() )
-			assembler.CreateLocal( AS_STRING( static_cast< ValueNode* >( arg )->GetValue() )->GetString() );
+		auto argsList = ParseArgsList( argNode );
+		std::for_each( argsList.begin(), argsList.end(), [ &assembler ]( const Argument_t& item ) {
+			assembler.AddLocal( item.m_Name, true, item.m_Type, TYPE_UNKNOWN );
+		} );
 
 		// Compile function body
 		for ( auto node : static_cast< ListNode* >( nodeList[ 1 ] )->GetList() )
@@ -244,7 +390,22 @@ namespace Compiler
 
 		switch( m_NodeId )
 		{
-		case NODE_RETURN: EmitByte( QScript::OpCode::OP_RETURN, chunk ); break;
+		case NODE_RETURN:
+		{
+			// Check that the function can return null
+			uint32_t retnType = assembler.CurrentContext()->m_ReturnType;
+
+			if ( retnType != TYPE_UNKNOWN && !( retnType & TYPE_NULL ) )
+			{
+				throw CompilerException( "cp_invalid_expression_type", "Expected expression of type " +
+					TypeToString( retnType ) + ", got: " + TypeToString( TYPE_NULL ),
+					LineNr(), ColNr(), Token() );
+			}
+
+			EmitByte( QScript::OpCode::OP_LOAD_NULL, chunk );
+			EmitByte( QScript::OpCode::OP_RETURN, chunk );
+			break;
+		}
 		default:
 			throw CompilerException( "cp_invalid_term_node", "Unknown terminating node: " + std::to_string( m_NodeId ), m_LineNr, m_ColNr, m_Token );
 		}
@@ -396,9 +557,54 @@ namespace Compiler
 		AddDebugSymbol( assembler, start, m_LineNr, m_ColNr, m_Token );
 	}
 
-	bool ValueNode::IsString() const
+	uint32_t ValueNode::ExprType( Assembler& assembler ) const
 	{
-		return IS_STRING( m_Value );
+		switch ( m_NodeId )
+		{
+		case NODE_NAME:
+		{
+			uint32_t nameIndex;
+			auto name = AS_STRING( m_Value )->GetString();
+
+			Assembler::Variable_t varInfo;
+			if ( assembler.FindArgument( name, &varInfo ) )
+				return varInfo.m_Type;
+
+			if ( assembler.FindLocal( name, &nameIndex, &varInfo ) )
+				return varInfo.m_Type;
+
+			if ( assembler.FindUpvalue( name, &nameIndex, &varInfo ) )
+				return varInfo.m_Type;
+
+			if ( assembler.FindGlobal( name, &varInfo ) )
+				return varInfo.m_Type;
+
+			return TYPE_NONE;
+		}
+		case NODE_CONSTANT:
+		{
+			if ( IS_NUMBER( m_Value ) ) return TYPE_NUMBER;
+			else if ( IS_NULL( m_Value ) ) return TYPE_NULL;
+			else if ( IS_BOOL( m_Value ) ) return TYPE_BOOL;
+			else if ( IS_OBJECT( m_Value ) )
+			{
+				switch ( AS_OBJECT( m_Value )->m_Type )
+				{
+				case QScript::OT_CLASS: return TYPE_CLASS;
+				case QScript::OT_CLOSURE: return TYPE_CLOSURE;
+				case QScript::OT_FUNCTION: return TYPE_FUNCTION;
+				case QScript::OT_INSTANCE: return TYPE_INSTANCE;
+				case QScript::OT_NATIVE: return TYPE_NATIVE;
+				case QScript::OT_STRING: return TYPE_STRING;
+				case QScript::OT_UPVALUE: return TYPE_UPVALUE;
+				default: break;
+				}
+			}
+			return TYPE_UNKNOWN;
+		}
+		default:
+			throw CompilerException( "cp_invalid_value_node", "Unknown value node: " + std::to_string( m_NodeId ), m_LineNr, m_ColNr, m_Token );
+		}
 	}
 
 	ComplexNode::ComplexNode( int lineNr, int colNr, const std::string token, NodeId id, BaseNode* left, BaseNode* right )
@@ -478,12 +684,12 @@ namespace Compiler
 				{
 					// Compile a named function
 					auto& varName = static_cast< ValueNode* >( m_Left )->GetValue();
-					CompileFunction( false, AS_STRING( varName )->GetString(), static_cast< ListNode* >( m_Right ), assembler );
+					CompileFunction( false, false, AS_STRING( varName )->GetString(), static_cast< ListNode* >( m_Right ), assembler );
 				}
 				else
 				{
 					// Anonymous function
-					CompileFunction( true, "<anonymous>", static_cast< ListNode* >( m_Right ), assembler );
+					CompileFunction( true, false, "<anonymous>", static_cast< ListNode* >( m_Right ), assembler );
 				}
 
 				m_Left->Compile( assembler, COMPILE_REASSIGN_TARGET( options ) );
@@ -495,6 +701,15 @@ namespace Compiler
 				m_Right->Compile( assembler, COMPILE_EXPRESSION( options ) );
 				m_Left->Compile( assembler, COMPILE_REASSIGN_TARGET( options ) );
 			}
+
+			auto leftType = m_Left->ExprType( assembler );
+			auto rightType = m_Right->ExprType( assembler );
+			if ( !TypeCheck( leftType, rightType, false ) )
+			{
+				throw CompilerException( "cp_invalid_expression_type", "Can not assign expression of type " +
+					TypeToString( rightType ) + " to variable of type " + TypeToString( leftType ),
+					m_LineNr, m_ColNr, m_Token );
+			}
 			break;
 		}
 		case NODE_ASSIGNADD:
@@ -503,11 +718,70 @@ namespace Compiler
 		case NODE_ASSIGNMUL:
 		case NODE_ASSIGNSUB:
 		{
+			// TODO: Faster instruction selection based on number addition or string concatenation
+			bool isStringConcat = false;
+
 			RequireAssignability( m_Left );
 
 			// Load both values to the top of the stack
 			m_Left->Compile( assembler, COMPILE_EXPRESSION( options ) );
 			m_Right->Compile( assembler, COMPILE_EXPRESSION( options ) );
+
+			// Perform type checking
+			if ( m_NodeId == NODE_ASSIGNADD )
+			{
+				// Either add or concat (strings)
+				auto leftType = m_Left->ExprType( assembler );
+				auto rightType = m_Right->ExprType( assembler );
+
+				auto leftString = !!( leftType & TYPE_STRING );
+				auto rightString = !!( rightType & TYPE_STRING );
+
+				if ( !TypeCheck( leftType, TYPE_NUMBER ) && !leftString )
+				{
+					throw CompilerException( "cp_invalid_expression_type", "Expected variable of type " +
+						TypeToString( TYPE_NUMBER | TYPE_STRING ) + ", got: " + TypeToString( leftType ),
+						m_Left->LineNr(), m_Left->ColNr(), m_Left->Token() );
+				}
+
+				if ( !TypeCheck( rightType, TYPE_NUMBER ) && !rightString )
+				{
+					throw CompilerException( "cp_invalid_expression_type", "Expected expression of type " +
+						TypeToString( TYPE_NUMBER | TYPE_STRING ) + ", got: " + TypeToString( rightType ),
+						m_Right->LineNr(), m_Right->ColNr(), m_Right->Token() );
+				}
+
+				// If the variable is a num, but right hand operand is a string, this would
+				// lead to an unexpected type conversion on runtime.
+				if ( ( leftType & TYPE_NUMBER ) && rightString )
+				{
+					throw CompilerException( "cp_invalid_expression_type", "Expected variable of type " +
+						TypeToString( TYPE_STRING ) + ", got: " + TypeToString( leftType ),
+						m_Left->LineNr(), m_Left->ColNr(), m_Left->Token() );
+				}
+
+				isStringConcat = leftString;
+			}
+			else
+			{
+				// Both types must be numbers
+				auto leftType = m_Left->ExprType( assembler );
+				auto rightType = m_Right->ExprType( assembler );
+
+				if ( !TypeCheck( leftType, TYPE_NUMBER ) )
+				{
+					throw CompilerException( "cp_invalid_expression_type", "Can not assign expression of type " +
+						TypeToString( TYPE_NUMBER ) + " to variable of type " + TypeToString( leftType ),
+						m_Left->LineNr(), m_Left->ColNr(), m_Left->Token() );
+				}
+
+				if ( !TypeCheck( rightType, TYPE_NUMBER ) )
+				{
+					throw CompilerException( "cp_invalid_expression_type", "Expected expression of type " +
+						TypeToString( TYPE_NUMBER ) + ", got: " + TypeToString( rightType ),
+						m_Right->LineNr(), m_Right->ColNr(), m_Right->Token() );
+				}
+			}
 
 			// Add respective nullary operator
 			std::map< NodeId, QScript::OpCode > map = {
@@ -589,6 +863,15 @@ namespace Compiler
 
 			RequireAssignability( node );
 
+			// Perform type checking
+			auto targetType = node->ExprType( assembler );
+			if ( !TypeCheck( targetType, TYPE_NUMBER ) )
+			{
+				throw CompilerException( "cp_invalid_expression_type", "Can not assign expression of type " +
+					TypeToString( TYPE_NUMBER ) + " to variable of type " + TypeToString( targetType ),
+					m_LineNr, m_ColNr, m_Token );
+			}
+
 			// Place target variable's value on the stack
 			node->Compile( assembler, COMPILE_EXPRESSION( options ) );
 
@@ -620,26 +903,81 @@ namespace Compiler
 
 			// Note: All the opcodes listed here MUST use both left and right hand values
 			// and produce a new value on the stack (stack effect = -1)
-			std::map< NodeId, QScript::OpCode > singleByte ={
-				{ NODE_ADD, 			QScript::OpCode::OP_ADD },
+			std::map< NodeId, QScript::OpCode > numberOps = {
 				{ NODE_SUB, 			QScript::OpCode::OP_SUB },
 				{ NODE_MUL, 			QScript::OpCode::OP_MUL },
 				{ NODE_DIV, 			QScript::OpCode::OP_DIV },
 				{ NODE_MOD, 			QScript::OpCode::OP_MOD },
 				{ NODE_POW, 			QScript::OpCode::OP_POW },
-				{ NODE_EQUALS,			QScript::OpCode::OP_EQUALS },
-				{ NODE_NOTEQUALS,		QScript::OpCode::OP_NOT_EQUALS },
 				{ NODE_GREATERTHAN,		QScript::OpCode::OP_GREATERTHAN },
 				{ NODE_GREATEREQUAL,	QScript::OpCode::OP_GREATERTHAN_OR_EQUAL },
 				{ NODE_LESSTHAN,		QScript::OpCode::OP_LESSTHAN },
 				{ NODE_LESSEQUAL,		QScript::OpCode::OP_LESSTHAN_OR_EQUAL },
 			};
 
-			auto opCode = singleByte.find( m_NodeId );
-			if ( opCode != singleByte.end() )
+			std::map< NodeId, QScript::OpCode > otherOps ={
+				{ NODE_ADD, 			QScript::OpCode::OP_ADD },
+				{ NODE_EQUALS,			QScript::OpCode::OP_EQUALS },
+				{ NODE_NOTEQUALS,		QScript::OpCode::OP_NOT_EQUALS },
+			};
+
+			auto leftType = m_Left->ExprType( assembler );
+			auto rightType = m_Right->ExprType( assembler );
+
+			auto opCode = numberOps.find( m_NodeId );
+			if ( opCode != numberOps.end() )
+			{
+				// Type check: Number
+				if ( !TypeCheck( leftType, TYPE_NUMBER ) )
+				{
+					throw CompilerException( "cp_invalid_expression_type", "Expected expression of type " +
+						TypeToString( TYPE_NUMBER ) + ", got: " + TypeToString( leftType ),
+						m_Right->LineNr(), m_Right->ColNr(), m_Right->Token() );
+				}
+
+				if ( !TypeCheck( rightType, TYPE_NUMBER ) )
+				{
+					throw CompilerException( "cp_invalid_expression_type", "Expected expression of type " +
+						TypeToString( TYPE_NUMBER ) + ", got: " + TypeToString( rightType ),
+						m_Right->LineNr(), m_Right->ColNr(), m_Right->Token() );
+				}
+
 				EmitByte( opCode->second, chunk );
+			}
+			else if ( ( opCode = otherOps.find( m_NodeId ) ) != otherOps.end() )
+			{
+				// TODO: instruction selection
+				bool isStringConcat = false;
+
+				if ( m_NodeId == NODE_ADD )
+				{
+					// Type check: String or number
+					auto leftString = !!( leftType & TYPE_STRING );
+					auto rightString = !!( rightType & TYPE_STRING );
+					// left = NULL + number
+					if ( !TypeCheck( leftType, TYPE_NUMBER ) && !leftString )
+					{
+						throw CompilerException( "cp_invalid_expression_type", "Expected expression of type " +
+							TypeToString( TYPE_NUMBER | TYPE_STRING ) + ", got: " + TypeToString( leftType ),
+							m_Right->LineNr(), m_Right->ColNr(), m_Right->Token() );
+					}
+
+					if ( !TypeCheck( rightType, TYPE_NUMBER ) && !rightString )
+					{
+						throw CompilerException( "cp_invalid_expression_type", "Expected expression of type " +
+							TypeToString( TYPE_NUMBER | TYPE_STRING ) + ", got: " + TypeToString( rightType ),
+							m_Right->LineNr(), m_Right->ColNr(), m_Right->Token() );
+					}
+
+					isStringConcat = rightString || leftString;
+				}
+
+				EmitByte( opCode->second, chunk );
+			}
 			else
+			{
 				throw CompilerException( "cp_invalid_complex_node", "Unknown complex node: " + std::to_string( m_NodeId ), m_LineNr, m_ColNr, m_Token );
+			}
 
 			break;
 		}
@@ -649,6 +987,83 @@ namespace Compiler
 			EmitByte( QScript::OpCode::OP_POP, chunk );
 
 		AddDebugSymbol( assembler, start, m_LineNr, m_ColNr, m_Token );
+	}
+
+	uint32_t ComplexNode::ExprType( Assembler& assembler ) const
+	{
+		switch ( m_NodeId )
+		{
+		case NODE_ACCESS_PROP:
+		{
+			// TODO: Compile-time classes
+			return TYPE_UNKNOWN;
+		}
+		case NODE_ASSIGN: return m_Right->ExprType( assembler );
+		case NODE_ASSIGNADD: return m_Right->ExprType( assembler );
+		case NODE_ASSIGNDIV: return TYPE_NUMBER;
+		case NODE_ASSIGNMOD: return TYPE_NUMBER;
+		case NODE_ASSIGNMUL: return TYPE_NUMBER;
+		case NODE_ASSIGNSUB: return TYPE_NUMBER;
+		case NODE_CALL:
+		{
+			// Return type
+			switch ( m_Left->Id() )
+			{
+			case NODE_FUNC:
+				return ResolveReturnType( static_cast< ListNode* >( m_Left ), assembler );
+			case NODE_NAME:
+			{
+				auto nameValue = static_cast< ValueNode* >( m_Left )->GetValue();
+				auto name = AS_STRING( nameValue )->GetString();
+
+				uint32_t nameIndex;
+				Assembler::Variable_t varInfo;
+
+				if ( assembler.FindLocal( name, &nameIndex, &varInfo ) )
+					return varInfo.m_ReturnType;
+
+				if ( assembler.FindUpvalue( name, &nameIndex, &varInfo ) )
+					return varInfo.m_ReturnType;
+
+				if ( assembler.FindGlobal( name, &varInfo ) )
+					return varInfo.m_ReturnType;
+
+				break;
+			}
+			default:
+				break;
+			}
+
+			return TYPE_UNKNOWN;
+		}
+		case NODE_AND: return m_Left->ExprType( assembler ) | m_Right->ExprType( assembler );
+		case NODE_OR: return m_Left->ExprType( assembler ) | m_Right->ExprType( assembler );
+		case NODE_DEC: return TYPE_NUMBER;
+		case NODE_INC: return TYPE_NUMBER;
+		case NODE_ADD:
+		{
+			auto leftType = m_Left->ExprType( assembler );
+			auto rightType = m_Right->ExprType( assembler );
+
+			if ( ( leftType & TYPE_STRING ) || ( rightType & TYPE_STRING ) )
+				return TYPE_STRING;
+
+			return TYPE_NUMBER;
+		}
+		case NODE_SUB: return TYPE_NUMBER;
+		case NODE_MUL: return TYPE_NUMBER;
+		case NODE_DIV: return TYPE_NUMBER;
+		case NODE_MOD: return TYPE_NUMBER;
+		case NODE_POW: return TYPE_NUMBER;
+		case NODE_EQUALS: return TYPE_BOOL;
+		case NODE_NOTEQUALS: return TYPE_BOOL;
+		case NODE_GREATERTHAN: return TYPE_BOOL;
+		case NODE_GREATEREQUAL: return TYPE_BOOL;
+		case NODE_LESSTHAN: return TYPE_BOOL;
+		case NODE_LESSEQUAL: return TYPE_BOOL;
+		default:
+			throw CompilerException( "cp_invalid_complex_node", "Unknown complex node: " + std::to_string( m_NodeId ), m_LineNr, m_ColNr, m_Token );
+		}
 	}
 
 	SimpleNode::SimpleNode( int lineNr, int colNr, const std::string token, NodeId id, BaseNode* node )
@@ -713,6 +1128,23 @@ namespace Compiler
 				{ NODE_NEG, 			QScript::OpCode::OP_NEGATE },
 			};
 
+			if ( m_NodeId == NODE_RETURN )
+			{
+				// Check return type match
+				uint32_t retnType = assembler.CurrentContext()->m_ReturnType;
+				uint32_t exprType = m_Node->ExprType( assembler );
+
+				if ( retnType != TYPE_UNKNOWN && exprType != TYPE_UNKNOWN )
+				{
+					if ( !( retnType & exprType ) )
+					{
+						throw CompilerException( "cp_invalid_expression_type", "Expected expression of type " +
+							TypeToString( retnType ) + ", got: " + TypeToString( exprType ),
+							LineNr(), ColNr(), Token() );
+					}
+				}
+			}
+
 			auto opCode = singleByte.find( m_NodeId );
 			if ( opCode != singleByte.end() )
 			{
@@ -726,6 +1158,19 @@ namespace Compiler
 		}
 
 		AddDebugSymbol( assembler, start, m_LineNr, m_ColNr, m_Token );
+	}
+
+	uint32_t SimpleNode::ExprType( Assembler& assembler ) const
+	{
+		switch ( m_NodeId )
+		{
+		case NODE_IMPORT: return TYPE_NONE;
+		case NODE_RETURN: return m_Node->ExprType( assembler );
+		case NODE_NOT: return TYPE_BOOL;
+		case NODE_NEG: return TYPE_NUMBER;
+		default:
+			throw CompilerException( "cp_invalid_simple_node", "Unknown simple node: " + std::to_string( m_NodeId ), m_LineNr, m_ColNr, m_Token );
+		}
 	}
 
 	ListNode::ListNode( int lineNr, int colNr, const std::string token, NodeId id, const std::vector< BaseNode* >& nodeList )
@@ -779,7 +1224,7 @@ namespace Compiler
 			EmitByte( ENCODE_LONG( constIndex, 3 ), chunk );
 
 			// Let compiler know about the identifier
-			assembler.AddGlobal( AS_STRING( className )->GetString(), true, QScript::VT_OBJECT, QScript::OT_CLASS );
+			assembler.AddGlobal( AS_STRING( className )->GetString(), true, TYPE_CLASS );
 			break;
 		}
 		case NODE_DO:
@@ -891,7 +1336,7 @@ namespace Compiler
 			if ( IS_STATEMENT( options ) )
 				throw EXPECTED_STATEMENT;
 
-			CompileFunction( true, "<anonymous>", this, assembler );
+			CompileFunction( true, false, "<anonymous>", this, assembler );
 			break;
 		}
 		case NODE_IF:
@@ -951,27 +1396,37 @@ namespace Compiler
 		{
 			// m_NodeList[ 0 ] should be NODE_NAME and is validated during parsing
 			auto& varName = static_cast< ValueNode* >( m_NodeList[ 0 ] )->GetValue();
+			auto& varTypeValue = static_cast< ValueNode* >( m_NodeList[ 2 ] )->GetValue();
+
 			auto varString = AS_STRING( varName )->GetString();
+			uint32_t varType = ( uint32_t ) AS_NUMBER( varTypeValue );
 
 			bool isLocal = ( assembler.StackDepth() > 0 );
 			bool isConst = ( m_NodeId == NODE_CONSTVAR );
 
 			if ( m_NodeList[ 1 ] )
 			{
-				QScript::ValueType valueType;
-				QScript::ObjectType objectType;
+				uint32_t exprType = m_NodeList[ 1 ]->ExprType( assembler );
 
-				if ( !ResolveExpressionType( m_NodeList[ 1 ], &valueType, &objectType ) )
+				if ( varType != TYPE_UNKNOWN && !( varType & TYPE_AUTO ) )
 				{
-					// If the type can't be known by compiler. Default to INVALID
-					valueType = QScript::VT_INVALID;
-					objectType = QScript::OT_INVALID;
+					if ( !TypeCheck( varType, exprType ) )
+					{
+						throw CompilerException( "cp_invalid_expression_type", "Can not assign expression of type " +
+							TypeToString( exprType ) + " to variable of type " + TypeToString( varType ),
+							m_LineNr, m_ColNr, m_Token );
+					}
+				}
+				else if ( varType & TYPE_AUTO )
+				{
+					// Deduce type from expression
+					varType = exprType;
 				}
 
 				if ( m_NodeList[ 1 ]->Id() == NODE_FUNC )
 				{
 					// Compile a named function
-					CompileFunction( false, varString, static_cast< ListNode* >( m_NodeList[ 1 ] ), assembler );
+					CompileFunction( false, isConst, varString, static_cast< ListNode* >( m_NodeList[ 1 ] ), assembler );
 				}
 				else
 				{
@@ -981,11 +1436,11 @@ namespace Compiler
 
 				if ( isLocal )
 				{
-					assembler.CreateLocal( varString, isConst, valueType, objectType );
+					assembler.AddLocal( varString, isConst, varType );
 				}
 				else
 				{
-					if ( !assembler.AddGlobal( varString, isConst, valueType, objectType ) )
+					if ( !assembler.AddGlobal( varString, isConst, varType ) )
 					{
 						throw CompilerException( "cp_identifier_already_exists", "Identifier already exits: \"" + varString + "\"",
 							m_LineNr, m_ColNr, m_Token );
@@ -1008,7 +1463,7 @@ namespace Compiler
 				if ( !isLocal )
 				{
 					// Global variable
-					if ( !assembler.AddGlobal( varString, isConst, QScript::VT_NULL, QScript::OT_INVALID ) )
+					if ( !assembler.AddGlobal( varString, isConst, TYPE_UNKNOWN ) )
 					{
 						throw CompilerException( "cp_identifier_already_exists", "Identifier already exits: \"" + varString + "\"",
 							m_LineNr, m_ColNr, m_Token );
@@ -1020,7 +1475,7 @@ namespace Compiler
 				else
 				{
 					// Local variable
-					assembler.CreateLocal( varString, isConst, QScript::VT_NULL, QScript::OT_INVALID );
+					assembler.AddLocal( varString, isConst, TYPE_UNKNOWN );
 				}
 			}
 			break;
@@ -1060,5 +1515,44 @@ namespace Compiler
 		}
 
 		AddDebugSymbol( assembler, start, m_LineNr, m_ColNr, m_Token );
+	}
+
+	uint32_t ListNode::ExprType( Assembler& assembler ) const
+	{
+		switch ( m_NodeId )
+		{
+		case NODE_CLASS: return TYPE_NONE;
+		case NODE_DO: return TYPE_NONE;
+		case NODE_FOR: return TYPE_NONE;
+		case NODE_FUNC: return TYPE_FUNCTION;
+		case NODE_IF: return TYPE_NONE;
+		case NODE_SCOPE: return TYPE_NONE;
+		case NODE_WHILE: return TYPE_NONE;
+		case NODE_CONSTVAR:
+		{
+			auto& varTypeValue = static_cast< ValueNode* >( m_NodeList[ 2 ] )->GetValue();
+			auto assignedType = ( uint32_t ) AS_NUMBER( varTypeValue );
+
+			if ( assignedType != TYPE_UNKNOWN && !( assignedType & TYPE_AUTO ) )
+				return assignedType;
+
+			if ( !m_NodeList[ 1 ] )
+				return TYPE_UNKNOWN;
+
+			return m_NodeList[ 1 ]->ExprType( assembler );
+		}
+		case NODE_VAR:
+		{
+			auto& varTypeValue = static_cast< ValueNode* >( m_NodeList[ 2 ] )->GetValue();
+			auto type = ( uint32_t ) AS_NUMBER( varTypeValue );
+
+			if ( ( type & TYPE_AUTO ) && m_NodeList[ 1 ] )
+				return m_NodeList[ 1 ]->ExprType( assembler );
+
+			return type;
+		}
+		default:
+			throw CompilerException( "cp_invalid_list_node", "Unknown list node: " + std::to_string( m_NodeId ), m_LineNr, m_ColNr, m_Token );
+		}
 	}
 }

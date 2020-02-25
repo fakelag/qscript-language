@@ -10,7 +10,7 @@
 			"request": "launch",
 			"program": "${workspaceFolder}/OSX/Lib/CLI.o",
 			"internalConsoleOptions": "openOnSessionStart",
-			"args": [],
+			"args": ["--repl"],
 			"stopAtEntry": true,
 			"cwd": "${workspaceFolder}",
 			"environment": [],

@@ -43,8 +43,8 @@ namespace Compiler
 		{
 			std::string				m_Name;
 			bool					m_IsConst;
-			QScript::ValueType		m_Type;
-			QScript::ObjectType		m_ObjType;
+			uint32_t				m_Type;
+			uint32_t				m_ReturnType;
 		};
 
 		struct Local_t
@@ -75,24 +75,31 @@ namespace Compiler
 		{
 			QScript::FunctionObject*	m_Func;
 			Stack_t*					m_Stack;
+			uint32_t 					m_ReturnType;
 			std::vector< Upvalue_t >	m_Upvalues;
 		};
 
 		Assembler( QScript::Chunk_t* chunk, const QScript::Config_t& config );
 
+		void 										AddArgument( const std::string& name, bool isConstant, uint32_t type, uint32_t returnType = TYPE_UNKNOWN );
 		bool 										AddGlobal( const std::string& name );
-		bool 										AddGlobal( const std::string& name, bool isConstant, QScript::ValueType type, QScript::ObjectType objType );
+		bool 										AddGlobal( const std::string& name, bool isConstant, uint32_t type, uint32_t returnType = TYPE_UNKNOWN );
+		uint32_t 									AddLocal( const std::string& name, bool isConstant, uint32_t type, uint32_t returnType = TYPE_UNKNOWN );
+		uint32_t									AddLocal( const std::string& name );
 		uint32_t 									AddUpvalue( FunctionContext_t* context, uint32_t index, bool isLocal );
+		void 										ClearArguments();
 		const QScript::Config_t&					Config() const;
-		QScript::FunctionObject*					CreateFunction( const std::string& name, int arity, bool isAnonymous, QScript::Chunk_t* chunk );
-		uint32_t 									CreateLocal( const std::string& name, bool isConstant, QScript::ValueType type, QScript::ObjectType objType );
-		uint32_t									CreateLocal( const std::string& name );
+		QScript::FunctionObject*					CreateFunction( const std::string& name, bool isConst, uint32_t retnType, int arity, bool isAnonymous, QScript::Chunk_t* chunk );
+		const std::vector< Variable_t >& 			CurrentArguments();
 		QScript::Chunk_t*							CurrentChunk();
+		const FunctionContext_t*					CurrentContext();
 		QScript::FunctionObject*					CurrentFunction();
 		Stack_t*									CurrentStack();
+		bool 										FindArgument( const std::string& name, Variable_t* out );
 		bool 										FindGlobal( const std::string& name, Variable_t* out );
 		bool										FindLocal( const std::string& name, uint32_t* out, Variable_t* varInfo );
 		bool 										FindLocalFromStack( Stack_t* stack, const std::string& name, uint32_t* out, Variable_t* varInfo );
+		bool 										FindUpvalue( const std::string name, uint32_t* out, Variable_t* varInfo );
 		void										FinishFunction( QScript::FunctionObject** func, std::vector< Upvalue_t >* upvalues );
 		std::vector< QScript::FunctionObject* >		Finish();
 		Local_t*									GetLocal( int local );
@@ -104,6 +111,7 @@ namespace Compiler
 		int											StackDepth();
 
 	private:
+		std::vector< Variable_t >						m_FunctionArgs;
 		std::vector< FunctionContext_t >				m_Functions;
 		QScript::Config_t								m_Config;
 

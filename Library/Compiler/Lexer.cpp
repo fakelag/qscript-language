@@ -52,6 +52,8 @@ namespace Compiler
 		{ TOK_2MINUS,		{ TOK_2MINUS, 		"--",		BP_INCDEC,					false } },
 		{ TOK_ARROW,		{ TOK_ARROW, 		"->", 		BP_NONE,					false } },
 
+		{ TOK_AUTO, 		{ TOK_AUTO, 		"auto", 	BP_VAR,						true } },
+		{ TOK_BOOL, 		{ TOK_BOOL, 		"bool", 	BP_VAR,						true } },
 		{ TOK_CLASS, 		{ TOK_CLASS, 		"class", 	BP_NONE,					true } },
 		{ TOK_DO,			{ TOK_DO,			"do",		BP_NONE,					true } },
 		{ TOK_ELSE,			{ TOK_ELSE,			"else",		BP_NONE,					true } },
@@ -60,7 +62,9 @@ namespace Compiler
 		{ TOK_IF,			{ TOK_IF,			"if",		BP_NONE,					true } },
 		{ TOK_IMPORT,		{ TOK_IMPORT,		"import",	BP_NONE,					true } },
 		{ TOK_NULL,			{ TOK_NULL, 		"null", 	BP_NONE,					true } },
+		{ TOK_NUMBER,		{ TOK_NUMBER, 		"num", 		BP_VAR,						true } },
 		{ TOK_RETURN,		{ TOK_RETURN, 		"return", 	BP_NONE,					true } },
+		{ TOK_STRING,		{ TOK_STRING, 		"string", 	BP_VAR,						true } },
 		{ TOK_TRUE,			{ TOK_TRUE, 		"true", 	BP_NONE,					true } },
 		{ TOK_VAR, 			{ TOK_VAR, 			"var", 		BP_VAR,						true } },
 		{ TOK_CONST, 		{ TOK_CONST, 		"const", 	BP_VAR, 					true } },

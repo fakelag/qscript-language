@@ -7,6 +7,33 @@
 
 namespace Compiler
 {
+	bool IsString( BaseNode* node )
+	{
+		if ( node->Type() != NT_VALUE )
+			return false;
+
+		return IS_STRING( static_cast< ValueNode* >( node )->GetValue() );
+	}
+
+	CompileTypeInfo ResolveTypeDef( ParserState& parserState )
+	{
+		std::map< Token, CompileTypeInfo > typeMap = {
+			{ TOK_AUTO, TYPE_AUTO },
+			{ TOK_STRING, TYPE_STRING },
+			{ TOK_BOOL, TYPE_BOOL },
+			{ TOK_NUMBER, TYPE_NUMBER },
+			{ TOK_VAR, TYPE_UNKNOWN },
+		};
+
+		for ( auto type : typeMap )
+		{
+			if ( parserState.MatchCurrent( type.first ) )
+				return type.second;
+		}
+
+		return TYPE_UNKNOWN;
+	}
+
 	bool IsFunctionDefinition( ParserState& parserState )
 	{
 		int offset = parserState.Offset();
@@ -18,6 +45,9 @@ namespace Compiler
 			{
 			case Compiler::TOK_COMMA:
 			case Compiler::TOK_NAME:
+			case Compiler::TOK_BOOL:
+			case Compiler::TOK_STRING:
+			case Compiler::TOK_NUMBER:
 				continue;
 			case Compiler::TOK_PAREN_RIGHT:
 				break;
@@ -36,8 +66,7 @@ namespace Compiler
 		if ( !arrowToken || arrowToken->m_Token.m_Id != Compiler::TOK_ARROW )
 			return false;
 
-		auto blockStart = parserState.Peek( ++offset );
-		return blockStart && blockStart->m_Token.m_Id == Compiler::TOK_BRACE_LEFT;
+		return true;
 	}
 
 	void EndStatement( const BaseNode* node, ParserState& parserState )
@@ -261,18 +290,50 @@ namespace Compiler
 				};
 				break;
 			}
+			case TOK_AUTO:
+			case TOK_BOOL:
+			case TOK_STRING:
+			case TOK_NUMBER:
 			case TOK_CONST:
 			case TOK_VAR:
 			{
 				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder )
 				{
+					auto varType = TYPE_UNKNOWN;
+
+					switch ( irBuilder.m_Token.m_Id )
+					{
+					case TOK_AUTO:
+						varType = TYPE_AUTO;
+						break;
+					case TOK_BOOL:
+						varType = TYPE_BOOL;
+						break;
+					case TOK_STRING:
+						varType = TYPE_STRING;
+						break;
+					case TOK_NUMBER:
+						varType = TYPE_NUMBER;
+						break;
+					case TOK_CONST:
+						varType = ResolveTypeDef( parserState );
+						break;
+					case TOK_VAR:
+					default:
+						break;
+					}
+
 					auto varName = nextExpression( irBuilder.m_Token.m_LBP );
 
-					if ( !varName->IsString() )
+					if ( !IsString( varName ) )
 					{
 						throw CompilerException( "ir_variable_name", "Invalid variable name: \"" + varName->Token() + "\"",
 							varName->LineNr(), varName->ColNr(), varName->Token() );
 					}
+
+					// Append type information as a value node
+					auto varTypeNode = parserState.AllocateNode< ValueNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+						irBuilder.m_Token.m_String, NODE_CONSTANT, MAKE_NUMBER( varType ) );
 
 					if ( parserState.CurrentBuilder()->m_Token.m_Id == TOK_EQUALS )
 					{
@@ -280,13 +341,13 @@ namespace Compiler
 
 						return parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
 							irBuilder.m_Token.m_String, irBuilder.m_Token.m_Id == TOK_CONST ? NODE_CONSTVAR : NODE_VAR,
-							std::vector< BaseNode* >{ varName, nextExpression( BP_ASSIGN ) } );
+							std::vector< BaseNode* >{ varName, nextExpression( BP_ASSIGN ), varTypeNode } );
 					}
 					else
 					{
 						return parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-							irBuilder.m_Token.m_String,  irBuilder.m_Token.m_Id == TOK_CONST ? NODE_CONSTVAR : NODE_VAR,
-							std::vector< BaseNode* >{ varName, ( BaseNode* ) NULL } );
+							irBuilder.m_Token.m_String, irBuilder.m_Token.m_Id == TOK_CONST ? NODE_CONSTVAR : NODE_VAR,
+							std::vector< BaseNode* >{ varName, ( BaseNode* ) NULL, varTypeNode } );
 					}
 				};
 				break;
@@ -405,7 +466,7 @@ namespace Compiler
 				{
 					auto moduleName = nextExpression( BP_VAR );
 
-					if ( !moduleName->IsString() )
+					if ( !IsString( moduleName ) )
 					{
 						throw CompilerException( "ir_invalid_import",
 							"Invalid import target \"" + moduleName->Token() + "\"",
@@ -535,7 +596,7 @@ namespace Compiler
 				{
 					auto className = nextExpression( BP_VAR );
 
-					if ( !className->IsString() )
+					if ( !IsString( className ) )
 					{
 						throw CompilerException( "ir_class_name", "Invalid class name: \"" + className->Token() + "\"",
 							className->LineNr(), className->ColNr(), className->Token() );
@@ -554,7 +615,7 @@ namespace Compiler
 				{
 					auto propName = nextExpression( irBuilder.m_Token.m_LBP );
 
-					if ( !propName->IsString() )
+					if ( !IsString( propName ) )
 					{
 						throw CompilerException( "ir_property_name", "Invalid property name: \"" + propName->Token() + "\"",
 							propName->LineNr(), propName->ColNr(), propName->Token() );
@@ -601,15 +662,34 @@ namespace Compiler
 						if ( !parserState.MatchCurrent( TOK_PAREN_RIGHT ) )
 						{
 							do {
+								auto typeDef = ResolveTypeDef( parserState );
 								auto argName = nextExpression( BP_VAR );
 
-								if ( !argName->IsString() )
+								if ( !IsString( argName ) )
 								{
 									throw CompilerException( "ir_variable_name", "Invalid variable name: \"" + argName->Token() + "\"",
 										argName->LineNr(), argName->ColNr(), argName->Token() );
 								}
 
-								argsList.push_back( argName );
+								std::vector< CompileTypeInfo > validTypes = {
+									TYPE_BOOL,
+									TYPE_STRING,
+									TYPE_NUMBER
+								};
+
+								if ( std::find( validTypes.begin(), validTypes.end(), typeDef ) != validTypes.end() )
+								{
+									auto varTypeNode = parserState.AllocateNode< ValueNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+										irBuilder.m_Token.m_String, NODE_CONSTANT, MAKE_NUMBER( typeDef ) );
+
+									argsList.push_back( parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr,
+										irBuilder.m_Token.m_ColNr, irBuilder.m_Token.m_String, NODE_VAR,
+										std::vector< BaseNode* >{ argName, NULL, varTypeNode } ) );
+								}
+								else
+								{
+									argsList.push_back( argName );
+								}
 							} while ( parserState.MatchCurrent( TOK_COMMA ) );
 
 							parserState.Expect( TOK_PAREN_RIGHT, "Expected \")\" after \"var <name> = (...\", got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
@@ -618,13 +698,20 @@ namespace Compiler
 						// Skip over arrow
 						parserState.Expect( TOK_ARROW, "Expected \"->\" after \"var <name> = (...)\", got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
 
+						// Check for explicit return type
+						uint32_t retnType = ResolveTypeDef( parserState );
+
+						// Append type information as a value node
+						auto retnTypeNode = parserState.AllocateNode< ValueNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+							irBuilder.m_Token.m_String, NODE_CONSTANT, MAKE_NUMBER( retnType ) );
+
 						auto body = parserState.ToScope( nextExpression( irBuilder.m_Token.m_LBP ) );
 
 						auto args = parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
 								irBuilder.m_Token.m_String, NODE_ARGUMENTS, argsList );
 
 						return parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-							irBuilder.m_Token.m_String, NODE_FUNC, std::vector< BaseNode* >{ args, body } );
+							irBuilder.m_Token.m_String, NODE_FUNC, std::vector< BaseNode* >{ args, body, retnTypeNode } );
 					}
 					else
 					{

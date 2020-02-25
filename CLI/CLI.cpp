@@ -86,6 +86,50 @@ int main( int argc, char* argv[] )
 
 		QScript::FreeFunction( function );
 	}
+	else if ( GetArg( "--typer", argc, argv, &next ) )
+	{
+		for (;;)
+		{
+			try
+			{
+				std::string source;
+				std::cout << "Typer >";
+				std::getline( std::cin, source );
+
+				auto exprTypes = QScript::Typer( source );
+
+				for ( auto type : exprTypes )
+				{
+					if ( type.second != 1024 /* TYPE_NONE */ )
+					{
+						std::cout << Compiler::TypeToString( type.first )
+							<< " -> " << Compiler::TypeToString( type.second ) << std::endl;
+					}
+					else
+					{
+						std::cout << Compiler::TypeToString( type.first ) << std::endl;
+					}
+				}
+			}
+			catch ( std::vector< CompilerException >& exceptions )
+			{
+				for ( auto ex : exceptions )
+					std::cout << ex.describe() << std::endl;
+			}
+			catch ( const Exception& exception )
+			{
+				std::cout << "Exception (" << exception.id() << "): " << exception.describe() << std::endl;
+			}
+			catch ( const std::exception& exception )
+			{
+				std::cout << "Exception: " << exception.what() << std::endl;
+			}
+			catch ( ... )
+			{
+				std::cout << "Unknown exception occurred." << std::endl;
+			}
+		}
+	}
 
 	return 0;
 }

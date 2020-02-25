@@ -444,9 +444,9 @@ bool Tests::TestInterpreter()
 
 		TestUtils::FreeExitCode( exitCode );
 		UTEST_ASSERT( TestUtils::RunVM( "						\
-			var fibonacci = (num) -> {							\
-				if (num <= 1) return 1;							\
-				return fibonacci(num - 1) + fibonacci(num - 2);	\
+			var fibonacci = (n) -> {							\
+				if (n <= 1) return 1;							\
+				return fibonacci(n - 1) + fibonacci(n - 2);		\
 			}													\
 			return fibonacci(10);", &exitCode ) );
 
