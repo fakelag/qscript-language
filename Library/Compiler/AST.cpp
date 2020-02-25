@@ -20,6 +20,12 @@
 
 namespace Compiler
 {
+	struct Argument_t
+	{
+		std::string 	m_Name;
+		uint32_t		m_Type;
+	};
+
 	void AddDebugSymbol( Compiler::Assembler& assembler, uint32_t start, int lineNr, int colNr, const std::string token )
 	{
 		if ( !assembler.Config().m_DebugSymbols )
@@ -190,6 +196,58 @@ namespace Compiler
 		return result.length() > 0 ? result : "not_supported";
 	}
 
+	std::vector< Argument_t > ParseArgsList( ListNode* argNode )
+	{
+		std::vector< Argument_t > argsList;
+
+		for ( auto arg : argNode->GetList() )
+		{
+			switch ( arg->Id() )
+			{
+			case NODE_VAR:
+			{
+				auto listNode = static_cast< ListNode* >( arg );
+				auto varNameNode = listNode->GetList()[ 0 ];
+				auto varTypeNode = listNode->GetList()[ 2 ];
+
+				auto varName = static_cast< ValueNode* >( varNameNode )->GetValue();
+				uint32_t varType = ( uint32_t ) AS_NUMBER( static_cast< ValueNode* >( varTypeNode )->GetValue() );
+
+				switch ( varType )
+				{
+				case TYPE_NUMBER:
+				case TYPE_STRING:
+				case TYPE_UNKNOWN:
+				case TYPE_BOOL:
+				{
+					argsList.push_back( Argument_t{ AS_STRING( varName )->GetString(), varType } );
+					break;
+				}
+				default:
+				{
+					throw CompilerException( "cp_invalid_function_arg_type", "Invalid argument type: " + TypeToString( varType ),
+						arg->LineNr(), arg->ColNr(), arg->Token() );
+				}
+				}
+				break;
+			}
+			case NODE_NAME:
+			{
+				argsList.push_back( Argument_t{ AS_STRING( static_cast< ValueNode* >( arg )->GetValue() )->GetString(),
+					TYPE_UNKNOWN } );
+				break;
+			}
+			default:
+			{
+				throw CompilerException( "cp_invalid_function_arg", "Unknown argument node: " + std::to_string( arg->Id() ),
+					arg->LineNr(), arg->ColNr(), arg->Token() );
+			}
+			}
+		}
+
+		return argsList;
+	}
+
 	uint32_t ResolveReturnType( const ListNode* funcNode, Assembler& assembler )
 	{
 		// Is there an explicitly defined return type?
@@ -202,6 +260,11 @@ namespace Compiler
 
 		// Combine all return statement types
 		uint32_t returnTypes = TYPE_NULL;
+
+		auto argsList = ParseArgsList( static_cast< ListNode* >( funcNode->GetList()[ 0 ] ) );
+
+		for ( auto arg : argsList )
+			assembler.AddArgument( arg.m_Name, true, arg.m_Type, TYPE_UNKNOWN );
 
 		std::function< void( const BaseNode* ) > visitNode;
 		visitNode = [ &visitNode, &returnTypes, &assembler ]( const BaseNode* node ) -> void
@@ -255,6 +318,8 @@ namespace Compiler
 		};
 
 		visitNode( funcNode );
+
+		assembler.ClearArguments();
 		return returnTypes;
 	}
 
@@ -271,50 +336,10 @@ namespace Compiler
 		assembler.PushScope();
 
 		// Create args in scope
-		for ( auto arg : argNode->GetList() )
-		{
-			switch ( arg->Id() )
-			{
-			case NODE_VAR:
-			{
-				auto listNode = static_cast< ListNode* >( arg );
-				auto varNameNode = listNode->GetList()[ 0 ];
-				auto varTypeNode = listNode->GetList()[ 2 ];
-
-				auto varName = static_cast< ValueNode* >( varNameNode )->GetValue();
-				uint32_t varType = AS_NUMBER( static_cast< ValueNode* >( varTypeNode )->GetValue() );
-
-				switch ( varType )
-				{
-				case TYPE_NUMBER:
-				case TYPE_STRING:
-				case TYPE_UNKNOWN:
-				case TYPE_BOOL:
-				{
-					assembler.AddLocal( AS_STRING( varName )->GetString(), true, varType, TYPE_UNKNOWN );
-					break;
-				}
-				default:
-				{
-					throw CompilerException( "cp_invalid_function_arg_type", "Invalid argument type: " + TypeToString( varType ),
-						arg->LineNr(), arg->ColNr(), arg->Token() );
-				}
-				}
-				break;
-			}
-			case NODE_NAME:
-			{
-				assembler.AddLocal( AS_STRING( static_cast< ValueNode* >( arg )->GetValue() )->GetString(),
-					true, TYPE_UNKNOWN, TYPE_UNKNOWN );
-				break;
-			}
-			default:
-			{
-				throw CompilerException( "cp_invalid_function_arg", "Unknown argument node: " + std::to_string( arg->Id() ),
-					arg->LineNr(), arg->ColNr(), arg->Token() );
-			}
-			}
-		}
+		auto argsList = ParseArgsList( argNode );
+		std::for_each( argsList.begin(), argsList.end(), [ &assembler ]( const Argument_t& item ) {
+			assembler.AddLocal( item.m_Name, true, item.m_Type, TYPE_UNKNOWN );
+		} );
 
 		// Compile function body
 		for ( auto node : static_cast< ListNode* >( nodeList[ 1 ] )->GetList() )
@@ -542,6 +567,9 @@ namespace Compiler
 			auto name = AS_STRING( m_Value )->GetString();
 
 			Assembler::Variable_t varInfo;
+			if ( assembler.FindArgument( name, &varInfo ) )
+				return varInfo.m_Type;
+
 			if ( assembler.FindLocal( name, &nameIndex, &varInfo ) )
 				return varInfo.m_Type;
 

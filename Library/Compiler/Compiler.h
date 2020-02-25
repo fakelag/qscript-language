@@ -81,17 +81,21 @@ namespace Compiler
 
 		Assembler( QScript::Chunk_t* chunk, const QScript::Config_t& config );
 
+		void 										AddArgument( const std::string& name, bool isConstant, uint32_t type, uint32_t returnType = TYPE_UNKNOWN );
 		bool 										AddGlobal( const std::string& name );
 		bool 										AddGlobal( const std::string& name, bool isConstant, uint32_t type, uint32_t returnType = TYPE_UNKNOWN );
 		uint32_t 									AddLocal( const std::string& name, bool isConstant, uint32_t type, uint32_t returnType = TYPE_UNKNOWN );
 		uint32_t									AddLocal( const std::string& name );
 		uint32_t 									AddUpvalue( FunctionContext_t* context, uint32_t index, bool isLocal );
+		void 										ClearArguments();
 		const QScript::Config_t&					Config() const;
-		QScript::FunctionObject*					CreateFunction( const std::string& name, bool isConst, uint32_t retType, int arity, bool isAnonymous, QScript::Chunk_t* chunk );
+		QScript::FunctionObject*					CreateFunction( const std::string& name, bool isConst, uint32_t retnType, int arity, bool isAnonymous, QScript::Chunk_t* chunk );
+		const std::vector< Variable_t >& 			CurrentArguments();
 		QScript::Chunk_t*							CurrentChunk();
 		const FunctionContext_t*					CurrentContext();
 		QScript::FunctionObject*					CurrentFunction();
 		Stack_t*									CurrentStack();
+		bool 										FindArgument( const std::string& name, Variable_t* out );
 		bool 										FindGlobal( const std::string& name, Variable_t* out );
 		bool										FindLocal( const std::string& name, uint32_t* out, Variable_t* varInfo );
 		bool 										FindLocalFromStack( Stack_t* stack, const std::string& name, uint32_t* out, Variable_t* varInfo );
@@ -107,6 +111,7 @@ namespace Compiler
 		int											StackDepth();
 
 	private:
+		std::vector< Variable_t >						m_FunctionArgs;
 		std::vector< FunctionContext_t >				m_Functions;
 		QScript::Config_t								m_Config;
 

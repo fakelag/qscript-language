@@ -403,7 +403,7 @@ namespace Compiler
 		for ( auto identifier : config.m_Globals )
 			AddGlobal( identifier );
 
-		CreateFunction( "<main>", true, Compiler::TYPE_UNKNOWN, 0, true, chunk );
+		CreateFunction( "<main>", true, TYPE_UNKNOWN, 0, true, chunk );
 	}
 
 	void Assembler::Release()
@@ -431,6 +431,11 @@ namespace Compiler
 		return m_Compiled;
 	}
 
+	const std::vector< Assembler::Variable_t >& Assembler::CurrentArguments()
+	{
+		return m_FunctionArgs;
+	}
+
 	QScript::Chunk_t* Assembler::CurrentChunk()
 	{
 		return m_Functions.back().m_Func->GetChunk();
@@ -451,14 +456,14 @@ namespace Compiler
 		return m_Functions.back().m_Stack;
 	}
 
-	QScript::FunctionObject* Assembler::CreateFunction( const std::string& name, bool isConst, uint32_t retType, int arity, bool isAnonymous, QScript::Chunk_t* chunk )
+	QScript::FunctionObject* Assembler::CreateFunction( const std::string& name, bool isConst, uint32_t retnType, int arity, bool isAnonymous, QScript::Chunk_t* chunk )
 	{
 		auto function = QS_NEW QScript::FunctionObject( name, arity, chunk );
-		auto context = FunctionContext_t{ function, QS_NEW Assembler::Stack_t(), retType };
+		auto context = FunctionContext_t{ function, QS_NEW Assembler::Stack_t(), retnType };
 
 		m_Functions.push_back( context );
 
-		AddLocal( isAnonymous ? "" : name, isConst, TYPE_FUNCTION, retType );
+		AddLocal( isAnonymous ? "" : name, isConst, TYPE_FUNCTION, retnType );
 		return function;
 	}
 
@@ -479,6 +484,11 @@ namespace Compiler
 		// Free compile-time stack from memory
 		delete CurrentStack();
 		m_Functions.pop_back();
+	}
+
+	void Assembler::AddArgument( const std::string& name, bool isConstant, uint32_t type, uint32_t returnType )
+	{
+		m_FunctionArgs.push_back( Variable_t{ name, isConstant, type, returnType } );
 	}
 
 	uint32_t Assembler::AddLocal( const std::string& name )
@@ -509,6 +519,20 @@ namespace Compiler
 			{
 				*out = ( uint32_t ) i;
 				*varInfo = stack->m_Locals[ i ].m_Var;
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	bool Assembler::FindArgument( const std::string& name, Variable_t* out )
+	{
+		for ( auto arg : m_FunctionArgs )
+		{
+			if ( arg.m_Name == name )
+			{
+				*out = arg;
 				return true;
 			}
 		}
@@ -646,5 +670,10 @@ namespace Compiler
 	const QScript::Config_t& Assembler::Config() const
 	{
 		return m_Config;
+	}
+
+	void Assembler::ClearArguments()
+	{
+		m_FunctionArgs.clear();
 	}
 }
