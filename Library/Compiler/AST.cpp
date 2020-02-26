@@ -1339,10 +1339,21 @@ namespace Compiler
 			CompileFunction( true, false, "<anonymous>", this, assembler );
 			break;
 		}
+		case NODE_INLINE_IF:
 		case NODE_IF:
 		{
-			if ( !IS_STATEMENT( options ) )
-				throw EXPECTED_EXPRESSION;
+			bool isInline = ( m_NodeId == NODE_INLINE_IF );
+
+			if ( isInline )
+			{
+				if ( IS_STATEMENT( options ) )
+					throw EXPECTED_STATEMENT;
+			}
+			else
+			{
+				if ( !IS_STATEMENT( options ) )
+					throw EXPECTED_EXPRESSION;
+			}
 
 			// Compile condition, now the result is at the top of the stack
 			m_NodeList[ 0 ]->Compile( assembler, COMPILE_EXPRESSION( options ) );
@@ -1354,7 +1365,7 @@ namespace Compiler
 			EmitByte( QScript::OpCode::OP_POP, chunk );
 
 			// Compile body
-			m_NodeList[ 1 ]->Compile( assembler, COMPILE_STATEMENT( options ) );
+			m_NodeList[ 1 ]->Compile( assembler, isInline ? COMPILE_EXPRESSION( options ) : COMPILE_STATEMENT( options ) );
 
 			uint32_t elseBodyBegin = ( uint32_t ) chunk->m_Code.size();
 
@@ -1363,7 +1374,7 @@ namespace Compiler
 
 			// Compile optional else-branch
 			if ( m_NodeList[ 2 ] )
-				m_NodeList[ 2 ]->Compile( assembler, COMPILE_STATEMENT( options ) );
+				m_NodeList[ 2 ]->Compile( assembler, isInline ? COMPILE_EXPRESSION( options ) : COMPILE_STATEMENT( options ) );
 
 			uint32_t elseBodyEnd = ( uint32_t ) chunk->m_Code.size();
 
@@ -1528,6 +1539,10 @@ namespace Compiler
 		case NODE_IF: return TYPE_NONE;
 		case NODE_SCOPE: return TYPE_NONE;
 		case NODE_WHILE: return TYPE_NONE;
+		case NODE_INLINE_IF:
+		{
+			return m_NodeList[ 1 ]->ExprType( assembler ) | m_NodeList[ 2 ]->ExprType( assembler );
+		}
 		case NODE_CONSTVAR:
 		{
 			auto& varTypeValue = static_cast< ValueNode* >( m_NodeList[ 2 ] )->GetValue();

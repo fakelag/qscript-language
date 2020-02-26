@@ -361,6 +361,29 @@ namespace Compiler
 				};
 				break;
 			}
+			case TOK_QUERY:
+			{
+				builder->m_Led = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder, BaseNode* left ) -> BaseNode*
+				{
+					std::vector< BaseNode* > chain;
+
+					// condition
+					chain.push_back( left );
+
+					// if-true expression
+					chain.push_back( nextExpression( irBuilder.m_Token.m_LBP ) );
+
+					parserState.Expect( TOK_COLON, "Expected \":\" after \"?\" <expression>" );
+
+					// else expression
+					chain.push_back( nextExpression( irBuilder.m_Token.m_LBP ) );
+
+					return parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+						irBuilder.m_Token.m_String, NODE_INLINE_IF, chain );
+				};
+
+				break;
+			}
 			case TOK_MINUS:
 			{
 				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder )
@@ -492,7 +515,7 @@ namespace Compiler
 
 					// optional else block
 					if ( parserState.Match( TOK_ELSE ) )
-						chain.push_back( nextExpression( irBuilder.m_Token.m_LBP ) );
+						chain.push_back( parserState.ToScope( nextExpression( irBuilder.m_Token.m_LBP ) ) );
 					else
 						chain.push_back( NULL );
 
@@ -650,6 +673,7 @@ namespace Compiler
 			case TOK_SCOLON:
 			case TOK_COMMA:
 			case TOK_ARROW:
+			case TOK_COLON:
 				break;
 			case TOK_PAREN_LEFT:
 			{

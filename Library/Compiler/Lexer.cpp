@@ -47,6 +47,8 @@ namespace Compiler
 		{ TOK_BRACE_RIGHT, 	{ TOK_BRACE_RIGHT, 	"}", 		BP_NONE,					false } },
 		{ TOK_COMMA, 		{ TOK_COMMA, 		",", 		BP_NONE,					false } },
 		{ TOK_DOT, 			{ TOK_DOT, 			".", 		BP_DOT,						false } },
+		{ TOK_QUERY, 		{ TOK_QUERY, 		"?", 		BP_INLINE_IF,				false } },
+		{ TOK_COLON, 		{ TOK_COLON, 		":", 		BP_INLINE_IF,				false } },
 
 		{ TOK_2PLUS,		{ TOK_2PLUS, 		"++",		BP_INCDEC,					false } },
 		{ TOK_2MINUS,		{ TOK_2MINUS, 		"--",		BP_INCDEC,					false } },
