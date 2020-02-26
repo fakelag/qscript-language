@@ -566,8 +566,30 @@ namespace QVM
 			INTERP_OPCODE( OP_MUL ): BINARY_OP( *, IS_NUMBER ); INTERP_DISPATCH;
 			INTERP_OPCODE( OP_DIV ): BINARY_OP( /, IS_NUMBER ); INTERP_DISPATCH;
 			INTERP_OPCODE( OP_MOD ): BINARY_OP( %, IS_NUMBER ); INTERP_DISPATCH;
-			INTERP_OPCODE( OP_EQUALS ): BINARY_OP( ==, IS_ANY ); INTERP_DISPATCH;
-			INTERP_OPCODE( OP_NOT_EQUALS ): BINARY_OP( !=, IS_ANY ); INTERP_DISPATCH;
+			INTERP_OPCODE( OP_EQUALS ):
+			{
+				auto b = vm.Pop();
+				auto a = vm.Pop();
+
+				if ( IS_STRING( a ) && IS_STRING( b ) )
+					vm.Push( MAKE_BOOL( AS_STRING( a )->GetString() == AS_STRING( b )->GetString() ) );
+				else
+					vm.Push( a == b );
+
+				INTERP_DISPATCH;
+			}
+			INTERP_OPCODE( OP_NOT_EQUALS ):
+			{
+				auto b = vm.Pop();
+				auto a = vm.Pop();
+
+				if ( IS_STRING( a ) && IS_STRING( b ) )
+					vm.Push( MAKE_BOOL( AS_STRING( a )->GetString() != AS_STRING( b )->GetString() ) );
+				else
+					vm.Push( a != b );
+
+				INTERP_DISPATCH;
+			}
 			INTERP_OPCODE( OP_GREATERTHAN ): BINARY_OP( >, IS_ANY ); INTERP_DISPATCH;
 			INTERP_OPCODE( OP_LESSTHAN ): BINARY_OP( <, IS_ANY ); INTERP_DISPATCH;
 			INTERP_OPCODE( OP_LESSTHAN_OR_EQUAL ): BINARY_OP( <=, IS_ANY ); INTERP_DISPATCH;
@@ -960,7 +982,7 @@ void QScript::Repl()
 
 	for ( ;; )
 	{
-		std::string source;
+		std::string source; //= "print(1?2:3);";
 		std::cout << "REPL (" + std::to_string( ++s_ReplID ) << ") >";
 		std::getline( std::cin, source );
 
