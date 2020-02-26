@@ -743,5 +743,20 @@ bool Tests::TestInterpreter()
 		UTEST_CASE_CLOSED();
 	}( );
 
+	UTEST_CASE( "Inline if -statements" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "var g1 = true ? 1 : 0;			\
+			var g2 = (g1 != 1 ? 0 : 1);									\
+			const x = () -> { return g2 == 1 ? \"yes\" : \"no\"; }		\
+			return x() == \"yes\" ? g1 + g2 : 0;", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 2.0 );
+
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
 	UTEST_END();
 }
