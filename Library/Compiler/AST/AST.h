@@ -109,6 +109,7 @@ namespace Compiler
 		virtual ~BaseNode() {}
 		virtual void Release() {};
 		virtual void Compile( Assembler& assembler, uint32_t options = CO_NONE ) = 0;
+		virtual std::string ToJson( const std::string& ind = "" ) const = 0;
 
 		virtual uint32_t ExprType( Assembler& assembler ) const { return Compiler::TYPE_NONE; }
 
@@ -125,6 +126,7 @@ namespace Compiler
 	public:
 		TermNode( int lineNr, int colNr, const std::string token, NodeId id );
 		void Compile( Assembler& assembler, uint32_t options = CO_NONE ) override;
+		std::string ToJson( const std::string& ind = "" ) const override;
 	};
 
 	class ValueNode : public BaseNode
@@ -133,6 +135,7 @@ namespace Compiler
 		ValueNode( int lineNr, int colNr, const std::string token, NodeId id, const QScript::Value& value );
 		void Compile( Assembler& assembler, uint32_t options = CO_NONE ) override;
 		uint32_t ExprType( Assembler& assembler ) const override;
+		std::string ToJson( const std::string& ind = "" ) const override;
 
 		QScript::Value& GetValue() { return m_Value; }
 	private:
@@ -147,6 +150,7 @@ namespace Compiler
 		void Release() override;
 		void Compile( Assembler& assembler, uint32_t options = CO_NONE ) override;
 		uint32_t ExprType( Assembler& assembler ) const override;
+		std::string ToJson( const std::string& ind = "" ) const override;
 
 		const BaseNode* GetLeft() const;
 		const BaseNode* GetRight() const;
@@ -164,6 +168,7 @@ namespace Compiler
 		void Release() override;
 		void Compile( Assembler& assembler, uint32_t options = CO_NONE ) override;
 		uint32_t ExprType( Assembler& assembler ) const override;
+		std::string ToJson( const std::string& ind = "" ) const override;
 
 		const BaseNode* GetNode() const;
 
@@ -180,6 +185,7 @@ namespace Compiler
 		void Compile( Assembler& assembler, uint32_t options = CO_NONE ) override;
 		uint32_t ExprType( Assembler& assembler ) const override;
 		const std::vector< BaseNode* >& GetList() const;
+		std::string ToJson( const std::string& ind = "" ) const override;
 
 	private:
 		std::vector< BaseNode* >		m_NodeList;

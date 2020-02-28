@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Tokens.h"
-#include "AST.h"
+#include "AST/AST.h"
 
 struct VM_t;
 class Object;

@@ -1,10 +1,9 @@
 #include "QLibPCH.h"
-#include "../Common/Chunk.h"
-
-#include "Compiler.h"
 #include "Instructions.h"
 
-#include "../STL/NativeModule.h"
+#include "../../Common/Chunk.h"
+#include "../../STL/NativeModule.h"
+#include "../Compiler.h"
 
 #define COMPILE_EXPRESSION( options ) (options | CO_EXPRESSION)
 #define COMPILE_STATEMENT( options ) (options & ~CO_EXPRESSION)

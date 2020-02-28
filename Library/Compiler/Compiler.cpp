@@ -52,8 +52,10 @@ namespace QScript
 			// Run IR optimizers
 
 			// Compile bytecode
-			for ( auto node : astNodes )
+			for ( auto node : astNodes ) {
+				std::cout << node->ToJson() << std::endl;
 				node->Compile( assembler );
+			}
 
 			for ( auto node : astNodes )
 			{
