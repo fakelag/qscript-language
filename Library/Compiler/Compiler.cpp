@@ -52,10 +52,8 @@ namespace QScript
 			// Run IR optimizers
 
 			// Compile bytecode
-			for ( auto node : astNodes ) {
-				std::cout << node->ToJson() << std::endl;
+			for ( auto node : astNodes )
 				node->Compile( assembler );
-			}
 
 			for ( auto node : astNodes )
 			{
@@ -163,9 +161,6 @@ namespace QScript
 						auto nameValue = static_cast< Compiler::ValueNode* >( node )->GetValue();
 						auto name = AS_STRING( nameValue )->GetString();
 
-						std::cout << "name: " << name << std::endl;
-
-						uint32_t nameIndex;
 						Compiler::Assembler::Variable_t varInfo;
 
 						if ( assembler.FindGlobal( name, &varInfo ) )

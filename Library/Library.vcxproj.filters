@@ -16,6 +16,9 @@
     <Filter Include="STL">
       <UniqueIdentifier>{ef0bbe23-d734-4ff2-8808-ad8db101e84c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Compiler\AST">
+      <UniqueIdentifier>{15c11054-4c50-469f-8532-919a7ab4d734}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\Disassembler.cpp">
@@ -36,9 +39,6 @@
     <ClCompile Include="..\Includes\QLibPCH.cpp">
       <Filter>Includes</Filter>
     </ClCompile>
-    <ClCompile Include="Compiler\AST.cpp">
-      <Filter>Compiler</Filter>
-    </ClCompile>
     <ClCompile Include="Common\Chunk.cpp">
       <Filter>Common</Filter>
     </ClCompile>
@@ -54,11 +54,17 @@
     <ClCompile Include="STL\Time.cpp">
       <Filter>STL</Filter>
     </ClCompile>
+    <ClCompile Include="Compiler\AST\AST.cpp">
+      <Filter>Compiler\AST</Filter>
+    </ClCompile>
+    <ClCompile Include="Compiler\AST\ToJson.cpp">
+      <Filter>Compiler\AST</Filter>
+    </ClCompile>
+    <ClCompile Include="Compiler\AST\Typing.cpp">
+      <Filter>Compiler\AST</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Compiler\AST.h">
-      <Filter>Compiler</Filter>
-    </ClInclude>
     <ClInclude Include="Compiler\Compiler.h">
       <Filter>Compiler</Filter>
     </ClInclude>
@@ -100,6 +106,9 @@
     </ClInclude>
     <ClInclude Include="STL\Time.h">
       <Filter>STL</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\AST\AST.h">
+      <Filter>Compiler\AST</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

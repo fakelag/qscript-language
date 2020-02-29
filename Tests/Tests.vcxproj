@@ -164,7 +164,9 @@
     <ClCompile Include="..\Library\Common\Chunk.cpp" />
     <ClCompile Include="..\Library\Common\Disassembler.cpp" />
     <ClCompile Include="..\Library\Common\Value.cpp" />
-    <ClCompile Include="..\Library\Compiler\AST.cpp" />
+    <ClCompile Include="..\Library\Compiler\AST\AST.cpp" />
+    <ClCompile Include="..\Library\Compiler\AST\ToJson.cpp" />
+    <ClCompile Include="..\Library\Compiler\AST\Typing.cpp" />
     <ClCompile Include="..\Library\Compiler\Compiler.cpp" />
     <ClCompile Include="..\Library\Compiler\IRGenerator.cpp" />
     <ClCompile Include="..\Library\Compiler\Lexer.cpp" />
@@ -180,6 +182,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Library\Common\Object.h" />
+    <ClInclude Include="..\Library\Compiler\AST\AST.h" />
     <ClInclude Include="Tests.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>

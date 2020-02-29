@@ -95,6 +95,12 @@ namespace Compiler
 		TYPE_AUTO				= ( 1 << 11 ),
 	};
 
+	struct Argument_t
+	{
+		std::string 	m_Name;
+		uint32_t		m_Type;
+	};
+
 	class BaseNode
 	{
 	public:
@@ -192,4 +198,5 @@ namespace Compiler
 	};
 
 	uint32_t ResolveReturnType( const ListNode* funcNode, Assembler& assembler );
+	std::vector< Argument_t > ParseArgsList( ListNode* argNode );
 }
