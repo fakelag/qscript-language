@@ -33,9 +33,6 @@
     <ClCompile Include="..\Library\Common\Disassembler.cpp">
       <Filter>Code</Filter>
     </ClCompile>
-    <ClCompile Include="..\Library\Compiler\AST.cpp">
-      <Filter>Code</Filter>
-    </ClCompile>
     <ClCompile Include="..\Library\Compiler\Compiler.cpp">
       <Filter>Code</Filter>
     </ClCompile>
@@ -69,6 +66,15 @@
     <ClCompile Include="..\Library\STL\Time.cpp">
       <Filter>Code</Filter>
     </ClCompile>
+    <ClCompile Include="..\Library\Compiler\AST\AST.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Library\Compiler\AST\ToJson.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Library\Compiler\AST\Typing.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Tests.h">
@@ -78,6 +84,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Library\Common\Object.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Library\Compiler\AST\AST.h">
       <Filter>Code</Filter>
     </ClInclude>
   </ItemGroup>

@@ -128,7 +128,7 @@ namespace QVM
 		vm.Peek( 0 ) = prop->second;
 	}
 
-	FORCEINLINE void SetField( VM_t& vm, Frame_t* frame, QScript::Value& name )
+	void SetField( VM_t& vm, Frame_t* frame, QScript::Value& name )
 	{
 		auto propName = AS_STRING( name )->GetString();
 		auto value = vm.Pop();

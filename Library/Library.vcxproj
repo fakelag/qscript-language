@@ -150,7 +150,9 @@
     </ClCompile>
     <ClCompile Include="Common\Chunk.cpp" />
     <ClCompile Include="Common\Value.cpp" />
-    <ClCompile Include="Compiler\AST.cpp" />
+    <ClCompile Include="Compiler\AST\AST.cpp" />
+    <ClCompile Include="Compiler\AST\ToJson.cpp" />
+    <ClCompile Include="Compiler\AST\Typing.cpp" />
     <ClCompile Include="Compiler\Compiler.cpp" />
     <ClCompile Include="Compiler\IRGenerator.cpp" />
     <ClCompile Include="Compiler\Lexer.cpp" />
@@ -168,7 +170,7 @@
     <ClInclude Include="Common\Chunk.h" />
     <ClInclude Include="Common\Object.h" />
     <ClInclude Include="Common\Value.h" />
-    <ClInclude Include="Compiler\AST.h" />
+    <ClInclude Include="Compiler\AST\AST.h" />
     <ClInclude Include="Compiler\Compiler.h" />
     <ClInclude Include="Compiler\IR.h" />
     <ClInclude Include="Compiler\Tokens.h" />
