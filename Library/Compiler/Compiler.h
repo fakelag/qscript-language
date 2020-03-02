@@ -35,6 +35,8 @@ namespace Compiler
 	QScript::InstanceObject* AllocateInstance( QScript::ClassObject* classDef );
 
 	void GarbageCollect( const std::vector< QScript::FunctionObject* >& functions );
+	void GarbageCollect( const std::vector< Compiler::BaseNode* >& nodes );
+	void GarbageCollect( const std::vector< QScript::Value >& values );
 
 	class Assembler
 	{

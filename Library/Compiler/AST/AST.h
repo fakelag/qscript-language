@@ -144,6 +144,7 @@ namespace Compiler
 		std::string ToJson( const std::string& ind = "" ) const override;
 
 		QScript::Value& GetValue() { return m_Value; }
+		const QScript::Value& GetValue() const { return m_Value; }
 	private:
 		QScript::Value		m_Value;
 	};

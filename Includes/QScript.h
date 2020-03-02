@@ -12,6 +12,14 @@
 
 struct VM_t;
 
+namespace Compiler
+{
+	class BaseNode;
+
+	std::string TypeToString( uint32_t type );
+	bool TypeCheck( uint32_t targetType, uint32_t exprType, bool strict = true );
+}
+
 namespace QScript
 {
 	struct Chunk_t;
@@ -46,6 +54,7 @@ namespace QScript
 	Chunk_t* AllocChunk();
 	FunctionObject* Compile( const std::string& source, const Config_t& config = Config_t( true ) );
 	std::vector< std::pair< uint32_t, uint32_t > > Typer( const std::string& source, const Config_t& config = Config_t( false ) );
+	std::vector< Compiler::BaseNode* > GenerateAST( const std::string& source );
 
 	void FreeChunk( Chunk_t* chunk );
 	void FreeFunction( FunctionObject* function );
@@ -53,10 +62,4 @@ namespace QScript
 	void Repl();
 	void Interpret( const FunctionObject& function );
 	void Interpret( VM_t& vm, Value* exitCode );
-}
-
-namespace Compiler
-{
-	std::string TypeToString( uint32_t type );
-	bool TypeCheck( uint32_t targetType, uint32_t exprType, bool strict = true );
 }

@@ -267,6 +267,78 @@ namespace QScript
 			throw;
 		}
 	}
+
+	std::vector< Compiler::BaseNode* > GenerateAST( const std::string& source )
+	{
+		BEGIN_COMPILER;
+
+		// Make sure module system is initialized
+		QScript::InitModules();
+
+		Chunk_t* chunk = AllocChunk();
+		Compiler::Assembler assembler( chunk, QScript::Config_t( true ) );
+
+		// Import main system module (functions like exit(), print(), etc)
+		auto systemModule = QScript::ResolveModule( "System" );
+		systemModule->Import( &assembler );
+
+		std::vector< Compiler::BaseNode* > astNodes;
+
+		try
+		{
+			// Lexical analysis (tokenization)
+			auto tokens = Compiler::Lexer( source );
+
+			// Generate IR
+			astNodes = Compiler::GenerateIR( tokens );
+
+			// Clean up objects created in compilation process
+			Compiler::GarbageCollect( astNodes );
+
+			// Reset allocators
+			END_COMPILER;
+			return astNodes;
+		}
+		catch ( const CompilerException& exception )
+		{
+			// Free created objects
+			Compiler::GarbageCollect( std::vector<QScript::FunctionObject*>{ } );
+
+			// Free compilation materials (also frees main chunk)
+			assembler.Release();
+
+			// Free AST
+			for ( auto node : astNodes )
+			{
+				node->Release();
+				delete node;
+			}
+			astNodes.clear();
+
+			// Rethrow
+			throw std::vector< CompilerException >{ exception };
+		}
+		catch ( ... )
+		{
+			// Free created objects
+			Compiler::GarbageCollect( std::vector<QScript::FunctionObject*>{ } );
+
+			// Free compilation materials (also frees main chunk)
+			assembler.Release();
+
+			// Free AST
+			for ( auto node : astNodes )
+			{
+				node->Release();
+				delete node;
+			}
+
+			astNodes.clear();
+
+			// Rethrow
+			throw;
+		}
+	}
 }
 
 namespace Compiler
@@ -371,20 +443,83 @@ namespace Compiler
 
 	void GarbageCollect( const std::vector< QScript::FunctionObject* >& functions )
 	{
+		std::vector< QScript::Value > values;
+		for ( auto function : functions )
+		{
+			for ( auto value : function->GetChunk()->m_Constants )
+			{
+				if ( IS_OBJECT( value ) )
+					values.push_back( value );
+			}
+		}
+
+		GarbageCollect( values );
+	}
+
+	void GarbageCollect( const std::vector< Compiler::BaseNode* >& nodes )
+	{
+		std::vector< QScript::Value > values;
+		std::vector< const Compiler::BaseNode* > queue;
+
+		for ( auto node : nodes )
+			queue.push_back( node );
+
+		while ( queue.size() > 0 )
+		{
+			auto node = queue[ 0 ];
+
+			if ( node )
+			{
+				switch( node->Type() )
+				{
+					case NT_TERM:
+						break;
+					case NT_VALUE:
+					{
+						auto value = static_cast< const ValueNode* >( node )->GetValue();
+						if ( IS_OBJECT( value ) )
+							values.push_back( value );
+						break;
+					}
+					case NT_SIMPLE:
+						queue.push_back( static_cast< const SimpleNode* >( node )->GetNode() );
+						break;
+					case NT_COMPLEX:
+					{
+						queue.push_back( static_cast< const ComplexNode* >( node )->GetLeft() );
+						queue.push_back( static_cast< const ComplexNode* >( node )->GetRight() );
+						break;
+					}
+					case NT_LIST:
+					{
+						auto list = static_cast< const ListNode* >( node )->GetList();
+
+						for ( auto listNode : list )
+							queue.push_back( listNode );
+
+						break;
+					}
+					default:
+						break;
+				}
+			}
+
+			queue.erase( queue.begin() );
+		}
+
+		GarbageCollect( values );
+	}
+
+	void GarbageCollect( const std::vector< QScript::Value >& values )
+	{
 		for ( auto object : ObjectList )
 		{
 			bool isReferenced = false;
 
-			for ( auto function : functions )
+			for ( auto value : values )
 			{
-				for ( auto value : function->GetChunk()->m_Constants )
-				{
-					if ( IS_OBJECT( value ) && AS_OBJECT( value ) == object )
-						isReferenced = true;
-				}
-
-				if ( isReferenced )
-					break;
+				if ( IS_OBJECT( value ) && AS_OBJECT( value ) == object )
+					isReferenced = true;
 			}
 
 			if ( !isReferenced )
