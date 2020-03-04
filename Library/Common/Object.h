@@ -114,7 +114,8 @@ namespace QScript
 		FORCEINLINE	const std::string& GetName() const { return m_Name; }
 
 	private:
-		std::string						m_Name;
+		std::string									m_Name;
+		std::unordered_map< std::string, Value >	m_Methods;
 	};
 
 	class InstanceObject : public Object
