@@ -141,6 +141,7 @@ namespace QScript
 			astNodes = Compiler::GenerateIR( tokens );
 
 			// Remove last return node
+			delete astNodes.back();
 			astNodes.erase( astNodes.end() - 1 );
 
 			// Compile bytecode
