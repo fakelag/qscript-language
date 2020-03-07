@@ -10,13 +10,15 @@ using namespace Tests;
 
 bool Tests::TestInterpreter()
 {
+	static const int s_LargeConstCount = 300;
+
 	// Generate a body of more than 255 instructions
-	auto largeBodyOfCode = TestUtils::GenerateSequence( 300, []( int iter ) {
+	auto largeBodyOfCode = TestUtils::GenerateSequence( s_LargeConstCount, []( int iter ) {
 		return "_tmp = _tmp+" + std::to_string( iter ) + std::string( ".00;" );
 	}, "var _tmp = 0;" );
 
-	auto largeExpression = TestUtils::GenerateSequence( 300, []( int iter ) {
-		return "0.00" + std::string( iter == 299 ? "" : "+" );
+	auto largeExpression = TestUtils::GenerateSequence( s_LargeConstCount, []( int iter ) {
+		return "0.00" + std::string( iter == ( s_LargeConstCount - 1 ) ? "" : "+" );
 	} );
 
 	UTEST_BEGIN( "Interpreter Tests" );
@@ -60,12 +62,15 @@ bool Tests::TestInterpreter()
 	UTEST_CASE( "Adding up constants (index > 255)" )
 	{
 		QScript::Value exitCode;
-		UTEST_ASSERT( TestUtils::RunVM( TestUtils::GenerateSequence( 512, []( int iter ) {
-			return std::to_string( iter ) + std::string( ".00" ) + ( ( iter < 511 ) ? "+" : "" );
+		UTEST_ASSERT( TestUtils::RunVM( TestUtils::GenerateSequence( s_LargeConstCount, []( int iter ) {
+			return std::to_string( iter ) + std::string( ".00" ) + ( ( iter < s_LargeConstCount - 1 ) ? "+" : "" );
 		}, "return ", ";" ), &exitCode ) );
 
+		std::vector< int > sum( s_LargeConstCount );
+		std::iota( sum.begin(), sum.end(), 0 );
+
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
-		UTEST_ASSERT( AS_NUMBER( exitCode ) == 130816.0 );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == std::accumulate( sum.begin(), sum.end(), 0 ) );
 
 		TestUtils::FreeExitCode( exitCode );
 		UTEST_CASE_CLOSED();
@@ -130,17 +135,17 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 76.00 );
 
 		// > 255 local variables
-		std::string localVariables = TestUtils::GenerateSequence( 500, []( int iter ) {
+		std::string localVariables = TestUtils::GenerateSequence( s_LargeConstCount, []( int iter ) {
 			return "var tmp_" + std::to_string( iter ) + " = " + std::to_string( iter ) + ";";
 		} );
 
 		TestUtils::FreeExitCode( exitCode );
-		UTEST_ASSERT( TestUtils::RunVM( "var glob1 = 60;		\
-			{ " + localVariables + " glob1 = tmp_412; }			\
+		UTEST_ASSERT( TestUtils::RunVM( "var glob1 = 60;												\
+			{ " + localVariables + " glob1 = tmp_" + std::to_string( s_LargeConstCount - 1 ) + "; }		\
 			return glob1;", &exitCode ) );
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
-		UTEST_ASSERT( AS_NUMBER( exitCode ) == 412 );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == s_LargeConstCount - 1 );
 
 		TestUtils::FreeExitCode( exitCode );
 		UTEST_CASE_CLOSED();

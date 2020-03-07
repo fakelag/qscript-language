@@ -20,6 +20,8 @@ opcodeOffset += Compiler::InstructionSize( fn->GetChunk()->m_Code[ opcodeOffset 
 
 bool Tests::TestCompiler()
 {
+	static const int s_LargeConstCount = 300;
+
 	UTEST_BEGIN( "Compiler Tests" );
 
 	UTEST_CASE( "Generate simple bytecode" )
@@ -148,7 +150,7 @@ bool Tests::TestCompiler()
 
 	UTEST_CASE( "Constant stacking" )
 	{
-		auto fn = QScript::Compile( TestUtils::GenerateSequence( 300, []( int iter ) {
+		auto fn = QScript::Compile( TestUtils::GenerateSequence( s_LargeConstCount, []( int iter ) {
 			return "+" + std::to_string( iter % 2 == 0 ? iter : 8000 ) + std::string( ".00" );
 		}, "var f = 0.00 ", ";" ) );
 
