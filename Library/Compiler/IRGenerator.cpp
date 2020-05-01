@@ -144,15 +144,15 @@ namespace Compiler
 		// Skip over "(" in method declaration
 		parserState.Expect( TOK_PAREN_LEFT, "Expected \"(\" after \"<method name>...\", got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
 
-		auto methodNode = ParseFunction( parserState, irBuilder, nextExpression );
+		auto funcNode = ParseFunction( parserState, irBuilder, nextExpression );
 
-		if ( !methodNode )
+		if ( !funcNode )
 			return NULL;
 
 		parserState.Expect( TOK_BRACE_RIGHT, "Expected \"}\" after \"<method name>(...) -> {...\", got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
 
-		methodNode->SetId( NODE_METHOD );
-		return methodNode;
+		return parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+			irBuilder.m_Token.m_String, NODE_METHOD, std::vector< BaseNode* >{ methodName, funcNode } );
 	}
 
 	BaseNode* ParseField( ParserState& parserState, const IrBuilder_t& irBuilder, NextExpressionFn nextExpression )

@@ -197,7 +197,7 @@ namespace Compiler
 		return argsList;
 	}
 
-	void CompileFunction( bool isAnonymous, bool isConst, const std::string& name, ListNode* funcNode, Assembler& assembler )
+	void CompileFunction( bool isAnonymous, bool isConst, bool addLocal, const std::string& name, ListNode* funcNode, Assembler& assembler )
 	{
 		auto chunk = assembler.CurrentChunk();
 		auto& nodeList = funcNode->GetList();
@@ -206,7 +206,7 @@ namespace Compiler
 		auto functionArity = ( uint32_t ) argNode->GetList().size();
 
 		// Allocate chunk & create function
-		auto function = assembler.CreateFunction( name, isConst, ResolveReturnType( funcNode, assembler ), functionArity, isAnonymous, QScript::AllocChunk() );
+		auto function = assembler.CreateFunction( name, isConst, ResolveReturnType( funcNode, assembler ), functionArity, isAnonymous, addLocal, QScript::AllocChunk() );
 		assembler.PushScope();
 
 		// Create args in scope
@@ -508,12 +508,12 @@ namespace Compiler
 				{
 					// Compile a named function
 					auto& varName = static_cast< ValueNode* >( m_Left )->GetValue();
-					CompileFunction( false, false, AS_STRING( varName )->GetString(), static_cast< ListNode* >( m_Right ), assembler );
+					CompileFunction( false, false, true, AS_STRING( varName )->GetString(), static_cast< ListNode* >( m_Right ), assembler );
 				}
 				else
 				{
 					// Anonymous function
-					CompileFunction( true, false, "<anonymous>", static_cast< ListNode* >( m_Right ), assembler );
+					CompileFunction( true, false, true, "<anonymous>", static_cast< ListNode* >( m_Right ), assembler );
 				}
 
 				m_Left->Compile( assembler, COMPILE_REASSIGN_TARGET( options ) );
@@ -1004,8 +1004,10 @@ namespace Compiler
 					}
 					else if ( prop->Id() == NODE_METHOD )
 					{
-						// assert( 0 );
-						continue;
+						auto propNode = static_cast< ListNode* >( prop );
+						auto funcNode = static_cast< ListNode* >( propNode->GetList()[ 1 ] );
+						propName = static_cast< ValueNode* >( propNode->GetList()[ 0 ] )->GetValue();
+						CompileFunction( true, true, false, AS_STRING( propName )->GetString(), funcNode, assembler );
 					}
 					else if ( prop->Id() == NODE_TABLE )
 					{
@@ -1155,7 +1157,7 @@ namespace Compiler
 			if ( IS_STATEMENT( options ) )
 				throw EXPECTED_STATEMENT;
 
-			CompileFunction( true, false, "<anonymous>", this, assembler );
+			CompileFunction( true, false, true, "<anonymous>", this, assembler );
 			break;
 		}
 		case NODE_INLINE_IF:
@@ -1256,7 +1258,7 @@ namespace Compiler
 				if ( m_NodeList[ 1 ]->Id() == NODE_FUNC )
 				{
 					// Compile a named function
-					CompileFunction( false, isConst, varString, static_cast< ListNode* >( m_NodeList[ 1 ] ), assembler );
+					CompileFunction( false, isConst, true, varString, static_cast< ListNode* >( m_NodeList[ 1 ] ), assembler );
 				}
 				else
 				{
