@@ -28,13 +28,14 @@ namespace Compiler
 		NODE_ASSIGNMUL,
 		NODE_ASSIGNSUB,
 		NODE_CALL,
-		NODE_CLASS,
+		NODE_TABLE,
 		NODE_CONSTANT,
 		NODE_CONSTVAR,
 		NODE_DEC,
 		NODE_DIV,
 		NODE_DO,
 		NODE_EQUALS,
+		NODE_FIELD,
 		NODE_FOR,
 		NODE_FUNC,
 		NODE_GREATEREQUAL,
@@ -48,11 +49,13 @@ namespace Compiler
 		NODE_MOD,
 		NODE_MUL,
 		NODE_NAME,
+		NODE_METHOD,
 		NODE_NEG,
 		NODE_NOT,
 		NODE_NOTEQUALS,
 		NODE_OR,
 		NODE_POW,
+		NODE_PROPERTYLIST,
 		NODE_RETURN,
 		NODE_SCOPE,
 		NODE_SUB,
@@ -80,7 +83,7 @@ namespace Compiler
 		TYPE_BOOL				= ( 1 << 2 ),
 
 		// Objects
-		TYPE_CLASS				= ( 1 << 3 ),
+		TYPE_TABLE				= ( 1 << 3 ),
 		TYPE_CLOSURE			= ( 1 << 4 ),
 		TYPE_FUNCTION			= ( 1 << 5 ),
 		TYPE_INSTANCE			= ( 1 << 6 ),
@@ -111,6 +114,7 @@ namespace Compiler
 		int LineNr()			const { return m_LineNr; }
 		int ColNr()				const { return m_ColNr; }
 		std::string Token()		const { return m_Token; }
+		void SetId( NodeId id )	{ m_NodeId = id; }
 
 		virtual ~BaseNode() {}
 		virtual void Release() {};

@@ -35,7 +35,7 @@ namespace Compiler
 		TOK_BOOL,
 		TOK_BRACE_LEFT,
 		TOK_BRACE_RIGHT,
-		TOK_CLASS,
+		TOK_TABLE,
 		TOK_COLON,
 		TOK_COMMA,
 		TOK_CONST,

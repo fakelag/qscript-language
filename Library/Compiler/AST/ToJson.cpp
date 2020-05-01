@@ -17,7 +17,7 @@ namespace Compiler
 		{ NODE_ASSIGNMUL,			"ASSIGN*" },
 		{ NODE_ASSIGNSUB,			"ASSIGN-" },
 		{ NODE_CALL,				"CALL" },
-		{ NODE_CLASS,				"CLASS" },
+		{ NODE_TABLE,				"TABLE" },
 		{ NODE_CONSTANT,			"CONSTANT" },
 		{ NODE_CONSTVAR,			"VAR (const)" },
 		{ NODE_DEC,					"DECREMENT" },

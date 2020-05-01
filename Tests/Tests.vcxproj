@@ -81,6 +81,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)Includes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeaderOutputFile>QLibPCH.h.pch</PrecompiledHeaderOutputFile>
       <PreprocessorDefinitions>QVM_AGGRESSIVE_GC;QS_MEMLEAK_TEST;_CRTDBG_MAP_ALLOC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
     </ClCompile>
     <Link>
       <AdditionalDependencies>
@@ -98,6 +99,7 @@
       <PrecompiledHeaderFile>QLibPCH.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>QLibPCH.h.pch</PrecompiledHeaderOutputFile>
       <PreprocessorDefinitions>QVM_AGGRESSIVE_GC;QS_MEMLEAK_TEST;_CRTDBG_MAP_ALLOC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
     </ClCompile>
     <Link>
       <AdditionalDependencies>

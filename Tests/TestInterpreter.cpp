@@ -10,13 +10,15 @@ using namespace Tests;
 
 bool Tests::TestInterpreter()
 {
+	static const int s_LargeConstCount = 300;
+
 	// Generate a body of more than 255 instructions
-	auto largeBodyOfCode = TestUtils::GenerateSequence( 300, []( int iter ) {
+	auto largeBodyOfCode = TestUtils::GenerateSequence( s_LargeConstCount, []( int iter ) {
 		return "_tmp = _tmp+" + std::to_string( iter ) + std::string( ".00;" );
 	}, "var _tmp = 0;" );
 
-	auto largeExpression = TestUtils::GenerateSequence( 300, []( int iter ) {
-		return "0.00" + std::string( iter == 299 ? "" : "+" );
+	auto largeExpression = TestUtils::GenerateSequence( s_LargeConstCount, []( int iter ) {
+		return "0.00" + std::string( iter == ( s_LargeConstCount - 1 ) ? "" : "+" );
 	} );
 
 	UTEST_BEGIN( "Interpreter Tests" );
@@ -60,12 +62,15 @@ bool Tests::TestInterpreter()
 	UTEST_CASE( "Adding up constants (index > 255)" )
 	{
 		QScript::Value exitCode;
-		UTEST_ASSERT( TestUtils::RunVM( TestUtils::GenerateSequence( 512, []( int iter ) {
-			return std::to_string( iter ) + std::string( ".00" ) + ( ( iter < 511 ) ? "+" : "" );
+		UTEST_ASSERT( TestUtils::RunVM( TestUtils::GenerateSequence( s_LargeConstCount, []( int iter ) {
+			return std::to_string( iter ) + std::string( ".00" ) + ( ( iter < s_LargeConstCount - 1 ) ? "+" : "" );
 		}, "return ", ";" ), &exitCode ) );
 
+		std::vector< int > sum( s_LargeConstCount );
+		std::iota( sum.begin(), sum.end(), 0 );
+
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
-		UTEST_ASSERT( AS_NUMBER( exitCode ) == 130816.0 );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == std::accumulate( sum.begin(), sum.end(), 0 ) );
 
 		TestUtils::FreeExitCode( exitCode );
 		UTEST_CASE_CLOSED();
@@ -130,17 +135,17 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 76.00 );
 
 		// > 255 local variables
-		std::string localVariables = TestUtils::GenerateSequence( 500, []( int iter ) {
+		std::string localVariables = TestUtils::GenerateSequence( s_LargeConstCount, []( int iter ) {
 			return "var tmp_" + std::to_string( iter ) + " = " + std::to_string( iter ) + ";";
 		} );
 
 		TestUtils::FreeExitCode( exitCode );
-		UTEST_ASSERT( TestUtils::RunVM( "var glob1 = 60;		\
-			{ " + localVariables + " glob1 = tmp_412; }			\
+		UTEST_ASSERT( TestUtils::RunVM( "var glob1 = 60;												\
+			{ " + localVariables + " glob1 = tmp_" + std::to_string( s_LargeConstCount - 1 ) + "; }		\
 			return glob1;", &exitCode ) );
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
-		UTEST_ASSERT( AS_NUMBER( exitCode ) == 412 );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == ( int64_t ) s_LargeConstCount - 1 );
 
 		TestUtils::FreeExitCode( exitCode );
 		UTEST_CASE_CLOSED();
@@ -713,31 +718,106 @@ bool Tests::TestInterpreter()
 		UTEST_CASE_CLOSED();
 	}( );
 
-	UTEST_CASE( "Classes (WIP)" )
+	UTEST_CASE( "Tables (Simple tables)" )
 	{
 		QScript::Value exitCode;
-		UTEST_ASSERT( TestUtils::RunVM( "var x = 0; class Vector {};	\
-			var v = Vector();											\
-			v.x = 1.1;													\
-			v.y = 2.2;													\
-			v.z = 1.0;													\
-			v.inverse = Vector();										\
-			v.inverse.x = -1.0;											\
-			v.inverse.y = -2.2;											\
-			v.inverse.z = -1.0;											\
-			v.x = 1.0;													\
-			v.x += 1.0;													\
-			x += v.x;													\
-			x += v.x + 1.0;												\
-			x = x + (v.x += 10.0);										\
-			v.inverse.x += 1.0;											\
-			x += v.inverse.x;											\
-			v.inverse.x = 0;											\
-			v.x = (v.inverse.x = 0);									\
-			return x;", &exitCode ) );
+		UTEST_ASSERT( TestUtils::RunVM( "Table kova = {			\
+				const x = 4;									\
+				const y = \"hello\";							\
+			};													\
+			Table kava;											\
+			kava.x = 7;											\
+			kava.y = \"bonjour\";								\
+			return kova.y + kava.x + kava.y + kova.x;", &exitCode ) );
+
+		UTEST_ASSERT( IS_STRING( exitCode ) );
+		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "hello7.00bonjour4.00" );
+
+		TestUtils::FreeExitCode( exitCode );
+
+		UTEST_ASSERT( TestUtils::RunVM( "var g0 = 0; {				\
+				var l0 = 1;											\
+				var l1 = 1;											\
+				var l2 = 1;											\
+				Table kova = {										\
+					const x = 4;									\
+					const y = \"hello\";							\
+				};													\
+				{													\
+					Table kava;										\
+					kava.x = 7;										\
+					kava.y = \"bonjour\";							\
+					g0 = kova.y + kava.x + kava.y + kova.x;			\
+				}													\
+			}														\
+			return g0;", &exitCode ) );
+
+		UTEST_ASSERT( IS_STRING( exitCode ) );
+		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "hello7.00bonjour4.00" );
+
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "Tables (Accessing properties from nested tables)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "Table x; Table y = { var x = \"NaNiSoRe\"; }; x.y = y; x.y.x = 4; return x.y.x;", &exitCode ) );
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
-		UTEST_ASSERT( AS_NUMBER( exitCode ) == 17.0 );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 4 );
+		TestUtils::FreeExitCode( exitCode );
+
+		UTEST_ASSERT( TestUtils::RunVM( "var g0 = 0; {										\
+				var l0 = 0;																	\
+				Table x; Table y = { var x = \"NaNiSoRe\"; }; x.y = y;						\
+				x.y.x = 5;																	\
+				g0 = x.y.x;																	\
+			} return g0;", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 5 );
+
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "Tables (Nested tables)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "Table a = {								\
+				const x = 3;														\
+				Table b = {															\
+					const y = true;													\
+					Table c = {														\
+						const z = null;												\
+					};																\
+				};																	\
+			};																		\
+			return \"hello world\" + a.b.c.z + a.b.y + a.x;", &exitCode ) );
+
+		UTEST_ASSERT( IS_STRING( exitCode ) );
+		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "hello world[[null]]True3.00");
+
+		TestUtils::FreeExitCode( exitCode );
+
+		UTEST_ASSERT( TestUtils::RunVM( "var g0 = 0; {									\
+				var l0 = 0; var l1 = 0;													\
+				Table a = {																\
+					const x = 3;														\
+					Table b = {															\
+						const y = true;													\
+						Table c = {														\
+							const z = null;												\
+						};																\
+					};																	\
+				};																		\
+				g0 = \"hello world\" + a.b.c.z + a.b.y + a.x;							\
+			}																			\
+			return g0;", &exitCode ) );
+
+		UTEST_ASSERT( IS_STRING( exitCode ) );
+		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "hello world[[null]]True3.00" );
 
 		TestUtils::FreeExitCode( exitCode );
 		UTEST_CASE_CLOSED();

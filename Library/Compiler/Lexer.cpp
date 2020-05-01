@@ -56,7 +56,7 @@ namespace Compiler
 
 		{ TOK_AUTO, 		{ TOK_AUTO, 		"auto", 	BP_VAR,						true } },
 		{ TOK_BOOL, 		{ TOK_BOOL, 		"bool", 	BP_VAR,						true } },
-		{ TOK_CLASS, 		{ TOK_CLASS, 		"class", 	BP_NONE,					true } },
+		{ TOK_TABLE, 		{ TOK_TABLE, 		"Table", 	BP_NONE,					true } },
 		{ TOK_DO,			{ TOK_DO,			"do",		BP_NONE,					true } },
 		{ TOK_ELSE,			{ TOK_ELSE,			"else",		BP_NONE,					true } },
 		{ TOK_FALSE,		{ TOK_FALSE, 		"false", 	BP_NONE,					true } },

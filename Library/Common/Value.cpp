@@ -14,8 +14,7 @@ std::string QScript::Value::ToString() const
 		case OT_NATIVE: return "<native code>";
 		case OT_CLOSURE: return "<function, " + AS_CLOSURE( *this )->GetFunction()->GetName() + ">";
 		case OT_UPVALUE: return "<upvalue>";
-		case OT_CLASS: return "<class, " + AS_CLASS( *this )->GetName() + ">";
-		case OT_INSTANCE: return "<instance, " + AS_INSTANCE( *this )->GetClass()->GetName() + ">";
+		case OT_TABLE: return "<table, " + AS_TABLE( *this )->GetName() + ">";
 		default:
 		{
 #ifndef QVM_DEBUG

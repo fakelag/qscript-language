@@ -29,7 +29,7 @@ namespace Compiler
 			{ TYPE_NULL, 			"null" },
 			{ TYPE_NUMBER, 			"number" },
 			{ TYPE_BOOL, 			"bool" },
-			{ TYPE_CLASS, 			"class" },
+			{ TYPE_TABLE, 			"Table" },
 			{ TYPE_FUNCTION, 		"function" },
 			{ TYPE_NATIVE, 			"native" },
 			{ TYPE_STRING, 			"string" },
@@ -158,10 +158,9 @@ namespace Compiler
 			{
 				switch ( AS_OBJECT( m_Value )->m_Type )
 				{
-				case QScript::OT_CLASS: return TYPE_CLASS;
+				case QScript::OT_TABLE: return TYPE_TABLE;
 				case QScript::OT_CLOSURE: return TYPE_CLOSURE;
 				case QScript::OT_FUNCTION: return TYPE_FUNCTION;
-				case QScript::OT_INSTANCE: return TYPE_INSTANCE;
 				case QScript::OT_NATIVE: return TYPE_NATIVE;
 				case QScript::OT_STRING: return TYPE_STRING;
 				case QScript::OT_UPVALUE: return TYPE_UPVALUE;
@@ -181,7 +180,7 @@ namespace Compiler
 		{
 		case NODE_ACCESS_PROP:
 		{
-			// TODO: Compile-time classes
+			// TODO: Resolve table property types compile-time
 			return TYPE_UNKNOWN;
 		}
 		case NODE_ASSIGN: return m_Right->ExprType( assembler );
@@ -269,7 +268,7 @@ namespace Compiler
 	{
 		switch ( m_NodeId )
 		{
-		case NODE_CLASS: return TYPE_NONE;
+		case NODE_TABLE: return TYPE_NONE;
 		case NODE_DO: return TYPE_NONE;
 		case NODE_FOR: return TYPE_NONE;
 		case NODE_FUNC: return TYPE_FUNCTION;

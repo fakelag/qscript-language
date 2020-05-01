@@ -45,34 +45,20 @@ QScript::Object* DeepCopyObject( const QScript::Object* object )
 
 		return newUpvalueObject;
 	}
-	case QScript::ObjectType::OT_INSTANCE:
+	case QScript::ObjectType::OT_TABLE:
 	{
-		auto oldInstance = ( ( QScript::InstanceObject* )( object ) );
+		auto oldTable = ( ( QScript::TableObject* )( object ) );
+		auto newTable = QS_NEW QScript::TableObject( oldTable->GetName() );
 
-		auto oldClass = oldInstance->GetClass();
-		auto oldFields = oldInstance->GetFields();
-
-		auto newClass = ( QScript::ClassObject* ) DeepCopyObject( oldClass );
-		std::unordered_map< std::string, QScript::Value > newFields;
-
-		for ( auto oldField : oldFields )
+		for ( auto oldProp : oldTable->GetProperties() )
 		{
-			QScript::Value newField;
-			DeepCopy( &newField, &oldField.second );
+			QScript::Value newProp;
+			DeepCopy( &newProp, &oldProp.second );
 
-			newFields[ oldField.first ] = newField;
+			newTable->GetProperties()[ oldProp.first ] = newProp;
 		}
 
-		auto newInstance = QS_NEW QScript::InstanceObject( newClass );
-		newInstance->GetFields() = newFields;
-
-		return newInstance;
-	}
-	case QScript::ObjectType::OT_CLASS:
-	{
-		auto oldClass = ( ( QScript::ClassObject* )( object ) );
-		auto newClass = QS_NEW QScript::ClassObject( oldClass->GetName() );
-		return newClass;
+		return newTable;
 	}
 	case QScript::ObjectType::OT_NATIVE:
 		throw Exception( "test_objcpy_invalid_target", "Invalid target object: Native" );
@@ -108,15 +94,14 @@ void FreeObject( const QScript::Object* object )
 		FreeObject( ( ( QScript::ClosureObject* ) object )->GetFunction() );
 		break;
 	}
-	case QScript::OT_INSTANCE:
+	case QScript::OT_TABLE:
 	{
-		auto instObject = ( QScript::InstanceObject* ) object;
-		FreeObject( instObject->GetClass() );
+		auto tableObj = ( QScript::TableObject* ) object;
 
-		for ( auto field : instObject->GetFields() )
+		for ( auto prop : tableObj->GetProperties() )
 		{
-			if ( IS_OBJECT( field.second ) )
-				FreeObject( AS_OBJECT( field.second ) );
+			if ( IS_OBJECT( prop.second ) )
+				FreeObject( AS_OBJECT( prop.second ) );
 		}
 
 		break;

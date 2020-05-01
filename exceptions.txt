@@ -14,10 +14,10 @@ Compiler 			cp_unknown_identifier				Referenced an unknown identifier: "%tokenSt
 Compiler 			cp_identifier_already_exists		Identifier already exits: "%tokenString%"
 Compiler 			cp_assign_to_const					Assigning to constant variable: "%tokenString%"
 Compiler 			cp_unescaped_function				Abort: Compiler was left with unfinished functions
-Compiler 			cp_non_top_level_class				Classes must be declared at top-level only
 Compiler 			cp_non_top_level_import				Imports must be declared at top-level only
 Compiler 			cp_unknown_module					Unknown module: "%tokenString%"
 Compiler 			cp_invalid_expression_type			Can not assign expression of type %exprType% to variable of type %variableType% | Expected expression of type %expectedType% got: %exprType% | Expected variable of type %expectedType% got: %variableType%
+Compiler 			cp_invalid_method					Invalid method identifier: "%tokenString%"
 Compiler			cp_invalid_function_arg_type 		Invalid argument type: %varType%
 Compiler			cp_invalid_function_arg 			Unknown argument node: %nodeId%
 IRGenerator 		ir_expect_lvalue_or_statement		Expected a left-value or statement
@@ -26,10 +26,11 @@ IRGenerator			ir_unknown_token					Unknown token id: %tokenId% "%tokenString%"
 IRGenerator			ir_missing_rparen					Expected an end of expression, got: "%tokenString%"
 IRGenerator 		ir_invalid_token 					Invalid token: "%tokenString%"
 IRGenerator 		ir_empty_forloop					Empty forloop. Expected a list of expressions
-IRGenerator 		ir_expect							Expected end of expression, got: "%tokenString%" | Expected "while" after "do <block>", got: "%tokenString%" | "Expected "(" after "for", got: "%tokenString" | "Expected ")", got: "%tokenString" | Expected "=" after "function <name>", got: "%tokenString%" | Expected "(" after "function <name> =", got: "%tokenString%" | Expected ")" after "function <name> = (...", got: "%tokenString%" | Expected ")" after function call, got: "%tokenString%" | Expected end of if/for/while-statement | Expected "->" after "var <name> = (...)", got: " %tokenString" | "Expected "{" before class body, got: "%tokenString" | Expected end of class declaration | Expected \":\" after \"?\" <expression> |
+IRGenerator 		ir_expect							***
 IRGenerator			ir_parsing_past_eof					Parsing past end of file
 IRGenerator 		ir_variable_name 					Invalid variable name: "%tokenString%"
-IRGenerator 		ir_class_name						Invalid class name: "%tokenString%"
+IRGenerator 		ir_table_name						Invalid table name: "%tokenString%"
+IRGenerator 		ir_method_name 						Invalid method name: "%tokenString%"
 IRGenerator 		ir_property_name					Invalid property name: "%tokenString%"
 IRGenerator			ir_invalid_import					Invalid import target "%tokenString%"
 Disassembler		disasm_invalid_value				Invalid value type: %valueType%
