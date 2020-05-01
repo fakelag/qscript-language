@@ -11,8 +11,7 @@ Object::AllocateFunction = &Compiler::AllocateFunction; \
 Object::AllocateNative = &Compiler::AllocateNative; \
 Object::AllocateClosure = &Compiler::AllocateClosure; \
 Object::AllocateUpvalue = &Compiler::AllocateUpvalue; \
-Object::AllocateClass = &Compiler::AllocateClass; \
-Object::AllocateInstance = &Compiler::AllocateInstance
+Object::AllocateTable = &Compiler::AllocateTable;
 
 #define END_COMPILER \
 Object::AllocateString = NULL; \
@@ -20,8 +19,7 @@ Object::AllocateFunction = NULL; \
 Object::AllocateNative = NULL; \
 Object::AllocateClosure = NULL; \
 Object::AllocateUpvalue = NULL; \
-Object::AllocateClass = NULL; \
-Object::AllocateInstance = NULL
+Object::AllocateTable = NULL;
 
 namespace QScript
 {
@@ -424,22 +422,11 @@ namespace Compiler
 		return upvalueObject;
 	}
 
-	QScript::ClassObject* AllocateClass( const std::string& name )
+	QScript::TableObject* AllocateTable( const std::string& name )
 	{
-		assert( 0 );
-
-		auto classObject = QS_NEW QScript::ClassObject( name );
-		ObjectList.push_back( ( QScript::Object* ) classObject );
-		return classObject;
-	}
-
-	QScript::InstanceObject* AllocateInstance( QScript::ClassObject* classDef )
-	{
-		assert( 0 );
-
-		auto instObject = QS_NEW QScript::InstanceObject( classDef );
-		ObjectList.push_back( ( QScript::Object* ) instObject );
-		return instObject;
+		auto tableObject = QS_NEW QScript::TableObject( name );
+		ObjectList.push_back( ( QScript::Object* ) tableObject );
+		return tableObject;
 	}
 
 	void GarbageCollect( const std::vector< QScript::FunctionObject* >& functions )

@@ -52,15 +52,13 @@
 #define MAKE_STRING( string )		(MAKE_OBJECT( QScript::Object::AllocateString( string ) ))
 #define MAKE_CLOSURE( function )	(MAKE_OBJECT( QScript::Object::AllocateClosure( function ) ))
 #define MAKE_UPVALUE( valuePtr )	(MAKE_OBJECT( QScript::Object::AllocateUpvalue( valuePtr ) ))
-#define MAKE_CLASS( name )			(MAKE_OBJECT( QScript::Object::AllocateClass( name ) ))
-#define MAKE_INSTANCE( classDef )	(MAKE_OBJECT( QScript::Object::AllocateInstance( classDef ) ))
+#define MAKE_TABLE( tableName )		(MAKE_OBJECT( QScript::Object::AllocateTable( tableName ) ))
 
 #define AS_STRING( value )			((QScript::StringObject*)(AS_OBJECT(value)))
 #define AS_FUNCTION( value )		((QScript::FunctionObject*)(AS_OBJECT(value)))
 #define AS_NATIVE( value )			((QScript::NativeFunctionObject*)(AS_OBJECT(value)))
 #define AS_CLOSURE( value )			((QScript::ClosureObject*)(AS_OBJECT(value)))
-#define AS_CLASS( value )			((QScript::ClassObject*)(AS_OBJECT(value)))
-#define AS_INSTANCE( value )		((QScript::InstanceObject*)(AS_OBJECT(value)))
+#define AS_TABLE( value )			((QScript::TableObject*)(AS_OBJECT(value)))
 
 #define IS_ANY( value ) 			(true)
 #define IS_STRING( value )			((value).IsObjectOfType<QScript::ObjectType::OT_STRING>())
@@ -68,8 +66,7 @@
 #define IS_NATIVE( value )			((value).IsObjectOfType<QScript::ObjectType::OT_NATIVE>())
 #define IS_CLOSURE( value )			((value).IsObjectOfType<QScript::ObjectType::OT_CLOSURE>())
 #define IS_UPVALUE( value )			((value).IsObjectOfType<QScript::ObjectType::OT_UPVALUE>())
-#define IS_CLASS( value )			((value).IsObjectOfType<QScript::ObjectType::OT_CLASS>())
-#define IS_INSTANCE( value )		((value).IsObjectOfType<QScript::ObjectType::OT_INSTANCE>())
+#define IS_TABLE( value )			((value).IsObjectOfType<QScript::ObjectType::OT_TABLE>())
 
 #define ENCODE_LONG( a, index ) (( uint8_t )( ( a >> ( 8 * index ) ) & 0xFF ))
 #define DECODE_LONG( a, b, c, d ) (( uint32_t ) ( a + 0x100UL * b + 0x10000UL * c + 0x1000000UL * d ))
@@ -141,8 +138,7 @@ namespace QScript
 	class NativeFunctionObject;
 	class ClosureObject;
 	class UpvalueObject;
-	class ClassObject;
-	class InstanceObject;
+	class TableObject;
 
 	enum ValueType : char
 	{
@@ -156,10 +152,9 @@ namespace QScript
 	enum ObjectType : char
 	{
 		OT_INVALID = -1,
-		OT_CLASS,
+		OT_TABLE,
 		OT_CLOSURE,
 		OT_FUNCTION,
-		OT_INSTANCE,
 		OT_NATIVE,
 		OT_STRING,
 		OT_UPVALUE,
@@ -178,16 +173,14 @@ namespace QScript
 		using NativeAllocatorFn = NativeFunctionObject * ( *)( void* nativeFn );
 		using ClosureAllocatorFn = ClosureObject* ( *)( FunctionObject* function );
 		using UpvalueAllocatorFn = UpvalueObject * ( *)( Value* valuePtr );
-		using ClassAllocatorFn = ClassObject * ( *)( const std::string& name );
-		using InstanceAllocatorFn = InstanceObject * ( *)( ClassObject* classDef );
+		using TableAllocatorFn = TableObject * ( *)( const std::string& name );
 
 		static StringAllocatorFn AllocateString;
 		static FunctionAllocatorFn AllocateFunction;
 		static NativeAllocatorFn AllocateNative;
 		static ClosureAllocatorFn AllocateClosure;
 		static UpvalueAllocatorFn AllocateUpvalue;
-		static ClassAllocatorFn AllocateClass;
-		static InstanceAllocatorFn AllocateInstance;
+		static TableAllocatorFn AllocateTable;
 	};
 
 	// Value struct -- must be trivially copyable for stack relocations to work

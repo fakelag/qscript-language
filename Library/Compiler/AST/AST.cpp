@@ -939,26 +939,111 @@ namespace Compiler
 
 		switch ( m_NodeId )
 		{
-		case NODE_CLASS:
+		case NODE_TABLE:
 		{
-			if ( !IS_STATEMENT( options ) )
-				throw EXPECTED_EXPRESSION;
+			auto isStatement = IS_STATEMENT( options );
 
-			if ( !assembler.IsTopLevel() || assembler.StackDepth() > 0 )
-				throw CompilerException( "cp_non_top_level_class", "Classes must be declared at top-level only", m_LineNr, m_ColNr, m_Token );
+			auto varName = static_cast< ValueNode* >( m_NodeList[ 0 ] )->GetValue();
+			auto varNameString = AS_STRING( varName )->GetString();
+			bool isLocal = ( assembler.StackDepth() > 0 );
 
-			auto className = static_cast< ValueNode* >( m_NodeList[ 0 ] )->GetValue();
-			uint32_t constIndex = AddConstant( className, chunk );
+			// Empty table
+			EmitConstant( chunk, MAKE_TABLE( varNameString ), QScript::OpCode::OP_LOAD_CONSTANT_SHORT, QScript::OpCode::OP_LOAD_CONSTANT_LONG, assembler );
 
-			// Create class object in runtime with name string
-			EmitByte( QScript::OpCode::OP_CLASS, chunk );
-			EmitByte( ENCODE_LONG( constIndex, 0 ), chunk );
-			EmitByte( ENCODE_LONG( constIndex, 1 ), chunk );
-			EmitByte( ENCODE_LONG( constIndex, 2 ), chunk );
-			EmitByte( ENCODE_LONG( constIndex, 3 ), chunk );
+			if ( isStatement )
+			{
+				if ( !isLocal )
+				{
+					// Global variable
+					if ( !assembler.AddGlobal( varNameString, true, TYPE_TABLE ) )
+					{
+						throw CompilerException( "cp_identifier_already_exists", "Identifier already exits: \"" + varNameString + "\"",
+							m_LineNr, m_ColNr, m_Token );
+					}
 
-			// Let compiler know about the identifier
-			assembler.AddGlobal( AS_STRING( className )->GetString(), true, TYPE_CLASS );
+					EmitConstant( chunk, varName, QScript::OpCode::OP_SET_GLOBAL_SHORT, QScript::OpCode::OP_SET_GLOBAL_LONG, assembler );
+				}
+				else
+				{
+					// Local variable
+					assembler.AddLocal( varNameString, true, TYPE_TABLE );
+				}
+			}
+			else
+			{
+				// Not a statement? We are creating a nested table
+			}
+
+			// Populate table with properties?
+			if ( m_NodeList[ 1 ] )
+			{
+				auto propertyList = static_cast< ListNode* >( m_NodeList[ 1 ] );
+
+				for ( auto prop : propertyList->GetList() )
+				{
+					QScript::Value propName;
+
+					if ( prop->Id() == NODE_FIELD )
+					{
+						auto propNode = static_cast< ListNode* >( prop );
+						auto propNameNode = propNode->GetList()[ 0 ];
+						// auto propTypeNode = propNode->GetList()[ 1 ]; // TODO: Compile time table templates for type support
+						auto defaultValueNode = propNode->GetList()[ 2 ];
+						propName = static_cast< ValueNode* >( propNameNode )->GetValue();
+
+						if ( defaultValueNode )
+						{
+							auto valueNode = static_cast< ValueNode* >( defaultValueNode );
+							EmitConstant( chunk, valueNode->GetValue(), QScript::OpCode::OP_LOAD_CONSTANT_SHORT, QScript::OpCode::OP_LOAD_CONSTANT_LONG, assembler );
+						}
+						else
+						{
+							// Load null (no default value given)
+							EmitByte( QScript::OpCode::OP_LOAD_NULL, chunk );
+						}
+					}
+					else if ( prop->Id() == NODE_METHOD )
+					{
+						// assert( 0 );
+						continue;
+					}
+					else if ( prop->Id() == NODE_TABLE )
+					{
+						// Nested table
+						auto subTable = static_cast< ListNode* >( prop );
+						subTable->Compile( assembler, COMPILE_EXPRESSION( options ) );
+
+						auto propNameNode = subTable->GetList()[ 0 ];
+						propName = static_cast< ValueNode* >( propNameNode )->GetValue();
+					}
+					else
+					{
+						assert( 0 );
+					}
+
+					/*
+						At this point our stack looks something like this
+							stack@0: <some local>
+							stack@1: <some local>
+							stack@2: <table object>
+							stack@3: <default value>
+
+						Duplicate table object and set field to default value
+					*/
+					EmitByte( QScript::OpCode::OP_LOAD_TOP_SHORT, chunk );
+					EmitByte( 1, chunk );
+
+					// Set prop
+					EmitConstant( chunk, propName, QScript::OpCode::OP_SET_PROP_SHORT, QScript::OpCode::OP_SET_PROP_LONG, assembler );
+
+					// Pop default value off
+					EmitByte( QScript::OpCode::OP_POP, chunk );
+				}
+			}
+
+			// Not a local? pop it off the stack
+			if ( !isLocal && isStatement )
+				EmitByte( QScript::OpCode::OP_POP, chunk );
 			break;
 		}
 		case NODE_DO:

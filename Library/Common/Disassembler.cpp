@@ -125,6 +125,7 @@ uint32_t Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32
 	// Decode current instruction
 	switch ( chunk.m_Code[ offset ] )
 	{
+	INST_SHORT( OP_LOAD_TOP_SHORT, "LOAD_TOP_SHORT" );
 	CNST_INST_SHORT( OP_LOAD_CONSTANT_SHORT, "LOAD_CONSTANT" );
 	CNST_INST_LONG( OP_LOAD_CONSTANT_LONG, "LOAD_CONSTANT" );
 	CNST_INST_SHORT( OP_SET_GLOBAL_SHORT, "SET_GLOBAL" );
@@ -135,7 +136,6 @@ uint32_t Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32
 	CNST_INST_LONG( OP_SET_PROP_LONG, "SET_PROP" );
 	CNST_INST_SHORT( OP_LOAD_PROP_SHORT, "LOAD_PROP" );
 	CNST_INST_LONG( OP_LOAD_PROP_LONG, "LOAD_PROP" );
-	CNST_INST_LONG( OP_CLASS, "CLASS" );
 	CNST_INST_LONG( OP_IMPORT, "IMPORT" );
 	INST_SHORT( OP_LOAD_LOCAL_SHORT, "LOAD_LOCAL" );
 	INST_LONG( OP_LOAD_LOCAL_LONG, "LOAD_LOCAL" );
@@ -283,6 +283,7 @@ int Compiler::InstructionSize( uint8_t inst )
 {
 	switch ( inst )
 	{
+	case QScript::OpCode::OP_LOAD_TOP_SHORT: return 2;
 	case QScript::OpCode::OP_LOAD_CONSTANT_SHORT: return 2;
 	case QScript::OpCode::OP_LOAD_CONSTANT_LONG: return 5;
 	case QScript::OpCode::OP_SET_GLOBAL_SHORT: return 2;
@@ -315,7 +316,6 @@ int Compiler::InstructionSize( uint8_t inst )
 	case QScript::OpCode::OP_POW: return 1;
 	case QScript::OpCode::OP_MOD: return 1;
 	case QScript::OpCode::OP_CALL: return 2;
-	case QScript::OpCode::OP_CLASS: return 5;
 	case QScript::OpCode::OP_IMPORT: return 5;
 	case QScript::OpCode::OP_CLOSURE_LONG: return 5;
 	case QScript::OpCode::OP_CLOSURE_SHORT: return 2;

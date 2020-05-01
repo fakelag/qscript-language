@@ -14,8 +14,7 @@ QScript::Object::AllocateFunction = &QVM::AllocateFunction; \
 QScript::Object::AllocateNative = &QVM::AllocateNative; \
 QScript::Object::AllocateClosure = &QVM::AllocateClosure; \
 QScript::Object::AllocateUpvalue = &QVM::AllocateUpvalue; \
-QScript::Object::AllocateClass = &QVM::AllocateClass; \
-QScript::Object::AllocateInstance = &QVM::AllocateInstance
+QScript::Object::AllocateTable = &QVM::AllocateTable;
 
 #define INTERP_SHUTDOWN \
 QScript::Object::AllocateString = NULL; \
@@ -23,8 +22,7 @@ QScript::Object::AllocateFunction = NULL; \
 QScript::Object::AllocateNative = NULL; \
 QScript::Object::AllocateClosure = NULL; \
 QScript::Object::AllocateUpvalue = NULL; \
-QScript::Object::AllocateClass = NULL; \
-QScript::Object::AllocateInstance = NULL
+QScript::Object::AllocateTable = NULL;
 
 #if !defined(QVM_DEBUG) && defined(_OSX)
 #define _INTERP_JMP_PREFIX( opcode ) &&code_##opcode
@@ -108,18 +106,18 @@ namespace QVM
 		auto propName = AS_STRING( name )->GetString();
 		auto value = vm.Peek( 0 );
 
-		if ( !IS_INSTANCE( value ) )
+		if ( !IS_TABLE( value ) )
 		{
 			QVM::RuntimeError( frame, "rt_invalid_instance",
-				"Can not read property \"" + propName + "\" of invalid instance \"" + value.ToString() + "\"" );
+				"Can not read property \"" + propName + "\" of invalid table instance \"" + value.ToString() + "\"" );
 		}
 
-		auto instObj = AS_INSTANCE( value );
-		auto& fields = instObj->GetFields();
+		auto table = AS_TABLE( value );
+		auto& props = table->GetProperties();
 
-		auto prop = fields.find( propName );
+		auto prop = props.find( propName );
 
-		if ( prop == fields.end() )
+		if ( prop == props.end() )
 		{
 			QVM::RuntimeError( frame, "rt_unknown_property",
 				"Unknown property \"" + propName + "\" of \"" + value.ToString() + "\"" );
@@ -133,16 +131,16 @@ namespace QVM
 		auto propName = AS_STRING( name )->GetString();
 		auto value = vm.Pop();
 
-		if ( !IS_INSTANCE( value ) )
+		if ( !IS_TABLE( value ) )
 		{
 			QVM::RuntimeError( frame, "rt_invalid_instance",
-				"Can not read property \"" + propName + "\" of invalid instance \"" + value.ToString() + "\"" );
+				"Can not read property \"" + propName + "\" of invalid table instance \"" + value.ToString() + "\"" );
 		}
 
-		auto instObj = AS_INSTANCE( value );
-		auto& fields = instObj->GetFields();
+		auto table = AS_TABLE( value );
+		auto& props = table->GetProperties();
 
-		fields[ propName ] = vm.Peek( 0 );
+		props[ propName ] = vm.Peek( 0 );
 	}
 
 	QScript::Value Run( VM_t& vm )
@@ -258,6 +256,7 @@ namespace QVM
 			uint8_t inst = 0;
 			INTERP_SWITCH( inst )
 			{
+			INTERP_OPCODE( OP_LOAD_TOP_SHORT ): vm.Push( vm.Peek( READ_BYTE() ) ); INTERP_DISPATCH;
 			INTERP_OPCODE( OP_LOAD_CONSTANT_SHORT ): vm.Push( READ_CONST_SHORT() ); INTERP_DISPATCH;
 			INTERP_OPCODE( OP_LOAD_CONSTANT_LONG ):
 			{
@@ -471,15 +470,6 @@ namespace QVM
 				ip = vm.OpenUpvalues( AS_CLOSURE( closure ), frame, ip );
 				INTERP_DISPATCH;
 			}
-			INTERP_OPCODE( OP_CLASS ):
-			{
-				READ_CONST_LONG( constant );
-
-				auto className = AS_STRING( constant );
-				vm.m_Globals[ className->GetString() ] = MAKE_CLASS( className->GetString() );
-
-				INTERP_DISPATCH;
-			}
 			INTERP_OPCODE( OP_CLOSE_UPVALUE ) :
 			{
 				vm.CloseUpvalues( vm.m_StackTop - 1 );
@@ -523,8 +513,11 @@ namespace QVM
 					QVM::RuntimeError( frame, "rt_unknown_module",
 						"Unknown module: \"" + AS_STRING( constant )->GetString() + "\"" );
 				}
+				else
+				{
+					module->Import( &vm );
+				}
 
-				module->Import( &vm );
 				INTERP_DISPATCH;
 			}
 			INTERP_OPCODE( OP_POW ) :
@@ -663,18 +656,11 @@ namespace QVM
 		return upvalueObject;
 	}
 
-	QScript::ClassObject* AllocateClass( const std::string& name )
+	QScript::TableObject* AllocateTable( const std::string& name )
 	{
-		auto classObject = QS_NEW QScript::ClassObject( name );
-		VirtualMachine->AddObject( ( QScript::Object* ) classObject );
-		return classObject;
-	}
-
-	QScript::InstanceObject* AllocateInstance( QScript::ClassObject* classDef )
-	{
-		auto instObject = QS_NEW QScript::InstanceObject( classDef );
-		VirtualMachine->AddObject( ( QScript::Object* ) instObject );
-		return instObject;
+		auto tableObject = QS_NEW QScript::TableObject( name );
+		VirtualMachine->AddObject( ( QScript::Object* ) tableObject );
+		return tableObject;
 	}
 }
 
@@ -753,14 +739,6 @@ void VM_t::Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target )
 		m_StackTop -= numArgs + 1;
 
 		Push( returnValue );
-		break;
-	}
-	case QScript::ObjectType::OT_CLASS:
-	{
-		auto instance = MAKE_INSTANCE( AS_CLASS( target ) );
-		m_StackTop -= numArgs + 1;
-
-		Push( instance );
 		break;
 	}
 	default:
@@ -853,15 +831,14 @@ void VM_t::MarkObject( QScript::Object* object )
 
 			break;
 		}
-		case QScript::OT_INSTANCE:
+		case QScript::OT_TABLE:
 		{
-			auto instObj = ( ( QScript::InstanceObject* ) object );
-			MarkObject( instObj->GetClass() );
+			auto tableObj = ( ( QScript::TableObject* ) object );
 
-			for ( auto field : instObj->GetFields() )
+			for ( auto props : tableObj->GetProperties() )
 			{
-				if ( IS_OBJECT( field.second ) )
-					MarkObject( AS_OBJECT( field.second ) );
+				if ( IS_OBJECT( props.second ) )
+					MarkObject( AS_OBJECT( props.second ) );
 			}
 
 			break;

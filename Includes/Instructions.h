@@ -10,7 +10,6 @@ fmt(OP_CALL_4), \
 fmt(OP_CALL_5), \
 fmt(OP_CALL_6), \
 fmt(OP_CALL_7), \
-fmt(OP_CLASS), \
 fmt(OP_CLOSE_UPVALUE), \
 fmt(OP_CLOSURE_SHORT), \
 fmt(OP_CLOSURE_LONG), \
@@ -25,6 +24,7 @@ fmt(OP_JUMP_SHORT), \
 fmt(OP_JUMP_LONG), \
 fmt(OP_JUMP_IF_ZERO_SHORT), \
 fmt(OP_JUMP_IF_ZERO_LONG), \
+fmt(OP_LOAD_TOP_SHORT), \
 fmt(OP_LOAD_CONSTANT_LONG), \
 fmt(OP_LOAD_CONSTANT_SHORT), \
 fmt(OP_LOAD_GLOBAL_LONG), \

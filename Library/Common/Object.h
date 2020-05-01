@@ -102,36 +102,20 @@ namespace QScript
 		std::vector< UpvalueObject* >	m_Upvalues;
 	};
 
-	class ClassObject : public Object
+	class TableObject : public Object
 	{
 	public:
-		FORCEINLINE ClassObject( const std::string& name )
+		FORCEINLINE TableObject( const std::string& name )
 		{
-			m_Type = OT_CLASS;
+			m_Type = OT_TABLE;
 			m_Name = name;
 		}
 
-		FORCEINLINE	const std::string& GetName() const { return m_Name; }
+		FORCEINLINE	const std::string&									GetName() const { return m_Name; }
+		FORCEINLINE std::unordered_map< std::string, Value >&			GetProperties() { return m_Properties; }
 
 	private:
 		std::string									m_Name;
-		std::unordered_map< std::string, Value >	m_Methods;
-	};
-
-	class InstanceObject : public Object
-	{
-	public:
-		FORCEINLINE InstanceObject( ClassObject* classDef )
-		{
-			m_Type = OT_INSTANCE;
-			m_Class = classDef;
-		}
-
-		FORCEINLINE	ClassObject*								GetClass() const { return m_Class; }
-		FORCEINLINE std::unordered_map< std::string, Value >&	GetFields() { return m_Fields; }
-
-	private:
-		ClassObject*								m_Class;
-		std::unordered_map< std::string, Value >	m_Fields;
+		std::unordered_map< std::string, Value >	m_Properties;
 	};
 }
