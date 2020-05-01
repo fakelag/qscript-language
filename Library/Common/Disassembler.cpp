@@ -186,6 +186,7 @@ uint32_t Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32
 	SIMPLE_INST( OP_SET_LOCAL_11, "SET_LOCAL 11" );
 	SIMPLE_INST( OP_CLOSE_UPVALUE, "CLOSE_UPVALUE" );
 	SIMPLE_INST( OP_ADD, "ADD" );
+	SIMPLE_INST( OP_BIND, "BIND" );
 	SIMPLE_INST( OP_SUB, "SUB" );
 	SIMPLE_INST( OP_DIV, "DIV" );
 	SIMPLE_INST( OP_MUL, "MUL" );
@@ -283,6 +284,7 @@ int Compiler::InstructionSize( uint8_t inst )
 {
 	switch ( inst )
 	{
+	case QScript::OpCode::OP_BIND: return 1;
 	case QScript::OpCode::OP_LOAD_TOP_SHORT: return 2;
 	case QScript::OpCode::OP_LOAD_CONSTANT_SHORT: return 2;
 	case QScript::OpCode::OP_LOAD_CONSTANT_LONG: return 5;

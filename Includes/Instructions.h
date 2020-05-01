@@ -1,6 +1,7 @@
 #pragma once
 #define QS_OPCODES( fmt ) \
 fmt(OP_ADD), \
+fmt(OP_BIND), \
 fmt(OP_CALL), \
 fmt(OP_CALL_0), \
 fmt(OP_CALL_1), \

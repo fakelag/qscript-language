@@ -520,6 +520,27 @@ namespace QVM
 
 				INTERP_DISPATCH;
 			}
+			INTERP_OPCODE( OP_BIND ) :
+			{
+				auto closure = vm.Pop();
+				auto receiver = vm.Pop();
+
+				if ( !IS_CLOSURE( closure ) )
+				{
+					QVM::RuntimeError( frame, "rt_invalid_bind_target",
+						"Invalid bind target: \"" + closure.ToString() + "\"" );
+				}
+
+				if ( !IS_TABLE( receiver ) )
+				{
+					QVM::RuntimeError( frame, "rt_invalid_bind_source",
+						"Invalid bind source: \"" + receiver.ToString() + "\"" );
+				}
+
+				AS_CLOSURE( closure )->Bind( AS_OBJECT( receiver ) );
+				vm.Push( closure );
+				INTERP_DISPATCH;
+			}
 			INTERP_OPCODE( OP_POW ) :
 			{
 				auto b = vm.Pop();
@@ -729,6 +750,7 @@ void VM_t::Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target )
 				std::to_string( numArgs ) + " expected: " + std::to_string( function->NumArgs() ) );
 		}
 
+		m_StackTop[ -numArgs - 1 ] = MAKE_OBJECT( closure->GetThis() );
 		m_Frames.emplace_back( closure, m_StackTop - numArgs - 1, &function->GetChunk()->m_Code[ 0 ] );
 		break;
 	}
