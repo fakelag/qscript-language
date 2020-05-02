@@ -197,7 +197,7 @@ namespace Compiler
 		return argsList;
 	}
 
-	void CompileFunction( bool isAnonymous, bool isConst, bool addLocal, const std::string& name, ListNode* funcNode, Assembler& assembler )
+	void CompileFunction( bool isAnonymous, bool isConst, bool isMember, const std::string& name, ListNode* funcNode, Assembler& assembler )
 	{
 		auto chunk = assembler.CurrentChunk();
 		auto& nodeList = funcNode->GetList();
@@ -206,7 +206,11 @@ namespace Compiler
 		auto functionArity = ( uint32_t ) argNode->GetList().size();
 
 		// Allocate chunk & create function
-		auto function = assembler.CreateFunction( name, isConst, ResolveReturnType( funcNode, assembler ), functionArity, isAnonymous, addLocal, QScript::AllocChunk() );
+		auto function = assembler.CreateFunction( name, isConst, ResolveReturnType( funcNode, assembler ), functionArity, isAnonymous, !isMember, QScript::AllocChunk() );
+
+		if ( isMember )
+			assembler.AddLocal( "this", false, TYPE_TABLE );
+
 		assembler.PushScope();
 
 		// Create args in scope
@@ -508,12 +512,12 @@ namespace Compiler
 				{
 					// Compile a named function
 					auto& varName = static_cast< ValueNode* >( m_Left )->GetValue();
-					CompileFunction( false, false, true, AS_STRING( varName )->GetString(), static_cast< ListNode* >( m_Right ), assembler );
+					CompileFunction( false, false, false, AS_STRING( varName )->GetString(), static_cast< ListNode* >( m_Right ), assembler );
 				}
 				else
 				{
 					// Anonymous function
-					CompileFunction( true, false, true, "<anonymous>", static_cast< ListNode* >( m_Right ), assembler );
+					CompileFunction( true, false, false, "<anonymous>", static_cast< ListNode* >( m_Right ), assembler );
 				}
 
 				m_Left->Compile( assembler, COMPILE_REASSIGN_TARGET( options ) );
@@ -993,8 +997,7 @@ namespace Compiler
 
 						if ( defaultValueNode )
 						{
-							auto valueNode = static_cast< ValueNode* >( defaultValueNode );
-							EmitConstant( chunk, valueNode->GetValue(), QScript::OpCode::OP_LOAD_CONSTANT_SHORT, QScript::OpCode::OP_LOAD_CONSTANT_LONG, assembler );
+							defaultValueNode->Compile( assembler, COMPILE_EXPRESSION( options ) );
 						}
 						else
 						{
@@ -1007,7 +1010,15 @@ namespace Compiler
 						auto propNode = static_cast< ListNode* >( prop );
 						auto funcNode = static_cast< ListNode* >( propNode->GetList()[ 1 ] );
 						propName = static_cast< ValueNode* >( propNode->GetList()[ 0 ] )->GetValue();
-						CompileFunction( true, true, false, AS_STRING( propName )->GetString(), funcNode, assembler );
+						CompileFunction( true, true, true, varNameString + "::" + AS_STRING( propName )->GetString(), funcNode, assembler );
+
+						EmitByte( QScript::OpCode::OP_LOAD_TOP_SHORT, chunk );
+						EmitByte( 1, chunk );
+
+						EmitByte( QScript::OpCode::OP_LOAD_TOP_SHORT, chunk );
+						EmitByte( 1, chunk );
+
+						EmitByte( QScript::OpCode::OP_BIND, chunk );
 					}
 					else if ( prop->Id() == NODE_TABLE )
 					{
@@ -1157,7 +1168,7 @@ namespace Compiler
 			if ( IS_STATEMENT( options ) )
 				throw EXPECTED_STATEMENT;
 
-			CompileFunction( true, false, true, "<anonymous>", this, assembler );
+			CompileFunction( true, false, false, "<anonymous>", this, assembler );
 			break;
 		}
 		case NODE_INLINE_IF:
@@ -1258,7 +1269,7 @@ namespace Compiler
 				if ( m_NodeList[ 1 ]->Id() == NODE_FUNC )
 				{
 					// Compile a named function
-					CompileFunction( false, isConst, true, varString, static_cast< ListNode* >( m_NodeList[ 1 ] ), assembler );
+					CompileFunction( false, isConst, false, varString, static_cast< ListNode* >( m_NodeList[ 1 ] ), assembler );
 				}
 				else
 				{

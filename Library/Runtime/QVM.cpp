@@ -520,7 +520,7 @@ namespace QVM
 
 				INTERP_DISPATCH;
 			}
-			INTERP_OPCODE( OP_BIND ) :
+			INTERP_OPCODE( OP_BIND ):
 			{
 				auto closure = vm.Pop();
 				auto receiver = vm.Pop();
@@ -538,7 +538,6 @@ namespace QVM
 				}
 
 				AS_CLOSURE( closure )->Bind( AS_OBJECT( receiver ) );
-				vm.Push( closure );
 				INTERP_DISPATCH;
 			}
 			INTERP_OPCODE( OP_POW ) :
