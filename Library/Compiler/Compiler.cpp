@@ -523,7 +523,7 @@ namespace Compiler
 		for ( auto identifier : config.m_Globals )
 			AddGlobal( identifier );
 
-		CreateFunction( "<main>", true, TYPE_UNKNOWN, 0, true, chunk );
+		CreateFunction( "<main>", true, TYPE_UNKNOWN, 0, true, true, chunk );
 	}
 
 	void Assembler::Release()
@@ -576,14 +576,15 @@ namespace Compiler
 		return m_Functions.back().m_Stack;
 	}
 
-	QScript::FunctionObject* Assembler::CreateFunction( const std::string& name, bool isConst, uint32_t retnType, int arity, bool isAnonymous, QScript::Chunk_t* chunk )
+	QScript::FunctionObject* Assembler::CreateFunction( const std::string& name, bool isConst, uint32_t retnType, int arity, bool isAnonymous, bool addLocal, QScript::Chunk_t* chunk )
 	{
 		auto function = QS_NEW QScript::FunctionObject( name, arity, chunk );
 		auto context = FunctionContext_t{ function, QS_NEW Assembler::Stack_t(), retnType };
 
 		m_Functions.push_back( context );
 
-		AddLocal( isAnonymous ? "" : name, isConst, TYPE_FUNCTION, retnType );
+		if ( addLocal )
+			AddLocal( isAnonymous ? "" : name, isConst, TYPE_FUNCTION, retnType );
 		return function;
 	}
 

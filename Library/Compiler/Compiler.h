@@ -90,7 +90,7 @@ namespace Compiler
 		uint32_t 									AddUpvalue( FunctionContext_t* context, uint32_t index, bool isLocal );
 		void 										ClearArguments();
 		const QScript::Config_t&					Config() const;
-		QScript::FunctionObject*					CreateFunction( const std::string& name, bool isConst, uint32_t retnType, int arity, bool isAnonymous, QScript::Chunk_t* chunk );
+		QScript::FunctionObject*					CreateFunction( const std::string& name, bool isConst, uint32_t retnType, int arity, bool isAnonymous, bool addLocal, QScript::Chunk_t* chunk );
 		const std::vector< Variable_t >& 			CurrentArguments();
 		QScript::Chunk_t*							CurrentChunk();
 		const FunctionContext_t*					CurrentContext();

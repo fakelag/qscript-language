@@ -823,6 +823,55 @@ bool Tests::TestInterpreter()
 		UTEST_CASE_CLOSED();
 	}( );
 
+	UTEST_CASE( "Tables (Methods)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "var g0 = 0;				\
+			{														\
+				var l0 = 1;											\
+				const l1 = 1;										\
+				Table x = {											\
+					const y = 9.0;									\
+					Calc( num a, num b ) -> num {					\
+						return a + b;								\
+					};												\
+					Calc2( num a ) -> {								\
+						return a + this.y;							\
+					};												\
+				};													\
+				const l2 = 1;										\
+				g0 = x.Calc( 1, 3 ) * x.Calc2( 7.0 );				\
+			}														\
+			return g0;", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 64.0 );
+
+		TestUtils::FreeExitCode( exitCode );
+
+		UTEST_ASSERT( TestUtils::RunVM( "var g0 = 0;						\
+		{																	\
+			const num halfBase = 0.5;										\
+			Table x ={														\
+				const base = halfBase * 2.0;								\
+				BaseNumber() -> num { return 1; }							\
+				Fibo( a ) -> auto {											\
+					if ( a <= this.base )									\
+						return this.BaseNumber();							\
+					return this.Fibo( a - 1 ) + this.Fibo( a - 2 );			\
+				};															\
+			};																\
+			g0 = x.Fibo( 10 );												\
+		}																	\
+		return g0;", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 89.0 );
+
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
 	UTEST_CASE( "Inline if -statements" )
 	{
 		QScript::Value exitCode;

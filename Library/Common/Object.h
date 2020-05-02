@@ -92,14 +92,18 @@ namespace QScript
 		{
 			m_Type = OT_CLOSURE;
 			m_Fn = function;
+			m_This = this;
 		}
 
-		FORCEINLINE	const FunctionObject* GetFunction() const { return m_Fn; }
-		FORCEINLINE	std::vector< UpvalueObject* >& GetUpvalues() { return m_Upvalues; }
+		FORCEINLINE	const FunctionObject* GetFunction()					const { return m_Fn; }
+		FORCEINLINE const Object* GetThis()								const { return m_This; }
+		FORCEINLINE void Bind( const Object* receiver )					{ m_This = receiver; }
+		FORCEINLINE	std::vector< UpvalueObject* >& GetUpvalues()		{ return m_Upvalues; }
 
 	private:
 		const FunctionObject* 			m_Fn;
 		std::vector< UpvalueObject* >	m_Upvalues;
+		const Object*					m_This;
 	};
 
 	class TableObject : public Object

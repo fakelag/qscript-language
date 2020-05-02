@@ -141,5 +141,20 @@ bool Tests::TestLexer()
 		UTEST_CASE_CLOSED();
 	}( );
 
+	// TODO: Work on lexer to fix this specific bug
+	//UTEST_CASE( "Word separation" )
+	//{
+	//	auto tokens = Lexer( "const numbaHalf = 0;" );
+
+	//	UTEST_ASSERT( tokens.size() == 5 );
+	//	UTEST_ASSERT( tokens[ 0 ].m_Id == TOK_CONST );
+	//	UTEST_ASSERT( tokens[ 1 ].m_Id == TOK_NAME );
+	//	UTEST_ASSERT( tokens[ 2 ].m_Id == TOK_EQUALS );
+	//	UTEST_ASSERT( tokens[ 3 ].m_Id == TOK_NUMBER );
+	//	UTEST_ASSERT( tokens[ 4 ].m_Id == TOK_SCOLON );
+
+	//	UTEST_CASE_CLOSED();
+	//}( );
+
 	UTEST_END();
 }
