@@ -84,6 +84,23 @@ int main( int argc, char* argv[] )
 	{
 		QScript::Repl();
 	}
+	else if ( GetArg( "--lexer", argc, argv, &next ) )
+	{
+		std::string source = input;
+
+		if ( source.length() == 0 )
+		{
+			std::cout << "Lexer >";
+			std::getline( std::cin, source );
+		}
+
+		auto tokens = Compiler::Lexer( source );
+
+		for ( auto token : tokens )
+		{
+			std::cout << "\"" + token.m_String + "\" lbp=" + std::to_string( token.m_LBP ) << std::endl;
+		}
+	}
 	else if ( GetArg( "--typer", argc, argv, &next ) )
 	{
 		for (;;)
