@@ -305,7 +305,7 @@ bool Tests::TestInterpreter()
 				var l1 = 25;							\
 				do {									\
 					l0 = l0 + l1;						\
-				} while ( l0 < 100 );					\
+				} while(l0<100);						\
 				{										\
 					var l2 = l0;						\
 					do {								\
@@ -334,7 +334,7 @@ bool Tests::TestInterpreter()
 					var sum = g0 + g1;						\
 					g0 = g1;								\
 					g1 = sum;								\
-				} while ( ( iter = iter + 1 ) < 50 );		\
+				} while( ( iter = iter + 1 ) < 50 );		\
 			}												\
 			return g1; ", &exitCode ) );
 
