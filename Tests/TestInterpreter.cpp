@@ -823,7 +823,7 @@ bool Tests::TestInterpreter()
 		UTEST_CASE_CLOSED();
 	}( );
 
-	UTEST_CASE( "Tables (Methods)" )
+	UTEST_CASE( "Tables (Simple methods)" )
 	{
 		QScript::Value exitCode;
 		UTEST_ASSERT( TestUtils::RunVM( "var g0 = 0;				\
@@ -867,6 +867,37 @@ bool Tests::TestInterpreter()
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 89.0 );
+
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "Tables (Methods as first-class citizen)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "var g0 = 0; var calc2;		\
+			{														\
+				var l0 = 1;											\
+				const l1 = 1;										\
+				Table x = {											\
+					const y = 9.0;									\
+					Calc( num a, num b ) -> num {					\
+						return a + b;								\
+					};												\
+					Calc2( num a ) -> {								\
+						return a + this.y;							\
+					};												\
+				};													\
+				calc2 = x.Calc2;									\
+				x.y = 5.0;											\
+				const l2 = 1;										\
+				const calculate = x.Calc;							\
+				g0 = calculate( 1, l2 ) * calc2( 7.0 );				\
+			}														\
+			return g0;", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 24.0 );
 
 		TestUtils::FreeExitCode( exitCode );
 		UTEST_CASE_CLOSED();
