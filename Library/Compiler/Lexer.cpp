@@ -13,7 +13,7 @@ namespace Compiler
 		bool				m_IsWord;
 	};
 
-	const std::map<Token, KeywordInfo_t> LanguageSymbols = {
+	const std::map<Token, KeywordInfo_t> LanguageSymbols ={
 		{ TOK_PLUS,			{ TOK_PLUS, 		"+", 		BP_ARITHMETIC_ADDSUB,		false } },
 		{ TOK_MINUS,		{ TOK_MINUS, 		"-", 		BP_ARITHMETIC_ADDSUB,		false } },
 		{ TOK_STAR,			{ TOK_STAR, 		"*", 		BP_ARITHMETIC_MULDIV,		false } },
@@ -75,223 +75,268 @@ namespace Compiler
 
 	std::vector< Token_t > Lexer( const std::string& source )
 	{
-		enum LexerState
-		{
-			LS_CODE,
-			LS_STRING,
-			LS_COMMENT,
-			LS_COMMENT_MULTILINE,
-		};
+		static std::vector< KeywordInfo_t > languageOperators;
+		static std::vector< KeywordInfo_t > languageWords;
 
-		std::regex intRegEx( "[-+]?([0-9]*[0-9]+|[0-9]+)" );
-		std::regex decimalRegEx( "[-+]?\\d+\\.\\d*" );
-
+		std::string_view sourceView( source );
 		std::vector< Token_t > results;
-		std::vector< KeywordInfo_t > languageSymbols;
+		std::string backBuffer;
 
-		std::string stringBuffer = "";
+		int lineNumber = 1;
+		int columnNumber = 0;
 
-		LexerState lexerState = LS_CODE;
-		size_t currentLineNr = 0;
-		size_t currentColNr = 0;
-
-		// Populate language keywords array
-		for ( auto it = LanguageSymbols.begin(); it != LanguageSymbols.end(); ++it )
-			languageSymbols.push_back( it->second );
-
-		// Sort the language keywords to have longest character words at the top
-		std::sort( languageSymbols.begin(), languageSymbols.end(), []( KeywordInfo_t a, KeywordInfo_t b ) -> bool
+		if ( languageOperators.size() == 0 )
 		{
-			return a.m_String.length() > b.m_String.length();
-		} );
-
-		// Is this string an integer ?
-		auto isInteger = [ &intRegEx ]( const std::string& token ) -> bool {
-			return std::regex_match( token, intRegEx );
-		};
-
-		// Is it a decimal ?
-		auto isDecimal = [ &decimalRegEx ]( const std::string& token ) -> bool {
-			return std::regex_match( token, decimalRegEx );
-		};
-
-		// Get the longest searchable token length
-		size_t longestToken = languageSymbols.size() > 0 ? languageSymbols[ 0 ].m_String.length() : 0;
-
-		auto pushToken = [ &currentLineNr, &currentColNr, &stringBuffer, &results, &isInteger, &isDecimal ]( bool isStrCnst = false ) -> void {
-			if ( stringBuffer.length() == 0 && !isStrCnst )
-				return;
-
-			Token token = Token::TOK_NAME;
-
-			if ( isStrCnst )
+			for ( auto it = LanguageSymbols.begin(); it != LanguageSymbols.end(); ++it )
 			{
-				token = Token::TOK_STR;
-			}
-			else
-			{
-				if ( isDecimal( stringBuffer ) )
-					token = Token::TOK_DBL;
-				else if ( isInteger( stringBuffer ) )
-					token = Token::TOK_INT;
+				if ( it->second.m_IsWord )
+					languageWords.push_back( it->second );
+				else
+					languageOperators.push_back( it->second );
 			}
 
-			// Push the last accumulated string and flush stringBuffer
-			results.push_back( Token_t {
-				token,
-				BindingPower::BP_NONE,
-				( int ) currentLineNr,
-				( int ) currentColNr,
-				stringBuffer,
+			// Sort the language keywords to have longest character sequence at the top
+			std::sort( languageOperators.begin(), languageOperators.end(), []( KeywordInfo_t a, KeywordInfo_t b ) -> bool
+			{
+				return a.m_String.length() > b.m_String.length();
 			} );
 
-			currentColNr += stringBuffer.length();
-			stringBuffer = "";
+			std::sort( languageWords.begin(), languageWords.end(), []( KeywordInfo_t a, KeywordInfo_t b ) -> bool
+			{
+				return a.m_String.length() > b.m_String.length();
+			} );
+		}
+
+		auto lookAhead = []( const std::string_view& view, const std::string& word, size_t* out )
+		{
+			auto pos = view.find( word );
+
+			if ( pos == view.npos )
+			{
+				*out = pos;
+				return false;
+			}
+
+			*out = pos;
+			return true;
 		};
 
-		auto pushKeyword = [ &languageSymbols, &results, &currentLineNr,
-			&currentColNr, &pushToken, &stringBuffer, &isInteger ]( std::string pattern ) -> int
+		auto matchItem = []( const std::string_view& input, const std::vector< KeywordInfo_t >& list, KeywordInfo_t* out ) -> bool
 		{
-			// Iterate all the commons
-			for ( auto symIt = languageSymbols.cbegin(); symIt != languageSymbols.cend(); ++symIt )
+			for ( auto keyword : list )
 			{
-				if ( pattern.compare( symIt->m_IsWord ? 0 : stringBuffer.length(), symIt->m_String.length(), symIt->m_String ) == 0 )
+				if ( input.compare( 0, keyword.m_String.length(), keyword.m_String ) == 0 )
 				{
-					if ( symIt->m_String == "." && isInteger( stringBuffer ) )
-						return 0;
-
-					pushToken();
-
-					// Push the found keyword
-					results.push_back( Token_t {
-						symIt->m_Token,
-						symIt->m_LBP,
-						( int ) currentLineNr,
-						( int ) currentColNr,
-						symIt->m_String,
-					} );
-
-					currentColNr += symIt->m_String.length();
-					return ( int ) symIt->m_String.length();
+					*out = keyword;
+					return true;
 				}
 			}
 
-			return 0;
+			return false;
 		};
 
-		// Iterate through source and look for tokens
-		for ( auto srcIt = source.cbegin(); srcIt != source.cend(); ++srcIt )
+		auto isNumber = []( const std::string_view& input )
 		{
-			switch ( lexerState )
+			for ( char c : input )
 			{
-			case LS_CODE:
+				if ( !isdigit( c ) )
+					return false;
+			}
+
+			return true;
+		};
+
+		auto flushName = [ &backBuffer, &sourceView, &results, &lineNumber, &columnNumber ]()
+		{
+			if ( backBuffer.length() > 0 )
 			{
-				auto cursor = std::distance( source.cbegin(), srcIt );
-				auto nextTwo = source.substr( cursor, 2 );
-
-				if ( nextTwo == "//" )
+				Token tokenType = TOK_INT;
+				for ( auto c : backBuffer )
 				{
-					// Making a comment
-					lexerState = LS_COMMENT;
-					break;
-				}
-				else if ( nextTwo == "/*" )
-				{
-					// Making a comment
-					lexerState = LS_COMMENT_MULTILINE;
-					break;
-				}
-				else if ( *srcIt == '"' )
-				{
-					// Switch to string parsing
-					lexerState = LS_STRING;
-					break;
+					if ( !isdigit( c ) && c != '.' )
+						tokenType = TOK_NAME;
+					else if ( c == '.' && tokenType == TOK_INT )
+						tokenType = TOK_DBL;
 				}
 
-				int keywordLength = pushKeyword( source.substr( std::distance( source.cbegin(), srcIt - stringBuffer.length() ),
-					longestToken + stringBuffer.length() ) );
+				results.push_back( Token_t{ tokenType, 0, lineNumber, columnNumber, backBuffer } );
 
-				if ( keywordLength > 0 )
+				columnNumber += backBuffer.length();
+				backBuffer = "";
+			}
+		};
+
+		for ( size_t cursor = 0; cursor < source.length(); ++cursor )
+		{
+			std::string_view cursorView( source );
+			cursorView = cursorView.substr( cursor );
+
+			std::string wordBuffer = backBuffer + cursorView.at( 0 );
+
+			KeywordInfo_t wordInfo, opInfo;
+			if ( matchItem( wordBuffer, languageWords, &wordInfo ) )
+			{
+				/*
+					Next needs to either be an operator
+					e.g while(...
+					or a space
+				*/
+				if ( wordBuffer[ wordInfo.m_String.length() ] == ' ' )
 				{
-					// Increment the iterator by the amount of characters
-					srcIt += keywordLength - 1;
+					results.push_back( Token_t{ wordInfo.m_Token, wordInfo.m_LBP, lineNumber, columnNumber, wordInfo.m_String } );
+					backBuffer = "";
+					columnNumber += wordInfo.m_String.length();
 					continue;
 				}
+				else if ( matchItem( wordBuffer.substr( wordInfo.m_String.length() ), languageOperators, &opInfo ) )
+				{
+					/*
+						A word followed by an operator
+						e.g while(...
+					*/
+					results.push_back( Token_t{ wordInfo.m_Token, wordInfo.m_LBP, lineNumber, columnNumber, wordInfo.m_String } );
+					results.push_back( Token_t{ opInfo.m_Token, opInfo.m_LBP, lineNumber, columnNumber, opInfo.m_String } );
 
-				switch ( *srcIt )
+					columnNumber += wordInfo.m_String.length();
+					columnNumber += opInfo.m_String.length();
+
+					backBuffer = "";
+					continue;
+				}
+				else
 				{
-				case '\n':
-				case '\t':
-				case ' ':
+					/*
+						This is a part of some other word
+						e.g whileVariable = ...
+					*/
+				}
+			}
+			else if ( matchItem( cursorView, languageOperators, &opInfo ) )
+			{
+				switch ( opInfo.m_Token )
 				{
-					pushToken();
-					if ( *srcIt != '\n' )
+				case TOK_DOT:
+				{
+					if ( isNumber( backBuffer ) )
 					{
-						++currentColNr;
+						std::string_view fractionString = cursorView.substr( 1 );
+
+						size_t i = 0;
+						for ( ; i < fractionString.length(); ++i )
+						{
+							if ( !isdigit( fractionString[ i ] ) )
+								break;
+						}
+
+						/*
+							Numeric values on both sides of "." operator
+							e.g: 5.123
+							batch together and flush
+						*/
+
+						backBuffer += cursorView.substr( 0, i + 1 );
+						flushName();
+
+						columnNumber += i + 1;
+
+						cursor += i;
+						continue;
 					}
-					else
+					break;
+				}
+				case TOK_SLASH:
+				{
+					flushName();
+
+					if ( cursorView.at( 1 ) == '/' )
 					{
-						currentColNr = 0;
-						++currentLineNr;
+						// Per-line comment
+						size_t nextCursor = 0;
+						if ( lookAhead( cursorView.substr( 2 ), "\n", &nextCursor ) )
+						{
+							cursor += nextCursor;
+							++lineNumber;
+							columnNumber = 0;
+						}
+						else
+						{
+							cursor += cursorView.length();
+						}
+
+						cursor += 2;
+						continue;
+					}
+					else if ( cursorView.at( 1 ) == '*' )
+					{
+						// Multiline comment
+						size_t nextCursor = 0;
+						if ( lookAhead( cursorView.substr( 2 ), "*/", &nextCursor ) )
+							cursor += nextCursor;
+						else
+							cursor += cursorView.length();
+
+						cursor += 3;
+						continue;
 					}
 
 					break;
 				}
 				default:
-				{
-					// Add the character to the symbol buffer
-					stringBuffer += *srcIt;
-					break;
-				}
-				}
-
-				break;
-			}
-			case LS_STRING:
-			{
-				if ( *srcIt == '"' )
-				{
-					// Switch back to code
-					lexerState = LS_CODE;
-
-					// Append string constant
-					pushToken( true );
 					break;
 				}
 
-				// Append the character to the string
-				stringBuffer += *srcIt;
-				break;
-			}
-			case LS_COMMENT:
-			{
-				if ( *srcIt == '\n' )
-					lexerState = LS_CODE;
+				flushName();
 
-				// During a normal comment, just ignore everything
-				stringBuffer = "";
-				break;
+				results.push_back( Token_t{ opInfo.m_Token, opInfo.m_LBP, lineNumber, columnNumber, opInfo.m_String } );
+				cursor += opInfo.m_String.length() - 1;
+
+				columnNumber += opInfo.m_String.length();
+
+				backBuffer = "";
+				continue;
 			}
-			case LS_COMMENT_MULTILINE:
+
+			switch ( cursorView.at( 0 ) )
 			{
-				if ( stringBuffer.length() > 0 )
+			case '\"':
+			{
+				flushName();
+
+				size_t nextCursor = 0;
+				if ( lookAhead( cursorView.substr( 1 ), "\"", &nextCursor ) )
 				{
-					// Look for comment terminating sequence
-					if ( ( stringBuffer.substr( stringBuffer.length() - 1, 1 ) + *srcIt ) == "*/" )
-					{
-						lexerState = LS_CODE;
-						stringBuffer = "";
-						break;
-					}
+					results.push_back( Token_t{ TOK_STR, 0, lineNumber, columnNumber, std::string( cursorView.substr( 1, nextCursor ) ) } );
+					columnNumber += nextCursor - cursor + 2;
+					cursor += nextCursor + 1;
 				}
-
-				stringBuffer += *srcIt;
+				else
+				{
+					cursor += cursorView.length();
+				}
 				break;
 			}
+			case ' ':
+			{
+				flushName();
+				++columnNumber;
+				break;
+			}
+			case '\n':
+			{
+				flushName();
+				++lineNumber;
+				columnNumber = 0;
+				break;
+			}
+			case '\t':
+				break;
+			default:
+				backBuffer += cursorView.at( 0 );
+				break;
 			}
 		}
 
-		pushToken();
+		flushName();
 		return results;
 	}
 }

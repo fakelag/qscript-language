@@ -25,6 +25,7 @@
 #include <type_traits>
 #include <fstream>
 #include <cassert>
+#include <string_view>
 
 #include "QScript.h"
 #include "Exception.h"
