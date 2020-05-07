@@ -271,6 +271,7 @@ namespace Compiler
 
 					switch ( headNode->Id() )
 					{
+					case NODE_ARRAY:
 					case NODE_TABLE:
 					{
 						// Allow trailing semicolon on table definitions
@@ -775,6 +776,51 @@ namespace Compiler
 
 					return parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
 						irBuilder.m_Token.m_String, NODE_TABLE, std::vector< BaseNode* >{ varName, propertyNode } );
+				};
+				break;
+			}
+			case TOK_ARRAY:
+			{
+				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder ) -> BaseNode*
+				{
+					auto varName = nextExpression( BP_VAR );
+					ListNode* initializerNode = NULL;
+
+					if ( !IsString( varName ) )
+					{
+						throw CompilerException( "ir_array_name", "Invalid array name: \"" + varName->Token() + "\"",
+							varName->LineNr(), varName->ColNr(), varName->Token() );
+					}
+
+					if ( parserState.MatchCurrent( TOK_EQUALS ) )
+					{
+						parserState.Expect( TOK_BRACE_LEFT, "Expected \"{\" before array initializer, got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
+
+						std::vector< BaseNode* > initializers;
+						while ( parserState.CurrentBuilder()->m_Token.m_Id != TOK_BRACE_RIGHT )
+						{
+							auto valueNode = nextExpression( BP_COMMA );
+
+							if ( valueNode->Id() != NODE_CONSTANT && valueNode->Id() != NODE_NAME )
+							{
+								throw CompilerException( "ir_invalid_array_initializer", "Invalid array initializer: \"" + valueNode->Token() + "\"",
+									valueNode->LineNr(), valueNode->ColNr(), valueNode->Token() );
+							}
+
+							initializers.push_back( valueNode );
+
+							if ( !parserState.MatchCurrent( TOK_COMMA ) )
+								break;
+						}
+
+						parserState.Expect( TOK_BRACE_RIGHT, "Expected \"}\" after array initializer, got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
+
+						initializerNode = parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+							irBuilder.m_Token.m_String, NODE_PROPERTYLIST, initializers );
+					}
+
+					return parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+						irBuilder.m_Token.m_String, NODE_ARRAY, std::vector< BaseNode* >{ varName, initializerNode } );
 				};
 				break;
 			}

@@ -21,6 +21,7 @@ namespace Compiler
 		NODE_ADD,
 		NODE_AND,
 		NODE_ARGUMENTS,
+		NODE_ARRAY,
 		NODE_ASSIGN,
 		NODE_ASSIGNADD,
 		NODE_ASSIGNDIV,
@@ -90,12 +91,13 @@ namespace Compiler
 		TYPE_NATIVE				= ( 1 << 7 ),
 		TYPE_STRING				= ( 1 << 8 ),
 		TYPE_UPVALUE			= ( 1 << 9 ),
+		TYPE_ARRAY				= ( 1 << 10 ),
 
 		// No type (statements)
-		TYPE_NONE				= ( 1 << 10 ),
+		TYPE_NONE				= ( 1 << 11 ),
 
 		// Hint compiler to deduce type
-		TYPE_AUTO				= ( 1 << 11 ),
+		TYPE_AUTO				= ( 1 << 12 ),
 	};
 
 	struct Argument_t
