@@ -29,6 +29,7 @@ namespace Compiler
 		TOK_2PLUS,
 		TOK_2STAR,
 		TOK_AND,
+		TOK_ARRAY,
 		TOK_ARROW,
 		TOK_AUTO,
 		TOK_BANG,
