@@ -11,7 +11,8 @@ Object::AllocateFunction = &Compiler::AllocateFunction; \
 Object::AllocateNative = &Compiler::AllocateNative; \
 Object::AllocateClosure = &Compiler::AllocateClosure; \
 Object::AllocateUpvalue = &Compiler::AllocateUpvalue; \
-Object::AllocateTable = &Compiler::AllocateTable;
+Object::AllocateTable = &Compiler::AllocateTable; \
+Object::AllocateArray = &Compiler::AllocateArray;
 
 #define END_COMPILER \
 Object::AllocateString = NULL; \
@@ -19,7 +20,8 @@ Object::AllocateFunction = NULL; \
 Object::AllocateNative = NULL; \
 Object::AllocateClosure = NULL; \
 Object::AllocateUpvalue = NULL; \
-Object::AllocateTable = NULL;
+Object::AllocateTable = NULL; \
+Object::AllocateArray = NULL;
 
 namespace QScript
 {
@@ -427,6 +429,13 @@ namespace Compiler
 		auto tableObject = QS_NEW QScript::TableObject( name );
 		ObjectList.push_back( ( QScript::Object* ) tableObject );
 		return tableObject;
+	}
+
+	QScript::ArrayObject* AllocateArray( const std::string& name )
+	{
+		auto arrayObject = QS_NEW QScript::ArrayObject( name );
+		ObjectList.push_back( ( QScript::Object* ) arrayObject );
+		return arrayObject;
 	}
 
 	void GarbageCollect( const std::vector< QScript::FunctionObject* >& functions )

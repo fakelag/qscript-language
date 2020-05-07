@@ -45,6 +45,7 @@ fmt(OP_LOAD_LOCAL_9), \
 fmt(OP_LOAD_LOCAL_10), \
 fmt(OP_LOAD_LOCAL_11), \
 fmt(OP_LOAD_PROP_SHORT), \
+fmt(OP_LOAD_PROP_STACK), \
 fmt(OP_LOAD_PROP_LONG), \
 fmt(OP_LOAD_UPVALUE_SHORT), \
 fmt(OP_LOAD_UPVALUE_LONG), \
@@ -67,6 +68,7 @@ fmt(OP_LOAD_5), \
 fmt(OP_POP), \
 fmt(OP_POW), \
 fmt(OP_RETURN), \
+fmt(OP_PUSH_ARRAY), \
 fmt(OP_SET_GLOBAL_LONG), \
 fmt(OP_SET_GLOBAL_SHORT), \
 fmt(OP_SET_LOCAL_LONG), \
@@ -84,6 +86,7 @@ fmt(OP_SET_LOCAL_9), \
 fmt(OP_SET_LOCAL_10), \
 fmt(OP_SET_LOCAL_11), \
 fmt(OP_SET_PROP_SHORT), \
+fmt(OP_SET_PROP_STACK), \
 fmt(OP_SET_PROP_LONG), \
 fmt(OP_SET_UPVALUE_SHORT), \
 fmt(OP_SET_UPVALUE_LONG), \

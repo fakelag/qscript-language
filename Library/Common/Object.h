@@ -122,4 +122,21 @@ namespace QScript
 		std::string									m_Name;
 		std::unordered_map< std::string, Value >	m_Properties;
 	};
+
+	class ArrayObject : public Object
+	{
+	public:
+		FORCEINLINE ArrayObject( const std::string& name )
+		{
+			m_Type = OT_ARRAY;
+			m_Name = name;
+		}
+
+		FORCEINLINE	const std::string&									GetName() const { return m_Name; }
+		FORCEINLINE std::vector< Value >&								GetArray() { return m_Array; }
+
+	private:
+		std::string									m_Name;
+		std::vector< Value >						m_Array;
+	};
 }
