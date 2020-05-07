@@ -1059,6 +1059,48 @@ namespace Compiler
 				EmitByte( QScript::OpCode::OP_POP, chunk );
 			break;
 		}
+		case NODE_ARRAY:
+		{
+			auto isStatement = IS_STATEMENT( options );
+			auto varName = static_cast< ValueNode* >( m_NodeList[ 0 ] )->GetValue();
+			auto varNameString = AS_STRING( varName )->GetString();
+			bool isLocal = ( assembler.StackDepth() > 0 );
+
+			// Empty array
+			EmitConstant( chunk, MAKE_ARRAY( varNameString ), QScript::OpCode::OP_LOAD_CONSTANT_SHORT, QScript::OpCode::OP_LOAD_CONSTANT_LONG, assembler );
+
+			if ( !isLocal )
+			{
+				if ( !assembler.AddGlobal( varNameString, true, TYPE_ARRAY ) )
+				{
+					throw CompilerException( "cp_identifier_already_exists", "Identifier already exits: \"" + varNameString + "\"",
+						m_LineNr, m_ColNr, m_Token );
+				}
+
+				EmitConstant( chunk, varName, QScript::OpCode::OP_SET_GLOBAL_SHORT, QScript::OpCode::OP_SET_GLOBAL_LONG, assembler );
+			}
+			else
+			{
+				assembler.AddLocal( varNameString, true, TYPE_ARRAY );
+			}
+
+			// Initializer list?
+			if ( m_NodeList[ 1 ] )
+			{
+				auto propertyList = static_cast< ListNode* >( m_NodeList[ 1 ] );
+
+				for ( auto prop : propertyList->GetList() )
+				{
+					prop->Compile( assembler, COMPILE_EXPRESSION( options ) );
+					EmitByte( QScript::OpCode::OP_PUSH_ARRAY, chunk );
+				}
+			}
+
+			// Not a local? pop it off the stack
+			if ( !isLocal && isStatement )
+				EmitByte( QScript::OpCode::OP_POP, chunk );
+			break;
+		}
 		case NODE_DO:
 		{
 			if ( !IS_STATEMENT( options ) )
