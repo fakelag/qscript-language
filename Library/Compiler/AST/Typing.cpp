@@ -183,6 +183,11 @@ namespace Compiler
 			// TODO: Resolve table property types compile-time
 			return TYPE_UNKNOWN;
 		}
+		case NODE_ACCESS_ARRAY:
+		{
+			// TODO: Compile-time arrays?
+			return TYPE_UNKNOWN;
+		}
 		case NODE_ASSIGN: return m_Right->ExprType( assembler );
 		case NODE_ASSIGNADD: return m_Right->ExprType( assembler );
 		case NODE_ASSIGNDIV: return TYPE_NUMBER;
