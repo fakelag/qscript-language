@@ -309,7 +309,7 @@ namespace QVM
 			INTERP_OPCODE( OP_LOAD_PROP_STACK ):
 			{
 				auto key = vm.Pop();
-				auto target = vm.Peek( 0 );
+				auto target = vm.Pop();
 
 				if ( IS_ARRAY( target ) )
 				{
@@ -340,7 +340,7 @@ namespace QVM
 						QVM::RuntimeError( frame, "rt_invalid_array_index", "Invalid array index \"" + target.ToString() + "\"" );
 
 					int keyInt = ( int ) AS_NUMBER( key );
-					auto arr = AS_ARRAY( target )->GetArray();
+					auto& arr = AS_ARRAY( target )->GetArray();
 
 					if ( keyInt < 0 || keyInt >= ( int ) arr.size() )
 						QVM::RuntimeError( frame, "rt_invalid_array_index", "Invalid array index \"" + target.ToString() + "\", array capacity = " + std::to_string( arr.size() ) );

@@ -28,7 +28,7 @@ std::string QScript::Value::ToString() const
 		case OT_ARRAY:
 		{
 			auto arr = AS_ARRAY( *this );
-			auto items = arr->GetArray();
+			auto& items = arr->GetArray();
 
 			std::string itemsString;
 			for ( auto item : items )
