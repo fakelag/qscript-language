@@ -860,6 +860,20 @@ namespace Compiler
 				};
 				break;
 			}
+			case TOK_SQUARE_BRACKET_LEFT:
+			{
+				builder->m_Led = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder, BaseNode* left )
+				{
+					auto indexNode = nextExpression();
+					parserState.Expect( TOK_SQUARE_BRACKET_RIGHT, "Expected \"]\" after array index, got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
+
+					return parserState.AllocateNode< ComplexNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+						irBuilder.m_Token.m_String, NODE_ACCESS_ARRAY, left, indexNode );
+				};
+
+				break;
+			}
+			case TOK_SQUARE_BRACKET_RIGHT:
 			case TOK_BRACE_RIGHT:
 			case TOK_PAREN_RIGHT:
 			case TOK_SCOLON:

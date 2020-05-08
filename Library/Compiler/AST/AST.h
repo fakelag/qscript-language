@@ -17,6 +17,7 @@ namespace Compiler
 	enum NodeId
 	{
 		NODE_INVALID = -1,
+		NODE_ACCESS_ARRAY,
 		NODE_ACCESS_PROP,
 		NODE_ADD,
 		NODE_AND,

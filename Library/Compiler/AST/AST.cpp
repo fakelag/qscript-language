@@ -139,6 +139,7 @@ namespace Compiler
 		{
 		case NODE_NAME:
 		case NODE_ACCESS_PROP:
+		case NODE_ACCESS_ARRAY:
 			break;
 		default:
 			throw CompilerException( "cp_invalid_assign_target", "Invalid assignment target", node->LineNr(), node->ColNr(), node->Token() );
@@ -476,6 +477,27 @@ namespace Compiler
 
 		switch ( m_NodeId )
 		{
+		case NODE_ACCESS_ARRAY:
+		{
+			m_Left->Compile( assembler, COMPILE_EXPRESSION( COMPILE_NON_ASSIGN( options ) ) );
+			m_Right->Compile( assembler, COMPILE_EXPRESSION( COMPILE_NON_ASSIGN( options ) ) );
+
+			if ( IS_ASSIGN_TARGET( options ) )
+			{
+				// stack@0: value_to_be_assigned
+				// stack@1: left_hand_of_access
+				EmitByte( QScript::OpCode::OP_SET_PROP_STACK, chunk );
+
+				// Assign node will discard the assignment result if necessary
+				discardResult = false;
+			}
+			else
+			{
+				// stack@0: left_hand_of_access
+				EmitByte( QScript::OpCode::OP_LOAD_PROP_STACK, chunk );
+			}
+			break;
+		}
 		case NODE_ACCESS_PROP:
 		{
 			// Left operand should just produce a value on the stack.

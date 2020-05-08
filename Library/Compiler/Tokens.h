@@ -19,7 +19,8 @@ namespace Compiler
 		BP_VAR						= 110,
 		BP_OPENPAREN				= 120,
 		BP_DOT						= 130,
-		BP_TYPE						= 140,
+		BP_OPENSQUARE_BRACKET		= 140,
+		BP_TYPE						= 150,
 	};
 
 	enum Token
@@ -79,6 +80,8 @@ namespace Compiler
 		TOK_TRUE,
 		TOK_VAR,
 		TOK_SCOLON,
+		TOK_SQUARE_BRACKET_LEFT,
+		TOK_SQUARE_BRACKET_RIGHT,
 		TOK_WHILE,
 	};
 
