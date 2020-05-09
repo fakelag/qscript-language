@@ -147,7 +147,7 @@ namespace Compiler
 					return false;
 			}
 
-			return true;
+			return input.length() > 0;
 		};
 
 		auto flushName = [ &backBuffer, &sourceView, &results, &lineNumber, &columnNumber ]()
@@ -310,7 +310,7 @@ namespace Compiler
 				if ( lookAhead( cursorView.substr( 1 ), "\"", &nextCursor ) )
 				{
 					results.push_back( Token_t{ TOK_STR, 0, lineNumber, columnNumber, std::string( cursorView.substr( 1, nextCursor ) ) } );
-					columnNumber += nextCursor - cursor + 2;
+					columnNumber += nextCursor + 2;
 					cursor += nextCursor + 1;
 				}
 				else

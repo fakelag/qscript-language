@@ -75,6 +75,24 @@ bool Tests::TestLexer()
 		UTEST_CASE_CLOSED();
 	}( );
 
+	UTEST_CASE( "Generate tokens from a sentence (4)" )
+	{
+		auto tokens = Lexer( "a.z[ 2 ].e;" );
+
+		UTEST_ASSERT( tokens.size() == 9 );
+		UTEST_ASSERT( tokens[ 0 ].m_Id == TOK_NAME );
+		UTEST_ASSERT( tokens[ 1 ].m_Id == TOK_DOT );
+		UTEST_ASSERT( tokens[ 2 ].m_Id == TOK_NAME );
+		UTEST_ASSERT( tokens[ 3 ].m_Id == TOK_SQUARE_BRACKET_LEFT );
+		UTEST_ASSERT( tokens[ 4 ].m_Id == TOK_INT );
+		UTEST_ASSERT( tokens[ 5 ].m_Id == TOK_SQUARE_BRACKET_RIGHT );
+		UTEST_ASSERT( tokens[ 6 ].m_Id == TOK_DOT );
+		UTEST_ASSERT( tokens[ 7 ].m_Id == TOK_NAME );
+		UTEST_ASSERT( tokens[ 8 ].m_Id == TOK_SCOLON );
+
+		UTEST_CASE_CLOSED();
+	}( );
+
 	UTEST_CASE( "Ignore tabs and newlines in the code" )
 	{
 		auto symbols = Lexer( "\t5 \n+ \t3* 1\n\n- 2; \n				\
