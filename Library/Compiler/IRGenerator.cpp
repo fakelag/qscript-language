@@ -551,7 +551,7 @@ namespace Compiler
 					};
 
 					return parserState.AllocateNode< ComplexNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-						irBuilder.m_Token.m_String, map[ irBuilder.m_Token.m_Id ], left, nextExpression( irBuilder.m_Token.m_LBP ) );
+						irBuilder.m_Token.m_String, map[ irBuilder.m_Token.m_Id ], left, nextExpression( BP_ASSIGN_FORWARD ) );
 				};
 				break;
 			}

@@ -7,6 +7,7 @@ namespace Compiler
 		BP_IMMEDIATE				= -1,
 		BP_NONE						= 0,
 		BP_COMMA					= 10,
+		BP_ASSIGN_FORWARD			= 15,
 		BP_ASSIGN					= 20,
 		BP_INLINE_IF				= 30,
 		BP_LOGIC_NOT				= 40,
@@ -18,8 +19,8 @@ namespace Compiler
 		BP_INCDEC					= 100,
 		BP_VAR						= 110,
 		BP_OPENPAREN				= 120,
-		BP_DOT						= 130,
-		BP_OPENSQUARE_BRACKET		= 140,
+		BP_OPENSQUARE_BRACKET		= 130,
+		BP_DOT						= 140,
 		BP_TYPE						= 150,
 	};
 
