@@ -1051,9 +1051,18 @@ namespace Compiler
 						auto propNameNode = subTable->GetList()[ 0 ];
 						propName = static_cast< ValueNode* >( propNameNode )->GetValue();
 					}
+					else if ( prop->Id() == NODE_ARRAY )
+					{
+						auto subArray = static_cast< ListNode* >( prop );
+						subArray->Compile( assembler, COMPILE_EXPRESSION( options ) );
+
+						auto propNameNode = subArray->GetList()[ 0 ];
+						propName = static_cast< ValueNode* >( propNameNode )->GetValue();
+					}
 					else
 					{
-						assert( 0 );
+						throw CompilerException( "cp_invalid_table_child", "Unknown child node: \"" + prop->Token() + "\"",
+							prop->LineNr(), prop->ColNr(), prop->Token() );
 					}
 
 					/*
@@ -1091,19 +1100,22 @@ namespace Compiler
 			// Empty array
 			EmitConstant( chunk, MAKE_ARRAY( varNameString ), QScript::OpCode::OP_LOAD_CONSTANT_SHORT, QScript::OpCode::OP_LOAD_CONSTANT_LONG, assembler );
 
-			if ( !isLocal )
+			if ( isStatement )
 			{
-				if ( !assembler.AddGlobal( varNameString, true, TYPE_ARRAY ) )
+				if ( !isLocal )
 				{
-					throw CompilerException( "cp_identifier_already_exists", "Identifier already exits: \"" + varNameString + "\"",
-						m_LineNr, m_ColNr, m_Token );
-				}
+					if ( !assembler.AddGlobal( varNameString, true, TYPE_ARRAY ) )
+					{
+						throw CompilerException( "cp_identifier_already_exists", "Identifier already exits: \"" + varNameString + "\"",
+							m_LineNr, m_ColNr, m_Token );
+					}
 
-				EmitConstant( chunk, varName, QScript::OpCode::OP_SET_GLOBAL_SHORT, QScript::OpCode::OP_SET_GLOBAL_LONG, assembler );
-			}
-			else
-			{
-				assembler.AddLocal( varNameString, true, TYPE_ARRAY );
+					EmitConstant( chunk, varName, QScript::OpCode::OP_SET_GLOBAL_SHORT, QScript::OpCode::OP_SET_GLOBAL_LONG, assembler );
+				}
+				else
+				{
+					assembler.AddLocal( varNameString, true, TYPE_ARRAY );
+				}
 			}
 
 			// Initializer list?

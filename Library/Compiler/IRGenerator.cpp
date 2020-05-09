@@ -162,6 +162,9 @@ namespace Compiler
 		if ( parserState.CurrentBuilder()->m_Token.m_Id == TOK_TABLE )
 			return nextExpression( BP_NONE ); // nested table
 
+		if ( parserState.CurrentBuilder()->m_Token.m_Id == TOK_ARRAY )
+			return nextExpression( BP_NONE );
+
 		auto fieldType = ResolveTypeDef( parserState );
 
 		if ( !bMatchConst && fieldType == TYPE_NONE )
@@ -801,10 +804,18 @@ namespace Compiler
 						{
 							auto valueNode = nextExpression( BP_COMMA );
 
-							if ( valueNode->Id() != NODE_CONSTANT && valueNode->Id() != NODE_NAME )
+							switch ( valueNode->Id() )
+							{
+							case NODE_CONSTANT:
+							case NODE_NAME:
+							case NODE_TABLE:
+							case NODE_ARRAY:
+								break;
+							default:
 							{
 								throw CompilerException( "ir_invalid_array_initializer", "Invalid array initializer: \"" + valueNode->Token() + "\"",
 									valueNode->LineNr(), valueNode->ColNr(), valueNode->Token() );
+							}
 							}
 
 							initializers.push_back( valueNode );
