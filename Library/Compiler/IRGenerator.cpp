@@ -162,6 +162,9 @@ namespace Compiler
 		if ( parserState.CurrentBuilder()->m_Token.m_Id == TOK_TABLE )
 			return nextExpression( BP_NONE ); // nested table
 
+		if ( parserState.CurrentBuilder()->m_Token.m_Id == TOK_ARRAY )
+			return nextExpression( BP_NONE );
+
 		auto fieldType = ResolveTypeDef( parserState );
 
 		if ( !bMatchConst && fieldType == TYPE_NONE )
@@ -271,6 +274,7 @@ namespace Compiler
 
 					switch ( headNode->Id() )
 					{
+					case NODE_ARRAY:
 					case NODE_TABLE:
 					{
 						// Allow trailing semicolon on table definitions
@@ -550,7 +554,7 @@ namespace Compiler
 					};
 
 					return parserState.AllocateNode< ComplexNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-						irBuilder.m_Token.m_String, map[ irBuilder.m_Token.m_Id ], left, nextExpression( irBuilder.m_Token.m_LBP ) );
+						irBuilder.m_Token.m_String, map[ irBuilder.m_Token.m_Id ], left, nextExpression( BP_ASSIGN_FORWARD ) );
 				};
 				break;
 			}
@@ -778,6 +782,59 @@ namespace Compiler
 				};
 				break;
 			}
+			case TOK_ARRAY:
+			{
+				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder ) -> BaseNode*
+				{
+					auto varName = nextExpression( BP_VAR );
+					ListNode* initializerNode = NULL;
+
+					if ( !IsString( varName ) )
+					{
+						throw CompilerException( "ir_array_name", "Invalid array name: \"" + varName->Token() + "\"",
+							varName->LineNr(), varName->ColNr(), varName->Token() );
+					}
+
+					if ( parserState.MatchCurrent( TOK_EQUALS ) )
+					{
+						parserState.Expect( TOK_BRACE_LEFT, "Expected \"{\" before array initializer, got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
+
+						std::vector< BaseNode* > initializers;
+						while ( parserState.CurrentBuilder()->m_Token.m_Id != TOK_BRACE_RIGHT )
+						{
+							auto valueNode = nextExpression( BP_COMMA );
+
+							switch ( valueNode->Id() )
+							{
+							case NODE_CONSTANT:
+							case NODE_NAME:
+							case NODE_TABLE:
+							case NODE_ARRAY:
+								break;
+							default:
+							{
+								throw CompilerException( "ir_invalid_array_initializer", "Invalid array initializer: \"" + valueNode->Token() + "\"",
+									valueNode->LineNr(), valueNode->ColNr(), valueNode->Token() );
+							}
+							}
+
+							initializers.push_back( valueNode );
+
+							if ( !parserState.MatchCurrent( TOK_COMMA ) )
+								break;
+						}
+
+						parserState.Expect( TOK_BRACE_RIGHT, "Expected \"}\" after array initializer, got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
+
+						initializerNode = parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+							irBuilder.m_Token.m_String, NODE_PROPERTYLIST, initializers );
+					}
+
+					return parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+						irBuilder.m_Token.m_String, NODE_ARRAY, std::vector< BaseNode* >{ varName, initializerNode } );
+				};
+				break;
+			}
 			case TOK_DOT:
 			{
 				builder->m_Led = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder, BaseNode* left ) -> BaseNode*
@@ -814,6 +871,20 @@ namespace Compiler
 				};
 				break;
 			}
+			case TOK_SQUARE_BRACKET_LEFT:
+			{
+				builder->m_Led = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder, BaseNode* left )
+				{
+					auto indexNode = nextExpression();
+					parserState.Expect( TOK_SQUARE_BRACKET_RIGHT, "Expected \"]\" after array index, got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
+
+					return parserState.AllocateNode< ComplexNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+						irBuilder.m_Token.m_String, NODE_ACCESS_ARRAY, left, indexNode );
+				};
+
+				break;
+			}
+			case TOK_SQUARE_BRACKET_RIGHT:
 			case TOK_BRACE_RIGHT:
 			case TOK_PAREN_RIGHT:
 			case TOK_SCOLON:

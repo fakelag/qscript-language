@@ -60,6 +60,22 @@ QScript::Object* DeepCopyObject( const QScript::Object* object )
 
 		return newTable;
 	}
+	case QScript::ObjectType::OT_ARRAY:
+	{
+		auto oldArray = ( ( QScript::ArrayObject* )( object ) );
+		auto newArray = QS_NEW QScript::ArrayObject( oldArray->GetName() );
+		auto& arrayRef = oldArray->GetArray();
+
+		for ( auto oldValue : arrayRef )
+		{
+			QScript::Value newValue;
+			DeepCopy( &newValue, &oldValue );
+
+			newArray->GetArray().push_back( newValue );
+		}
+
+		return newArray;
+	}
 	case QScript::ObjectType::OT_NATIVE:
 		throw Exception( "test_objcpy_invalid_target", "Invalid target object: Native" );
 	default:

@@ -6,6 +6,7 @@ namespace Compiler
 {
 	std::map< NodeId, std::string > nodeIdToName = {
 		{ NODE_INVALID,				"INVALID" },
+		{ NODE_ACCESS_ARRAY,		"ACCESS ARRAY" },
 		{ NODE_ACCESS_PROP,			"ACCESS PROP" },
 		{ NODE_ADD,					"ADD" },
 		{ NODE_AND,					"AND" },

@@ -32,6 +32,7 @@ namespace Compiler
 	QScript::ClosureObject* AllocateClosure( QScript::FunctionObject* function );
 	QScript::UpvalueObject* AllocateUpvalue( QScript::Value* valuePtr );
 	QScript::TableObject* AllocateTable( const std::string& name );
+	QScript::ArrayObject* AllocateArray( const std::string& name );
 
 	void GarbageCollect( const std::vector< QScript::FunctionObject* >& functions );
 	void GarbageCollect( const std::vector< Compiler::BaseNode* >& nodes );

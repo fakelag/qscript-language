@@ -139,6 +139,7 @@ namespace Compiler
 		{
 		case NODE_NAME:
 		case NODE_ACCESS_PROP:
+		case NODE_ACCESS_ARRAY:
 			break;
 		default:
 			throw CompilerException( "cp_invalid_assign_target", "Invalid assignment target", node->LineNr(), node->ColNr(), node->Token() );
@@ -476,6 +477,27 @@ namespace Compiler
 
 		switch ( m_NodeId )
 		{
+		case NODE_ACCESS_ARRAY:
+		{
+			m_Left->Compile( assembler, COMPILE_EXPRESSION( COMPILE_NON_ASSIGN( options ) ) );
+			m_Right->Compile( assembler, COMPILE_EXPRESSION( COMPILE_NON_ASSIGN( options ) ) );
+
+			if ( IS_ASSIGN_TARGET( options ) )
+			{
+				// stack@0: value_to_be_assigned
+				// stack@1: left_hand_of_access
+				EmitByte( QScript::OpCode::OP_SET_PROP_STACK, chunk );
+
+				// Assign node will discard the assignment result if necessary
+				discardResult = false;
+			}
+			else
+			{
+				// stack@0: left_hand_of_access
+				EmitByte( QScript::OpCode::OP_LOAD_PROP_STACK, chunk );
+			}
+			break;
+		}
 		case NODE_ACCESS_PROP:
 		{
 			// Left operand should just produce a value on the stack.
@@ -1029,9 +1051,18 @@ namespace Compiler
 						auto propNameNode = subTable->GetList()[ 0 ];
 						propName = static_cast< ValueNode* >( propNameNode )->GetValue();
 					}
+					else if ( prop->Id() == NODE_ARRAY )
+					{
+						auto subArray = static_cast< ListNode* >( prop );
+						subArray->Compile( assembler, COMPILE_EXPRESSION( options ) );
+
+						auto propNameNode = subArray->GetList()[ 0 ];
+						propName = static_cast< ValueNode* >( propNameNode )->GetValue();
+					}
 					else
 					{
-						assert( 0 );
+						throw CompilerException( "cp_invalid_table_child", "Unknown child node: \"" + prop->Token() + "\"",
+							prop->LineNr(), prop->ColNr(), prop->Token() );
 					}
 
 					/*
@@ -1051,6 +1082,51 @@ namespace Compiler
 
 					// Pop default value off
 					EmitByte( QScript::OpCode::OP_POP, chunk );
+				}
+			}
+
+			// Not a local? pop it off the stack
+			if ( !isLocal && isStatement )
+				EmitByte( QScript::OpCode::OP_POP, chunk );
+			break;
+		}
+		case NODE_ARRAY:
+		{
+			auto isStatement = IS_STATEMENT( options );
+			auto varName = static_cast< ValueNode* >( m_NodeList[ 0 ] )->GetValue();
+			auto varNameString = AS_STRING( varName )->GetString();
+			bool isLocal = ( assembler.StackDepth() > 0 );
+
+			// Empty array
+			EmitConstant( chunk, MAKE_ARRAY( varNameString ), QScript::OpCode::OP_LOAD_CONSTANT_SHORT, QScript::OpCode::OP_LOAD_CONSTANT_LONG, assembler );
+
+			if ( isStatement )
+			{
+				if ( !isLocal )
+				{
+					if ( !assembler.AddGlobal( varNameString, true, TYPE_ARRAY ) )
+					{
+						throw CompilerException( "cp_identifier_already_exists", "Identifier already exits: \"" + varNameString + "\"",
+							m_LineNr, m_ColNr, m_Token );
+					}
+
+					EmitConstant( chunk, varName, QScript::OpCode::OP_SET_GLOBAL_SHORT, QScript::OpCode::OP_SET_GLOBAL_LONG, assembler );
+				}
+				else
+				{
+					assembler.AddLocal( varNameString, true, TYPE_ARRAY );
+				}
+			}
+
+			// Initializer list?
+			if ( m_NodeList[ 1 ] )
+			{
+				auto propertyList = static_cast< ListNode* >( m_NodeList[ 1 ] );
+
+				for ( auto prop : propertyList->GetList() )
+				{
+					prop->Compile( assembler, COMPILE_EXPRESSION( options ) );
+					EmitByte( QScript::OpCode::OP_PUSH_ARRAY, chunk );
 				}
 			}
 

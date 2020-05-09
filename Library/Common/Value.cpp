@@ -25,6 +25,17 @@ std::string QScript::Value::ToString() const
 		}
 		case OT_UPVALUE: return "<upvalue>";
 		case OT_TABLE: return "<table, " + AS_TABLE( *this )->GetName() + ">";
+		case OT_ARRAY:
+		{
+			auto arr = AS_ARRAY( *this );
+			auto& items = arr->GetArray();
+
+			std::string itemsString;
+			for ( auto item : items )
+				itemsString += ", " + item.ToString();
+
+			return "<array, " + arr->GetName() + itemsString + ">";
+		}
 		default:
 		{
 #ifndef QVM_DEBUG

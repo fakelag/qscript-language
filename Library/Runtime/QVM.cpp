@@ -14,7 +14,8 @@ QScript::Object::AllocateFunction = &QVM::AllocateFunction; \
 QScript::Object::AllocateNative = &QVM::AllocateNative; \
 QScript::Object::AllocateClosure = &QVM::AllocateClosure; \
 QScript::Object::AllocateUpvalue = &QVM::AllocateUpvalue; \
-QScript::Object::AllocateTable = &QVM::AllocateTable;
+QScript::Object::AllocateTable = &QVM::AllocateTable; \
+QScript::Object::AllocateArray = &QVM::AllocateArray;
 
 #define INTERP_SHUTDOWN \
 QScript::Object::AllocateString = NULL; \
@@ -22,7 +23,8 @@ QScript::Object::AllocateFunction = NULL; \
 QScript::Object::AllocateNative = NULL; \
 QScript::Object::AllocateClosure = NULL; \
 QScript::Object::AllocateUpvalue = NULL; \
-QScript::Object::AllocateTable = NULL;
+QScript::Object::AllocateTable = NULL; \
+QScript::Object::AllocateArray = NULL;
 
 #if !defined(QVM_DEBUG) && defined(_OSX)
 #define _INTERP_JMP_PREFIX( opcode ) &&code_##opcode
@@ -304,12 +306,79 @@ namespace QVM
 				vm.m_Globals[ AS_STRING( constant )->GetString() ] = vm.Peek( 0 );
 				INTERP_DISPATCH;
 			}
+			INTERP_OPCODE( OP_LOAD_PROP_STACK ):
+			{
+				auto key = vm.Pop();
+				auto target = vm.Pop();
+
+				if ( IS_ARRAY( target ) )
+				{
+					if ( !IS_NUMBER( key ) )
+					{
+						QVM::RuntimeError( frame, "rt_invalid_array_index", "Invalid array index \"" + target.ToString() + "\"" );
+					}
+
+					vm.Push( AS_ARRAY( target )->GetArray()[ ( int ) AS_NUMBER( key ) ] );
+				}
+				else
+				{
+					QVM::RuntimeError( frame, "rt_invalid_instance",
+						"Can not read property \"" + key.ToString() + "\" of invalid target \"" + target.ToString() + "\"" );
+				}
+
+				INTERP_DISPATCH;
+			}
+			INTERP_OPCODE( OP_SET_PROP_STACK ):
+			{
+				auto key = vm.Pop();
+				auto target = vm.Pop();
+				auto value = vm.Peek( 0 );
+
+				if ( IS_ARRAY( target ) )
+				{
+					if ( !IS_NUMBER( key ) )
+						QVM::RuntimeError( frame, "rt_invalid_array_index", "Invalid array index \"" + target.ToString() + "\"" );
+
+					int keyInt = ( int ) AS_NUMBER( key );
+					auto& arr = AS_ARRAY( target )->GetArray();
+
+					if ( keyInt < 0 || keyInt >= ( int ) arr.size() )
+						QVM::RuntimeError( frame, "rt_invalid_array_index", "Invalid array index \"" + target.ToString() + "\", array capacity = " + std::to_string( arr.size() ) );
+
+					arr[ keyInt ] = value;
+				}
+				else
+				{
+					QVM::RuntimeError( frame, "rt_invalid_instance",
+						"Can not read property \"" + key.ToString() + "\" of invalid target \"" + target.ToString() + "\"" );
+				}
+
+				INTERP_DISPATCH;
+			}
+			INTERP_OPCODE( OP_PUSH_ARRAY ):
+			{
+				auto value = vm.Pop();
+				auto target = vm.Peek( 0 );
+
+				if ( IS_ARRAY( target ) )
+				{
+					AS_ARRAY( target )->GetArray().push_back( value );
+				}
+				else
+				{
+					QVM::RuntimeError( frame, "rt_invalid_instance",
+						"Invalid array instance\"" + target.ToString() + "\"" );
+				}
+
+				INTERP_DISPATCH;
+			}
 			INTERP_OPCODE( OP_LOAD_PROP_SHORT ) :
 			{
 				auto constant = READ_CONST_SHORT();
 				LoadField( vm, frame, constant );
 				INTERP_DISPATCH;
 			}
+
 			INTERP_OPCODE( OP_LOAD_PROP_LONG ) :
 			{
 				READ_CONST_LONG( constant );
@@ -681,6 +750,13 @@ namespace QVM
 		auto tableObject = QS_NEW QScript::TableObject( name );
 		VirtualMachine->AddObject( ( QScript::Object* ) tableObject );
 		return tableObject;
+	}
+
+	QScript::ArrayObject* AllocateArray( const std::string& name )
+	{
+		auto arrayObject = QS_NEW QScript::ArrayObject( name );
+		VirtualMachine->AddObject( ( QScript::Object* ) arrayObject );
+		return arrayObject;
 	}
 }
 

@@ -88,6 +88,18 @@ bool Tests::TestInterpreter()
 		UTEST_CASE_CLOSED();
 	}( );
 
+	UTEST_CASE( "Assigning chaining" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "var a = 41; var b; var c; var d; a = b = c = d = a + 1; return a + b + c + d;", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 168.0 );
+
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
 	UTEST_CASE( "Local variables" )
 	{
 		QScript::Value exitCode;
@@ -823,7 +835,7 @@ bool Tests::TestInterpreter()
 		UTEST_CASE_CLOSED();
 	}( );
 
-	UTEST_CASE( "Tables (Methods)" )
+	UTEST_CASE( "Tables (Simple methods)" )
 	{
 		QScript::Value exitCode;
 		UTEST_ASSERT( TestUtils::RunVM( "var g0 = 0;				\
@@ -867,6 +879,264 @@ bool Tests::TestInterpreter()
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 89.0 );
+
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "Tables (Methods as first-class citizen)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "var g0 = 0; var calc2;		\
+			{														\
+				var l0 = 1;											\
+				const l1 = 1;										\
+				Table x = {											\
+					const y = 9.0;									\
+					Calc( num a, num b ) -> num {					\
+						return a + b;								\
+					};												\
+					Calc2( num a ) -> {								\
+						return a + this.y;							\
+					};												\
+				};													\
+				calc2 = x.Calc2;									\
+				x.y = 5.0;											\
+				const l2 = 1;										\
+				const calculate = x.Calc;							\
+				g0 = calculate( 1, l2 ) * calc2( 7.0 );				\
+			}														\
+			return g0;", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 24.0 );
+
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "Arrays (Simple arrays)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "var g0 = 0;				\
+			{														\
+				var l0 = 1;											\
+				Array x = {	1, 2, 3 };								\
+				const l2 = 1;										\
+				g0 = x[0] + x[2];									\
+			}														\
+			return g0;", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 4.0 );
+
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "Arrays (Setters and getters)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "var g0 = 0;				\
+			{														\
+				var l0 = 1;											\
+				Array x = {	\"hello\", 2, 3};						\
+				Array y = {	16, 32, \"world\" };					\
+				Array z = {	128, \"home\", 512 };					\
+				y[2] = z[1];										\
+				const l2 = 1;										\
+				g0 = x[0] + \" \" + y[2];							\
+			}														\
+			return g0;", &exitCode ) );
+
+		UTEST_ASSERT( IS_STRING( exitCode ) );
+		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "hello home" );
+
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "Arrays (Expression from setter)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "var g0 = 0; var g1;		\
+			{														\
+				Array x = {	\"hello\", 2, 3};						\
+				g0 = x[0] = x[0] + \" world\";						\
+				g1 = x[0];											\
+			}														\
+			return g0 + \" \" + g1;", &exitCode ) );
+
+		UTEST_ASSERT( IS_STRING( exitCode ) );
+		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "hello world hello world" );
+
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "Mixing arrays and tables (1)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "Table a = {			\
+			Table b = {											\
+				Array x = { \"Hello\", \" \", \"world\" };		\
+				Array y = { 0, 1, 2 };							\
+			}													\
+			Array z ={											\
+				16,												\
+				32,												\
+				Table x = { const string e = \"!\"; }			\
+			};													\
+			Array q ={ Array v = { 1, 2 } };					\
+		}														\
+		return a.b.x[ 0 ]										\
+			+ a.b.x[ a.b.y[ 1 ] ]								\
+			+ a.b.x[ a.b.y[ 2 ] ]								\
+			+ \" \"												\
+			+ a.q[ 0 ][ 1 ]										\
+			+ \"\"												\
+			+ a.z[ 2 ].e; ", &exitCode ) );
+
+		UTEST_ASSERT( IS_STRING( exitCode ) );
+		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "Hello world 2.00!" );
+
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "Mixing arrays and tables (2)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "Table a ={					\
+			Table b ={												\
+				Array c = {											\
+					0,												\
+					Table d = {										\
+						Array e = {									\
+							1,										\
+							2,										\
+							Array f = {								\
+								1,									\
+								Array g = {							\
+									Table h = {						\
+										Array i = { \"big\" };		\
+									}								\
+								},									\
+								3									\
+							}										\
+						};											\
+					},												\
+					2												\
+				};													\
+			};														\
+		};															\
+		return a.b.c[ 1 ].e[ 2 ][ 1 ][ 0 ].i[ 0 ]; ", &exitCode ) );
+
+		UTEST_ASSERT( IS_STRING( exitCode ) );
+		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "big" );
+
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "Nested arrays (Stack effect)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "var g0 = 0; const f = ( ) -> {		\
+				Array out ={												\
+					Array x,												\
+				};															\
+			for ( num i = 0; i < 3; ++i ) g0 = i;							\
+		};																	\
+		f();																\
+		return g0; ", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) = 2 );
+
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "Nested arrays (Matrix multiplication)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "Array mat1 ={											\
+				Array x0 ={ 2, 2, 2 },															\
+				Array x1 ={ 2, 4, 2 },															\
+				Array x2 ={ 2, 2, 2 },															\
+			};																					\
+			Array mat2 ={																		\
+				Array x1 = { 6, 2, 6 },															\
+				Array x2 = { 2, 6, 2 },															\
+				Array x3 = { 6, 2, 6 },															\
+			};																					\
+			const matmul = ( a, b ) -> {														\
+				Array out ={																	\
+					Array x0 = { 0, 0, 0 },														\
+					Array x1 = { 0, 0, 0 },														\
+					Array x2 = { 0, 0, 0 },														\
+				};																				\
+				for ( num i = 0; i < 3; ++i ) {													\
+					for ( num j = 0; j < 3; j++ ) {												\
+						for ( num k = 0; k < 3; k++ ) {											\
+							out[ i ][ j ] = out[ i ][ j ] + a[ i ][ k ] * b[ k ][ j ];			\
+						}																		\
+					}																			\
+				}																				\
+				return out;																		\
+			}																					\
+			return matmul( mat1, mat2 ); ", &exitCode ) );
+
+		UTEST_ASSERT( IS_ARRAY( exitCode ) );
+
+		auto arr = AS_ARRAY( exitCode )->GetArray();
+
+#define ASSERT_INDICE( arr, x, y, number ) \
+		UTEST_ASSERT( IS_ARRAY( arr[ x ] )	\
+			&& IS_NUMBER( AS_ARRAY( arr[ x ] )->GetArray()[ y ] ) \
+			&& ( AS_NUMBER( AS_ARRAY( arr[ x ] )->GetArray()[ y ] ) == number ) );
+
+		ASSERT_INDICE( arr, 0, 0, 28.0 );
+		ASSERT_INDICE( arr, 0, 1, 20.0 );
+		ASSERT_INDICE( arr, 0, 2, 28.0 );
+
+		ASSERT_INDICE( arr, 1, 0, 32.0 );
+		ASSERT_INDICE( arr, 1, 1, 32.0 );
+		ASSERT_INDICE( arr, 1, 2, 32.0 );
+
+		ASSERT_INDICE( arr, 2, 0, 28.0 );
+		ASSERT_INDICE( arr, 2, 1, 20.0 );
+		ASSERT_INDICE( arr, 2, 2, 28.0 );
+
+#undef ASSERT_INDICE
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "Nested arrays (Multi-level arrays)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "Array a1 = {			\
+			Array a2 ={											\
+				1,												\
+				2,												\
+				Array a3 = {									\
+					1,											\
+					Array a4 = {								\
+						Array a5 = { 64.0 },					\
+					},											\
+					2											\
+				}												\
+			}													\
+		}														\
+		a1[ 0 ][ 2 ][ 1 ][ 0 ][ 0 ] =							\
+			a1[ 0 ][ 2 ][ 1 ][ 0 ][ 0 ]							\
+			+ a1[ 0 ][ 2 ][ 1 ][ 0 ][ 0 ];						\
+		return a1[ 0 ][ 2 ][ 1 ][ 0 ][ 0 ];", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) = 128.0 );
 
 		TestUtils::FreeExitCode( exitCode );
 		UTEST_CASE_CLOSED();

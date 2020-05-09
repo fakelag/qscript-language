@@ -172,6 +172,8 @@ uint32_t Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32
 	SIMPLE_INST( OP_LOAD_LOCAL_9, "LOAD_LOCAL 9" );
 	SIMPLE_INST( OP_LOAD_LOCAL_10, "LOAD_LOCAL 10" );
 	SIMPLE_INST( OP_LOAD_LOCAL_11, "LOAD_LOCAL 11" );
+	SIMPLE_INST( OP_LOAD_PROP_STACK, "LOAD_PROP_STACK" );
+	SIMPLE_INST( OP_PUSH_ARRAY, "OP_PUSH_ARRAY" );
 	SIMPLE_INST( OP_SET_LOCAL_0, "SET_LOCAL 0" );
 	SIMPLE_INST( OP_SET_LOCAL_1, "SET_LOCAL 1" );
 	SIMPLE_INST( OP_SET_LOCAL_2, "SET_LOCAL 2" );
@@ -184,6 +186,7 @@ uint32_t Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32
 	SIMPLE_INST( OP_SET_LOCAL_9, "SET_LOCAL 9" );
 	SIMPLE_INST( OP_SET_LOCAL_10, "SET_LOCAL 10" );
 	SIMPLE_INST( OP_SET_LOCAL_11, "SET_LOCAL 11" );
+	SIMPLE_INST( OP_SET_PROP_STACK, "LOAD_SET_STACK" );
 	SIMPLE_INST( OP_CLOSE_UPVALUE, "CLOSE_UPVALUE" );
 	SIMPLE_INST( OP_ADD, "ADD" );
 	SIMPLE_INST( OP_BIND, "BIND" );
@@ -285,6 +288,9 @@ int Compiler::InstructionSize( uint8_t inst )
 	switch ( inst )
 	{
 	case QScript::OpCode::OP_BIND: return 1;
+	case QScript::OpCode::OP_PUSH_ARRAY: return 1;
+	case QScript::OpCode::OP_LOAD_PROP_STACK: return 1;
+	case QScript::OpCode::OP_SET_PROP_STACK: return 1;
 	case QScript::OpCode::OP_LOAD_TOP_SHORT: return 2;
 	case QScript::OpCode::OP_LOAD_CONSTANT_SHORT: return 2;
 	case QScript::OpCode::OP_LOAD_CONSTANT_LONG: return 5;
