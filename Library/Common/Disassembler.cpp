@@ -126,6 +126,10 @@ uint32_t Compiler::DisassembleInstruction( const QScript::Chunk_t& chunk, uint32
 	switch ( chunk.m_Code[ offset ] )
 	{
 	INST_SHORT( OP_LOAD_TOP_SHORT, "LOAD_TOP_SHORT" );
+	CNST_INST_SHORT( OP_CREATE_ARRAY_SHORT, "CREATE_ARRAY" );
+	CNST_INST_LONG( OP_CREATE_ARRAY_LONG, "CREATE_ARRAY" );
+	CNST_INST_SHORT( OP_CREATE_TABLE_SHORT, "CREATE_TABLE" );
+	CNST_INST_LONG( OP_CREATE_TABLE_LONG, "CREATE_TABLE" );
 	CNST_INST_SHORT( OP_LOAD_CONSTANT_SHORT, "LOAD_CONSTANT" );
 	CNST_INST_LONG( OP_LOAD_CONSTANT_LONG, "LOAD_CONSTANT" );
 	CNST_INST_SHORT( OP_SET_GLOBAL_SHORT, "SET_GLOBAL" );
@@ -292,6 +296,10 @@ int Compiler::InstructionSize( uint8_t inst )
 	case QScript::OpCode::OP_LOAD_PROP_STACK: return 1;
 	case QScript::OpCode::OP_SET_PROP_STACK: return 1;
 	case QScript::OpCode::OP_LOAD_TOP_SHORT: return 2;
+	case QScript::OpCode::OP_CREATE_TABLE_SHORT: return 2;
+	case QScript::OpCode::OP_CREATE_TABLE_LONG: return 5;
+	case QScript::OpCode::OP_CREATE_ARRAY_SHORT: return 2;
+	case QScript::OpCode::OP_CREATE_ARRAY_LONG: return 5;
 	case QScript::OpCode::OP_LOAD_CONSTANT_SHORT: return 2;
 	case QScript::OpCode::OP_LOAD_CONSTANT_LONG: return 5;
 	case QScript::OpCode::OP_SET_GLOBAL_SHORT: return 2;

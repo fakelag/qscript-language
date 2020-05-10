@@ -306,6 +306,20 @@ namespace QVM
 				vm.m_Globals[ AS_STRING( constant )->GetString() ] = vm.Peek( 0 );
 				INTERP_DISPATCH;
 			}
+			INTERP_OPCODE( OP_CREATE_ARRAY_SHORT ): vm.Push( MAKE_ARRAY( AS_STRING( READ_CONST_SHORT() )->GetString() ) ); INTERP_DISPATCH;
+			INTERP_OPCODE( OP_CREATE_ARRAY_LONG ):
+			{
+				READ_CONST_LONG( constant );
+				vm.Push( MAKE_ARRAY( AS_STRING( constant )->GetString() ) );
+				INTERP_DISPATCH;
+			}
+			INTERP_OPCODE( OP_CREATE_TABLE_SHORT ): vm.Push( MAKE_TABLE( AS_STRING( READ_CONST_SHORT() )->GetString() ) ); INTERP_DISPATCH;
+			INTERP_OPCODE( OP_CREATE_TABLE_LONG ):
+			{
+				READ_CONST_LONG( constant );
+				vm.Push( MAKE_TABLE( AS_STRING( constant )->GetString() ) );
+				INTERP_DISPATCH;
+			}
 			INTERP_OPCODE( OP_LOAD_PROP_STACK ):
 			{
 				auto key = vm.Pop();
@@ -913,10 +927,13 @@ void VM_t::MarkObject( QScript::Object* object )
 	{
 		case QScript::OT_CLOSURE:
 		{
-			auto& upvalues = ( ( QScript::ClosureObject* ) object )->GetUpvalues();
+			auto closureObj = ( QScript::ClosureObject* ) object;
+			auto& upvalues = ( closureObj )->GetUpvalues();
+
 			for ( auto upval : upvalues )
 				MarkObject( upval );
 
+			MarkObject( closureObj->GetThis() );
 			break;
 		}
 		case QScript::OT_UPVALUE:
@@ -931,11 +948,25 @@ void VM_t::MarkObject( QScript::Object* object )
 		case QScript::OT_TABLE:
 		{
 			auto tableObj = ( ( QScript::TableObject* ) object );
+			auto& propList = tableObj->GetProperties();
 
-			for ( auto props : tableObj->GetProperties() )
+			for ( auto props : propList )
 			{
 				if ( IS_OBJECT( props.second ) )
 					MarkObject( AS_OBJECT( props.second ) );
+			}
+
+			break;
+		}
+		case QScript::OT_ARRAY:
+		{
+			auto arrayObj = ( ( QScript::ArrayObject* ) object );
+			auto& itemList = arrayObj->GetArray();
+
+			for ( auto item : itemList )
+			{
+				if ( IS_OBJECT( item ) )
+					MarkObject( AS_OBJECT( item ) );
 			}
 
 			break;

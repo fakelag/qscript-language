@@ -737,16 +737,21 @@ namespace Compiler
 			{
 				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder ) -> BaseNode*
 				{
-					auto varName = nextExpression( BP_VAR );
 					ListNode* propertyNode = NULL;
-					
-					if ( !IsString( varName ) )
+					BaseNode* varName = NULL;
+
+					if ( parserState.CurrentBuilder()->m_Token.m_Id != TOK_BRACE_LEFT )
 					{
-						throw CompilerException( "ir_table_name", "Invalid table name: \"" + varName->Token() + "\"",
-							varName->LineNr(), varName->ColNr(), varName->Token() );
+						varName = nextExpression( BP_VAR );
+
+						if ( !IsString( varName ) )
+						{
+							throw CompilerException( "ir_table_name", "Invalid table name: \"" + varName->Token() + "\"",
+								varName->LineNr(), varName->ColNr(), varName->Token() );
+						}
 					}
 
-					if ( parserState.MatchCurrent( TOK_EQUALS ) )
+					if ( !varName || parserState.MatchCurrent( TOK_EQUALS ) )
 					{
 						parserState.Expect( TOK_BRACE_LEFT, "Expected \"{\" before table body, got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
 
@@ -786,16 +791,21 @@ namespace Compiler
 			{
 				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder ) -> BaseNode*
 				{
-					auto varName = nextExpression( BP_VAR );
+					BaseNode* varName = NULL;
 					ListNode* initializerNode = NULL;
 
-					if ( !IsString( varName ) )
+					if ( parserState.CurrentBuilder()->m_Token.m_Id != TOK_BRACE_LEFT )
 					{
-						throw CompilerException( "ir_array_name", "Invalid array name: \"" + varName->Token() + "\"",
-							varName->LineNr(), varName->ColNr(), varName->Token() );
+						varName = nextExpression( BP_VAR );
+
+						if ( !IsString( varName ) )
+						{
+							throw CompilerException( "ir_array_name", "Invalid array name: \"" + varName->Token() + "\"",
+								varName->LineNr(), varName->ColNr(), varName->Token() );
+						}
 					}
 
-					if ( parserState.MatchCurrent( TOK_EQUALS ) )
+					if ( !varName || parserState.MatchCurrent( TOK_EQUALS ) )
 					{
 						parserState.Expect( TOK_BRACE_LEFT, "Expected \"{\" before array initializer, got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
 

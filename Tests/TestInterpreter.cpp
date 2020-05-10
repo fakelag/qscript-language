@@ -915,6 +915,40 @@ bool Tests::TestInterpreter()
 		UTEST_CASE_CLOSED();
 	}( );
 
+	UTEST_CASE( "Tables (Anonymous tables)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "var g0;			\
+			{												\
+				g0 = Table{									\
+					const x = 6;							\
+					const y = 7;							\
+				};											\
+			}												\
+			return g0.x + g0.y; ", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 13.00 );
+
+		TestUtils::FreeExitCode( exitCode );
+
+		UTEST_ASSERT( TestUtils::RunVM( "var g0;			\
+			{												\
+				Array x ={									\
+					Table { const a = 2; const b = 4; },	\
+					2,										\
+				};											\
+				g0 = x[ 0 ].a + x[ 0 ].b + x[ 1 ];			\
+			}												\
+			return g0;", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 8.00 );
+
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
 	UTEST_CASE( "Arrays (Simple arrays)" )
 	{
 		QScript::Value exitCode;
@@ -969,6 +1003,37 @@ bool Tests::TestInterpreter()
 
 		UTEST_ASSERT( IS_STRING( exitCode ) );
 		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "hello world hello world" );
+
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "Arrays (Anonymous arrays)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "var g0 = 0; {		\
+				g0 = Array{ \"ano\", \"ny\", \"mous\" };	\
+			}												\
+			return g0[0] + g0[1] + g0[2]; ", &exitCode ) );
+
+		UTEST_ASSERT( IS_STRING( exitCode ) );
+		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "anonymous" );
+
+		TestUtils::FreeExitCode( exitCode );
+
+		UTEST_ASSERT( TestUtils::RunVM( "var g0;		\
+			{											\
+				Array named ={							\
+					Array {								\
+						Array { 1, 2, 3 },				\
+					},									\
+				};										\
+				g0 = named[ 0 ][ 0 ][ 1 ];				\
+			}											\
+			return g0; ", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 2.00 );
 
 		TestUtils::FreeExitCode( exitCode );
 		UTEST_CASE_CLOSED();
