@@ -99,6 +99,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <PreprocessorDefinitions>QS_MEMLEAK_TEST;_CRTDBG_MAP_ALLOC;QVM_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -129,7 +130,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)Includes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>QLibPCH.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>QLibPCH.h.pch</PrecompiledHeaderOutputFile>
