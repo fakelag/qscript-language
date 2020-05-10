@@ -96,14 +96,14 @@ namespace QScript
 		}
 
 		FORCEINLINE	const FunctionObject* GetFunction()					const { return m_Fn; }
-		FORCEINLINE const Object* GetThis()								const { return m_This; }
-		FORCEINLINE void Bind( const Object* receiver )					{ m_This = receiver; }
+		FORCEINLINE Object* GetThis()									const { return m_This; }
+		FORCEINLINE void Bind( Object* receiver )						{ m_This = receiver; }
 		FORCEINLINE	std::vector< UpvalueObject* >& GetUpvalues()		{ return m_Upvalues; }
 
 	private:
 		const FunctionObject* 			m_Fn;
 		std::vector< UpvalueObject* >	m_Upvalues;
-		const Object*					m_This;
+		Object*							m_This;
 	};
 
 	class TableObject : public Object
