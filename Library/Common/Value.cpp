@@ -30,11 +30,15 @@ std::string QScript::Value::ToString() const
 			auto arr = AS_ARRAY( *this );
 			auto& items = arr->GetArray();
 
+			std::string nameString = arr->GetName();
 			std::string itemsString;
 			for ( auto item : items )
 				itemsString += ", " + item.ToString();
 
-			return "<array, " + arr->GetName() + itemsString + ">";
+			if ( nameString.length() == 0 )
+				nameString = "<anonymous>";
+
+			return "<array, " + nameString + itemsString + ">";
 		}
 		default:
 		{

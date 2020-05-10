@@ -968,16 +968,28 @@ namespace Compiler
 		case NODE_TABLE:
 		{
 			auto isStatement = IS_STATEMENT( options );
-
-			auto varName = static_cast< ValueNode* >( m_NodeList[ 0 ] )->GetValue();
-			auto varNameString = AS_STRING( varName )->GetString();
 			bool isLocal = ( assembler.StackDepth() > 0 );
 
+			QScript::Value varName;
+			std::string varNameString = "";
+
+			if ( m_NodeList[ 0 ] )
+			{
+				varName = static_cast< ValueNode* >( m_NodeList[ 0 ] )->GetValue();
+				varNameString = AS_STRING( varName )->GetString();
+			}
+
 			// Empty table
-			EmitConstant( chunk, MAKE_TABLE( varNameString ), QScript::OpCode::OP_LOAD_CONSTANT_SHORT, QScript::OpCode::OP_LOAD_CONSTANT_LONG, assembler );
+			EmitConstant( chunk, MAKE_STRING( varNameString ), QScript::OpCode::OP_CREATE_TABLE_SHORT, QScript::OpCode::OP_CREATE_TABLE_LONG, assembler );
 
 			if ( isStatement )
 			{
+				if ( !m_NodeList[ 0 ] )
+				{
+					throw CompilerException( "ir_table_name", "Expected a named table when declaring a statement",
+						LineNr(), ColNr(), Token() );
+				}
+
 				if ( !isLocal )
 				{
 					// Global variable
@@ -1057,6 +1069,13 @@ namespace Compiler
 						subArray->Compile( assembler, COMPILE_EXPRESSION( options ) );
 
 						auto propNameNode = subArray->GetList()[ 0 ];
+
+						if ( propNameNode == NULL )
+						{
+							throw CompilerException( "ir_array_name", "Expected a named array inside table",
+								subArray->LineNr(), subArray->ColNr(), subArray->Token() );
+						}
+
 						propName = static_cast< ValueNode* >( propNameNode )->GetValue();
 					}
 					else
@@ -1093,15 +1112,28 @@ namespace Compiler
 		case NODE_ARRAY:
 		{
 			auto isStatement = IS_STATEMENT( options );
-			auto varName = static_cast< ValueNode* >( m_NodeList[ 0 ] )->GetValue();
-			auto varNameString = AS_STRING( varName )->GetString();
 			bool isLocal = ( assembler.StackDepth() > 0 );
 
+			QScript::Value varName;
+			std::string varNameString = "";
+
+			if ( m_NodeList[ 0 ] )
+			{
+				varName = static_cast< ValueNode* >( m_NodeList[ 0 ] )->GetValue();
+				varNameString = AS_STRING( varName )->GetString();
+			}
+
 			// Empty array
-			EmitConstant( chunk, MAKE_ARRAY( varNameString ), QScript::OpCode::OP_LOAD_CONSTANT_SHORT, QScript::OpCode::OP_LOAD_CONSTANT_LONG, assembler );
+			EmitConstant( chunk, MAKE_STRING( varNameString ), QScript::OpCode::OP_CREATE_ARRAY_SHORT, QScript::OpCode::OP_CREATE_ARRAY_LONG, assembler );
 
 			if ( isStatement )
 			{
+				if ( !m_NodeList[ 0 ] )
+				{
+					throw CompilerException( "ir_array_name", "Expected a named array when declaring a statement",
+						LineNr(), ColNr(), Token() );
+				}
+
 				if ( !isLocal )
 				{
 					if ( !assembler.AddGlobal( varNameString, true, TYPE_ARRAY ) )

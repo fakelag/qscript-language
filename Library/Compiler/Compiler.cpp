@@ -426,6 +426,8 @@ namespace Compiler
 
 	QScript::TableObject* AllocateTable( const std::string& name )
 	{
+		assert( 0 );
+
 		auto tableObject = QS_NEW QScript::TableObject( name );
 		ObjectList.push_back( ( QScript::Object* ) tableObject );
 		return tableObject;
@@ -433,6 +435,8 @@ namespace Compiler
 
 	QScript::ArrayObject* AllocateArray( const std::string& name )
 	{
+		assert( 0 );
+
 		auto arrayObject = QS_NEW QScript::ArrayObject( name );
 		ObjectList.push_back( ( QScript::Object* ) arrayObject );
 		return arrayObject;
