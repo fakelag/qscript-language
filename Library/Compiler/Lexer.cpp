@@ -39,7 +39,7 @@ namespace Compiler
 		{ TOK_OR,					{ TOK_OR, 						"||", 		BP_LOGIC, 					false } },
 		{ TOK_BANG, 				{ TOK_BANG, 					"!", 		BP_LOGIC_NOT,				false } },
 
-		{ TOK_SQUARE_BRACKET_LEFT,  { TOK_SQUARE_BRACKET_LEFT,		"[",		BP_OPENSQUARE_BRACKET,		false } },
+		{ TOK_SQUARE_BRACKET_LEFT,  { TOK_SQUARE_BRACKET_LEFT,		"[",		BP_NONE,					false } },
 		{ TOK_SQUARE_BRACKET_RIGHT, { TOK_SQUARE_BRACKET_RIGHT,		"]",		BP_NONE,					false } },
 
 		{ TOK_PAREN_LEFT,			{ TOK_PAREN_LEFT, 				"(", 		BP_OPENPAREN,				false } },

@@ -883,25 +883,30 @@ namespace Compiler
 			}
 			case TOK_SQUARE_BRACKET_LEFT:
 			{
-				builder->m_Led = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder, BaseNode* left )
+				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder )
 				{
-					auto indexNode = nextExpression();
-					parserState.Expect( TOK_SQUARE_BRACKET_RIGHT, "Expected \"]\" after array index, got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
+					std::vector< BaseNode* > argsList;
+					auto target = nextExpression();
+
+					// Parse argument list
+					if ( !parserState.MatchCurrent( TOK_SQUARE_BRACKET_RIGHT ) )
+					{
+						do {
+							argsList.push_back( nextExpression() );
+						} while ( parserState.MatchCurrent( TOK_COMMA ) );
+
+						parserState.Expect( TOK_SQUARE_BRACKET_RIGHT, "Expected \"]\" after function call, got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
+					}
+
+					auto args = parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+						irBuilder.m_Token.m_String, NODE_ARGUMENTS, argsList );
 
 					return parserState.AllocateNode< ComplexNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-						irBuilder.m_Token.m_String, NODE_ACCESS_ARRAY, left, indexNode );
+						irBuilder.m_Token.m_String, NODE_CALL, target, args );
 				};
 
 				break;
 			}
-			case TOK_SQUARE_BRACKET_RIGHT:
-			case TOK_BRACE_RIGHT:
-			case TOK_PAREN_RIGHT:
-			case TOK_SCOLON:
-			case TOK_COMMA:
-			case TOK_ARROW:
-			case TOK_COLON:
-				break;
 			case TOK_PAREN_LEFT:
 			{
 				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder ) -> BaseNode*
@@ -925,26 +930,23 @@ namespace Compiler
 
 				builder->m_Led = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder, BaseNode* left )
 				{
-					std::vector< BaseNode* > argsList;
-
-					// Parse argument list
-					if ( !parserState.MatchCurrent( TOK_PAREN_RIGHT ) )
-					{
-						do {
-							argsList.push_back( nextExpression() );
-						} while ( parserState.MatchCurrent( TOK_COMMA ) );
-
-						parserState.Expect( TOK_PAREN_RIGHT, "Expected \")\" after function call, got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
-					}
-
-					auto args = parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-						irBuilder.m_Token.m_String, NODE_ARGUMENTS, argsList );
+					auto indexNode = nextExpression();
+					parserState.Expect( TOK_PAREN_RIGHT, "Expected \")\" after array index, got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
 
 					return parserState.AllocateNode< ComplexNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-						irBuilder.m_Token.m_String, NODE_CALL, left, args );
+						irBuilder.m_Token.m_String, NODE_ACCESS_ARRAY, left, indexNode );
 				};
+
 				break;
 			}
+			case TOK_SQUARE_BRACKET_RIGHT:
+			case TOK_BRACE_RIGHT:
+			case TOK_PAREN_RIGHT:
+			case TOK_SCOLON:
+			case TOK_COMMA:
+			case TOK_ARROW:
+			case TOK_COLON:
+				break;
 			case TOK_RETURN:
 			{
 				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder )
