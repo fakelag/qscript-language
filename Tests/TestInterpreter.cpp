@@ -411,7 +411,7 @@ bool Tests::TestInterpreter()
 				{ var z = y + y; }								\
 				var q = x;										\
 			}													\
-			abc();												\
+			[abc];												\
 			return 1;", &exitCode ) );
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
@@ -426,7 +426,7 @@ bool Tests::TestInterpreter()
 				return q;										\
 			}													\
 			" + largeBodyOfCode + "								\
-			x = abc(5);											\
+			x = [abc 5];										\
 			return x;", &exitCode ) );
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
@@ -437,7 +437,7 @@ bool Tests::TestInterpreter()
 			var abc = (a, b, c) -> {							\
 				return a + b + c;								\
 			}													\
-			return abc(7, 9, 2);", &exitCode ) );
+			return [abc 7, 9, 2];", &exitCode ) );
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 18 );
@@ -451,9 +451,9 @@ bool Tests::TestInterpreter()
 		QScript::Value exitCode;
 		UTEST_ASSERT( TestUtils::RunVM( "var x = 0;				\
 			var a = (x) -> { var y = x + 5; return y + 5; }		\
-			var b = (x) -> { return a(x) + 5; }					\
-			var c = (x) -> { return b(x) - 5; }					\
-			x = c(20);											\
+			var b = (x) -> { return [a x] + 5; }				\
+			var c = (x) -> { return [b x] - 5; }				\
+			x = [c 20];											\
 			return x;", &exitCode ) );
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
@@ -463,24 +463,24 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( TestUtils::RunVM( "						\
 			var fibonacci = (n) -> {							\
 				if (n <= 1) return 1;							\
-				return fibonacci(n - 1) + fibonacci(n - 2);		\
+				return [fibonacci n - 1] + [fibonacci n - 2];	\
 			}													\
-			return fibonacci(10);", &exitCode ) );
+			return [fibonacci 10];", &exitCode ) );
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 89 );
 
 		TestUtils::FreeExitCode( exitCode );
 		UTEST_ASSERT( TestUtils::RunVM( "var x = 0;							\
-			var xxx = (anotherFunc) -> { return anotherFunc(60, 60); }		\
+			var xxx = (anotherFunc) -> { return [anotherFunc 60, 60]; }		\
 			var sum = (a, b) -> { return a + b; }							\
-			return xxx(sum);", &exitCode ) );
+			return [xxx sum];", &exitCode ) );
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 120 );
 
 		TestUtils::FreeExitCode( exitCode );
-		UTEST_ASSERT( TestUtils::RunVM( "var x = () -> { return () -> { return () -> { return 8; }; } } return x()()();", &exitCode ) );
+		UTEST_ASSERT( TestUtils::RunVM( "var x = () -> { return () -> { return () -> { return 8; }; } } return [[[x]]];", &exitCode ) );
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 8 );
@@ -497,10 +497,10 @@ bool Tests::TestInterpreter()
 			var a = ( ) -> {									\
 				l0 = \"second\";								\
 			}													\
-			a();												\
+			[a];												\
 			return l0;											\
 		}														\
-		return f();", &exitCode ) );
+		return [f];", &exitCode ) );
 
 		UTEST_ASSERT( IS_STRING( exitCode ) );
 		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "second" );
@@ -511,9 +511,9 @@ bool Tests::TestInterpreter()
 			var a = ( ) -> {									\
 				return l0;										\
 			}													\
-			return a();											\
+			return [a];											\
 		}														\
-		return f();", &exitCode ) );
+		return [f];", &exitCode ) );
 
 		UTEST_ASSERT( IS_STRING( exitCode ) );
 		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "returned" );
@@ -525,9 +525,9 @@ bool Tests::TestInterpreter()
 			var f = ( ) -> {									\
 				return a + b;									\
 			}													\
-			return f();											\
+			return [f];											\
 		}														\
-		return g();", &exitCode ) );
+		return [g];", &exitCode ) );
 
 		UTEST_ASSERT( IS_STRING( exitCode ) );
 		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "ab" );
@@ -543,7 +543,7 @@ bool Tests::TestInterpreter()
 			}												\
 			g = l3;											\
 		}													\
-		return g(); ", &exitCode ) );
+		return [g]; ", &exitCode ) );
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 919191 );
@@ -573,13 +573,13 @@ bool Tests::TestInterpreter()
 						g = l0 + l1 + l2;					\
 						g = g + l0;							\
 					}										\
-					d();									\
+					[d];									\
 				}											\
-				c();										\
+				[c];										\
 			}												\
-			b();											\
+			[b];											\
 		}													\
-		a();												\
+		[a];												\
 		return g; ", &exitCode ) );
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
@@ -597,7 +597,7 @@ bool Tests::TestInterpreter()
 				}												\
 				{												\
 					var b = 2;									\
-					g1 = g();									\
+					g1 = [g];									\
 				}												\
 			} return g1;", &exitCode ) );
 
@@ -613,10 +613,10 @@ bool Tests::TestInterpreter()
 				var l0 = \"shadow\";							\
 				g = g + l0;										\
 			}													\
-			l1();												\
+			[l1];												\
 			g = g + l0;											\
 		}														\
-		process();												\
+		[process];												\
 		return g; ", &exitCode ) );
 
 		UTEST_ASSERT( IS_STRING( exitCode ) );
@@ -633,7 +633,7 @@ bool Tests::TestInterpreter()
 				var a = \"object\";								\
 				if ( false ) { var x = () -> { return a; } }	\
 			}													\
-			g();												\
+			[g];												\
 			return 6; ", &exitCode ) );
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
@@ -644,7 +644,7 @@ bool Tests::TestInterpreter()
 				var a = \"object\";								\
 				if ( false ) { var x = () -> { return a; } }	\
 			}													\
-			g();												\
+			[g];												\
 			return 6; ", &exitCode ) );
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
@@ -661,7 +661,7 @@ bool Tests::TestInterpreter()
 					g = x;												\
 					if ( false ) { var z = ( ) -> { return b; } }		\
 				}														\
-				g2 = g();												\
+				g2 = [g];												\
 			}															\
 			return g2; ", &exitCode ) );
 
@@ -676,8 +676,8 @@ bool Tests::TestInterpreter()
 				}														\
 				g = x;													\
 			}															\
-			f( \"hello\" );												\
-			return g(); ", &exitCode ) );
+			[f \"hello\"];												\
+			return [g]; ", &exitCode ) );
 
 		UTEST_ASSERT( IS_STRING( exitCode ) );
 		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "hello" );
@@ -692,10 +692,10 @@ bool Tests::TestInterpreter()
 				gAdd = add;											\
 				gGet = get;											\
 			}														\
-			g();													\
-			gAdd();													\
-			gAdd();													\
-			return gGet(); ", &exitCode ) );
+			[g];													\
+			[gAdd];													\
+			[gAdd];													\
+			return [gGet]; ", &exitCode ) );
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 2 );
@@ -852,7 +852,7 @@ bool Tests::TestInterpreter()
 					};												\
 				};													\
 				const l2 = 1;										\
-				g0 = x.Calc( 1, 3 ) * x.Calc2( 7.0 );				\
+				g0 = [x.Calc 1, 3] * [x.Calc2 7.0];					\
 			}														\
 			return g0;", &exitCode ) );
 
@@ -869,11 +869,11 @@ bool Tests::TestInterpreter()
 				BaseNumber() -> num { return 1; }							\
 				Fibo( a ) -> auto {											\
 					if ( a <= this.base )									\
-						return this.BaseNumber();							\
-					return this.Fibo( a - 1 ) + this.Fibo( a - 2 );			\
+						return [this.BaseNumber];							\
+					return [this.Fibo a - 1] + [this.Fibo a - 2];			\
 				};															\
 			};																\
-			g0 = x.Fibo( 10 );												\
+			g0 = [x.Fibo 10];												\
 		}																	\
 		return g0;", &exitCode ) );
 
@@ -904,7 +904,7 @@ bool Tests::TestInterpreter()
 				x.y = 5.0;											\
 				const l2 = 1;										\
 				const calculate = x.Calc;							\
-				g0 = calculate( 1, l2 ) * calc2( 7.0 );				\
+				g0 = [calculate 1, l2] * [calc2 7.0];				\
 			}														\
 			return g0;", &exitCode ) );
 
@@ -938,7 +938,7 @@ bool Tests::TestInterpreter()
 					Table { const a = 2; const b = 4; },	\
 					2,										\
 				};											\
-				g0 = x[ 0 ].a + x[ 0 ].b + x[ 1 ];			\
+				g0 = x(0).a + x(0).b + x(1);				\
 			}												\
 			return g0;", &exitCode ) );
 
@@ -957,7 +957,7 @@ bool Tests::TestInterpreter()
 				var l0 = 1;											\
 				Array x = {	1, 2, 3 };								\
 				const l2 = 1;										\
-				g0 = x[0] + x[2];									\
+				g0 = x(0) + x(2);									\
 			}														\
 			return g0;", &exitCode ) );
 
@@ -977,9 +977,9 @@ bool Tests::TestInterpreter()
 				Array x = {	\"hello\", 2, 3};						\
 				Array y = {	16, 32, \"world\" };					\
 				Array z = {	128, \"home\", 512 };					\
-				y[2] = z[1];										\
+				y(2) = z(1);										\
 				const l2 = 1;										\
-				g0 = x[0] + \" \" + y[2];							\
+				g0 = x(0) + \" \" + y(2);							\
 			}														\
 			return g0;", &exitCode ) );
 
@@ -996,8 +996,8 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( TestUtils::RunVM( "var g0 = 0; var g1;		\
 			{														\
 				Array x = {	\"hello\", 2, 3};						\
-				g0 = x[0] = x[0] + \" world\";						\
-				g1 = x[0];											\
+				g0 = x(0) = x(0) + \" world\";						\
+				g1 = x(0);											\
 			}														\
 			return g0 + \" \" + g1;", &exitCode ) );
 
@@ -1014,7 +1014,7 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( TestUtils::RunVM( "var g0 = 0; {		\
 				g0 = Array{ \"ano\", \"ny\", \"mous\" };	\
 			}												\
-			return g0[0] + g0[1] + g0[2]; ", &exitCode ) );
+			return g0(0) + g0(1) + g0(2); ", &exitCode ) );
 
 		UTEST_ASSERT( IS_STRING( exitCode ) );
 		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "anonymous" );
@@ -1028,7 +1028,7 @@ bool Tests::TestInterpreter()
 						Array { 1, 2, 3 },				\
 					},									\
 				};										\
-				g0 = named[ 0 ][ 0 ][ 1 ];				\
+				g0 = named(0)( 0 )(1);					\
 			}											\
 			return g0; ", &exitCode ) );
 
@@ -1054,13 +1054,13 @@ bool Tests::TestInterpreter()
 			};													\
 			Array q ={ Array v = { 1, 2 } };					\
 		}														\
-		return a.b.x[ 0 ]										\
-			+ a.b.x[ a.b.y[ 1 ] ]								\
-			+ a.b.x[ a.b.y[ 2 ] ]								\
+		return a.b.x( 0 )										\
+			+ a.b.x( a.b.y( 1 ) )								\
+			+ a.b.x( a.b.y( 2 ) )								\
 			+ \" \"												\
-			+ a.q[ 0 ][ 1 ]										\
+			+ a.q( 0)( 1 )										\
 			+ \"\"												\
-			+ a.z[ 2 ].e; ", &exitCode ) );
+			+ a.z(2).e; ", &exitCode ) );
 
 		UTEST_ASSERT( IS_STRING( exitCode ) );
 		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "Hello world 2.00!" );
@@ -1095,7 +1095,7 @@ bool Tests::TestInterpreter()
 				};													\
 			};														\
 		};															\
-		return a.b.c[ 1 ].e[ 2 ][ 1 ][ 0 ].i[ 0 ]; ", &exitCode ) );
+		return a.b.c(1).e(2)( 1 )( 0 ).i( 0 ); ", &exitCode ) );
 
 		UTEST_ASSERT( IS_STRING( exitCode ) );
 		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "big" );
@@ -1113,7 +1113,7 @@ bool Tests::TestInterpreter()
 				};															\
 			for ( num i = 0; i < 3; ++i ) g0 = i;							\
 		};																	\
-		f();																\
+		[f];																\
 		return g0; ", &exitCode ) );
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
@@ -1145,13 +1145,13 @@ bool Tests::TestInterpreter()
 				for ( num i = 0; i < 3; ++i ) {													\
 					for ( num j = 0; j < 3; j++ ) {												\
 						for ( num k = 0; k < 3; k++ ) {											\
-							out[ i ][ j ] = out[ i ][ j ] + a[ i ][ k ] * b[ k ][ j ];			\
+							out( i )( j ) = out( i )( j ) + a( i )( k ) * b( k )( j );			\
 						}																		\
 					}																			\
 				}																				\
 				return out;																		\
 			}																					\
-			return matmul( mat1, mat2 ); ", &exitCode ) );
+			return [matmul mat1, mat2]; ", &exitCode ) );
 
 		UTEST_ASSERT( IS_ARRAY( exitCode ) );
 
@@ -1195,10 +1195,10 @@ bool Tests::TestInterpreter()
 				}												\
 			}													\
 		}														\
-		a1[ 0 ][ 2 ][ 1 ][ 0 ][ 0 ] =							\
-			a1[ 0 ][ 2 ][ 1 ][ 0 ][ 0 ]							\
-			+ a1[ 0 ][ 2 ][ 1 ][ 0 ][ 0 ];						\
-		return a1[ 0 ][ 2 ][ 1 ][ 0 ][ 0 ];", &exitCode ) );
+		a1( 0 )( 2 )( 1 )( 0 )( 0 ) =							\
+			a1( 0 )( 2 )( 1 )( 0 )( 0 )							\
+			+ a1( 0 )( 2 )( 1 )( 0 )( 0 );						\
+		return a1( 0 )( 2 )( 1 )( 0 )( 0 );", &exitCode ) );
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) = 128.0 );
@@ -1213,7 +1213,7 @@ bool Tests::TestInterpreter()
 		UTEST_ASSERT( TestUtils::RunVM( "var g1 = true ? 1 : 0;			\
 			var g2 = (g1 != 1 ? 0 : 1);									\
 			const x = () -> { return g2 == 1 ? \"yes\" : \"no\"; }		\
-			return x() == \"yes\" ? g1 + g2 : 0;", &exitCode ) );
+			return [x] == \"yes\" ? g1 + g2 : 0;", &exitCode ) );
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 2.0 );
