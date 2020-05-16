@@ -124,6 +124,8 @@ namespace Compiler
 
 		auto body = parserState.ToScope( nextExpression( irBuilder.m_Token.m_LBP ) );
 
+		// TODO: Skip } ?
+
 		auto args = parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
 			irBuilder.m_Token.m_String, NODE_ARGUMENTS, argsList );
 
@@ -820,6 +822,7 @@ namespace Compiler
 							case NODE_NAME:
 							case NODE_TABLE:
 							case NODE_ARRAY:
+							case NODE_CALL:
 								break;
 							default:
 							{

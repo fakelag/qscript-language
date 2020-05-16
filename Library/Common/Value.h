@@ -155,7 +155,7 @@ namespace QScript
 
 	enum ObjectType : char
 	{
-		OT_INVALID = -1,
+		OT_INVALID = 0,
 		OT_ARRAY,
 		OT_CLOSURE,
 		OT_FUNCTION,

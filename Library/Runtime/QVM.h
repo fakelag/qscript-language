@@ -75,6 +75,7 @@ struct VM_t
 	uint8_t* OpenUpvalues( QScript::ClosureObject* closure, Frame_t* frame, uint8_t* ip );
 	void CloseUpvalues( QScript::Value* last );
 
+	void CreateArrayMethod( const std::string name, QScript::NativeFn native );
 	void CreateNative( const std::string name, QScript::NativeFn native );
 	void Release();
 
@@ -83,23 +84,31 @@ struct VM_t
 	void Recycle();
 
 	// Call frames
-	QScript::ClosureObject*								m_Main;
-	std::vector< Frame_t >								m_Frames;
+	QScript::ClosureObject*									m_Main;
+	std::vector< Frame_t >									m_Frames;
 
 	// Keep track of allocated objects in the VM
-	std::vector< QScript::Object* >						m_Objects;
+	std::vector< QScript::Object* >							m_Objects;
 
 	// Global scope
-	std::unordered_map< std::string, QScript::Value >	m_Globals;
+	std::unordered_map< std::string, QScript::Value >		m_Globals;
 
 	// Stack
-	QScript::Value*										m_StackTop;
-	QScript::Value* 									m_Stack;
-	int													m_StackCapacity;
+	QScript::Value*											m_StackTop;
+	QScript::Value* 										m_Stack;
+	int														m_StackCapacity;
 
 	// Upvalues in use (not closed over)
-	QScript::UpvalueObject*								m_LivingUpvalues;
+	QScript::UpvalueObject*									m_LivingUpvalues;
 
 	// Number of allocations until garbage collection
-	int 												m_ObjectsToNextGC;
+	int 													m_ObjectsToNextGC;
+
+	// Built-in array methods
+	std::unordered_map< std::string, QScript::NativeFn >	m_ArrayMethods;
 };
+
+namespace QVM
+{
+	extern VM_t* VirtualMachine;
+}
