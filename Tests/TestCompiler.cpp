@@ -20,7 +20,11 @@ opcodeOffset += Compiler::InstructionSize( fn->GetChunk()->m_Code[ opcodeOffset 
 
 bool Tests::TestCompiler()
 {
+#ifdef _DEBUG
+	static const int s_LargeConstCount = 10;
+#else
 	static const int s_LargeConstCount = 300;
+#endif
 
 	UTEST_BEGIN( "Compiler Tests" );
 

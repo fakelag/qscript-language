@@ -10,7 +10,11 @@ using namespace Tests;
 
 bool Tests::TestInterpreter()
 {
+#ifdef _DEBUG
+	static const int s_LargeConstCount = 10;
+#else
 	static const int s_LargeConstCount = 300;
+#endif
 
 	// Generate a body of more than 255 instructions
 	auto largeBodyOfCode = TestUtils::GenerateSequence( s_LargeConstCount, []( int iter ) {
@@ -1034,6 +1038,104 @@ bool Tests::TestInterpreter()
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 2.00 );
+
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "Arrays (STL Push)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "var g0 = 0;		\
+			{												\
+				Array a;									\
+				num l0 = 0;									\
+				l0 +=[ a.push 1 ];							\
+				l0 +=[ a.push \"hello\" ];					\
+				l0 +=[ a.push \" \" ];						\
+				l0 +=[ a.push \"world\" ];					\
+				[a.push l0];								\
+				g0 = a;										\
+			}												\
+			return g0;", &exitCode ) );
+
+		UTEST_ASSERT( IS_ARRAY( exitCode ) );
+
+		auto arr = AS_ARRAY( exitCode )->GetArray();
+
+		UTEST_ASSERT( arr.size() == 5 );
+		UTEST_ASSERT( IS_NUMBER( arr[ 0 ] ) && AS_NUMBER( arr[ 0 ] ) == 1.00 );
+		UTEST_ASSERT( IS_STRING( arr[ 1 ] ) && AS_STRING( arr[ 1 ] )->GetString() == "hello" );
+		UTEST_ASSERT( IS_STRING( arr[ 2 ] ) && AS_STRING( arr[ 2 ] )->GetString() == " " );
+		UTEST_ASSERT( IS_STRING( arr[ 3 ] ) && AS_STRING( arr[ 3 ] )->GetString() == "world" );
+		UTEST_ASSERT( IS_NUMBER( arr[ 4 ] ) && AS_NUMBER( arr[ 4 ] ) == 6.00 );
+
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "Arrays (STL Concat)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "var g0 = 0;		\
+			{												\
+				Array a ={ 1, 2, 3 };						\
+				Array b ={ 4, \"5\", 6 };					\
+				g0 =[ a.concat b ];							\
+			}												\
+			return g0; ", &exitCode ) );
+
+		UTEST_ASSERT( IS_ARRAY( exitCode ) );
+
+		auto arr = AS_ARRAY( exitCode )->GetArray();
+
+		UTEST_ASSERT( arr.size() == 6 );
+		UTEST_ASSERT( IS_NUMBER( arr[ 0 ] ) && AS_NUMBER( arr[ 0 ] ) == 1.00 );
+		UTEST_ASSERT( IS_NUMBER( arr[ 1 ] ) && AS_NUMBER( arr[ 1 ] ) == 2.00 );
+		UTEST_ASSERT( IS_NUMBER( arr[ 2 ] ) && AS_NUMBER( arr[ 2 ] ) == 3.00 );
+		UTEST_ASSERT( IS_NUMBER( arr[ 3 ] ) && AS_NUMBER( arr[ 3 ] ) == 4.00 );
+		UTEST_ASSERT( IS_STRING( arr[ 4 ] ) && AS_STRING( arr[ 4 ] )->GetString() == "5" );
+		UTEST_ASSERT( IS_NUMBER( arr[ 5 ] ) && AS_NUMBER( arr[ 5 ] ) == 6.00 );
+
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "Arrays (STL Pop)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "var g0 = 0;		\
+			{												\
+				Array a = { 1, \"2\", 3 };					\
+				g0 = [a.pop] + [a.length];					\
+			}												\
+			return g0; ", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 5 );
+
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "Arrays (STL Length)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "var g0 = 0;			\
+			{													\
+				Array a ={ 1, 2, 3 };							\
+				[a.push 4];										\
+				Array b ={ 5, 6, 7 };							\
+				g0 = Array { [ a.length ], [ b.length ] };		\
+			}													\
+			return g0;", &exitCode ) );
+
+		UTEST_ASSERT( IS_ARRAY( exitCode ) );
+
+		auto arr = AS_ARRAY( exitCode )->GetArray();
+		UTEST_ASSERT( arr.size() == 2 );
+		UTEST_ASSERT( IS_NUMBER( arr[ 0 ] ) && AS_NUMBER( arr[ 0 ] ) == 4.00 );
+		UTEST_ASSERT( IS_NUMBER( arr[ 1 ] ) && AS_NUMBER( arr[ 1 ] ) == 3.00 );
 
 		TestUtils::FreeExitCode( exitCode );
 		UTEST_CASE_CLOSED();
