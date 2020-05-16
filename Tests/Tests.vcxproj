@@ -177,6 +177,7 @@
     <ClCompile Include="..\Library\Compiler\IRGenerator.cpp" />
     <ClCompile Include="..\Library\Compiler\Lexer.cpp" />
     <ClCompile Include="..\Library\Runtime\QVM.cpp" />
+    <ClCompile Include="..\Library\STL\Array.cpp" />
     <ClCompile Include="..\Library\STL\NativeModule.cpp" />
     <ClCompile Include="..\Library\STL\System.cpp" />
     <ClCompile Include="..\Library\STL\Time.cpp" />
@@ -189,6 +190,7 @@
   <ItemGroup>
     <ClInclude Include="..\Library\Common\Object.h" />
     <ClInclude Include="..\Library\Compiler\AST\AST.h" />
+    <ClInclude Include="..\Library\STL\Array.h" />
     <ClInclude Include="Tests.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>

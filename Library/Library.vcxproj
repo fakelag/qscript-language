@@ -158,6 +158,7 @@
     <ClCompile Include="Compiler\Lexer.cpp" />
     <ClCompile Include="Runtime\QVM.cpp" />
     <ClCompile Include="Common\Disassembler.cpp" />
+    <ClCompile Include="STL\Array.cpp" />
     <ClCompile Include="STL\NativeModule.cpp" />
     <ClCompile Include="STL\System.cpp" />
     <ClCompile Include="STL\Time.cpp" />
@@ -175,6 +176,7 @@
     <ClInclude Include="Compiler\IR.h" />
     <ClInclude Include="Compiler\Tokens.h" />
     <ClInclude Include="Runtime\QVM.h" />
+    <ClInclude Include="STL\Array.h" />
     <ClInclude Include="STL\NativeModule.h" />
     <ClInclude Include="STL\System.h" />
     <ClInclude Include="STL\Time.h" />

@@ -63,6 +63,9 @@
     <ClCompile Include="Compiler\AST\Typing.cpp">
       <Filter>Compiler\AST</Filter>
     </ClCompile>
+    <ClCompile Include="STL\Array.cpp">
+      <Filter>STL</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Compiler\Compiler.h">
@@ -109,6 +112,9 @@
     </ClInclude>
     <ClInclude Include="Compiler\AST\AST.h">
       <Filter>Compiler\AST</Filter>
+    </ClInclude>
+    <ClInclude Include="STL\Array.h">
+      <Filter>STL</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -75,6 +75,9 @@
     <ClCompile Include="..\Library\Compiler\AST\Typing.cpp">
       <Filter>Code</Filter>
     </ClCompile>
+    <ClCompile Include="..\Library\STL\Array.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Tests.h">
@@ -87,6 +90,9 @@
       <Filter>Code</Filter>
     </ClInclude>
     <ClInclude Include="..\Library\Compiler\AST\AST.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Library\STL\Array.h">
       <Filter>Code</Filter>
     </ClInclude>
   </ItemGroup>
