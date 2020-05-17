@@ -215,7 +215,8 @@ namespace Compiler
 					*/
 				}
 			}
-			else if ( matchItem( cursorView, languageOperators, &opInfo ) )
+			
+			if ( matchItem( cursorView, languageOperators, &opInfo ) )
 			{
 				switch ( opInfo.m_Token )
 				{
@@ -333,6 +334,7 @@ namespace Compiler
 				break;
 			}
 			case '\t':
+				++columnNumber;
 				break;
 			default:
 				backBuffer += cursorView.at( 0 );

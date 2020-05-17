@@ -1261,9 +1261,9 @@ bool Tests::TestInterpreter()
 			var g0;																\
 			{																	\
 				const getFilterFn = ( ) -> {									\
-					num filterNum = 3;											\
+					num numberToFilter = 3;										\
 					const filterFn = ( item ) -> {								\
-						return item == filterNum;								\
+						return item == numberToFilter;							\
 					}															\
 					return filterFn;											\
 				}																\
