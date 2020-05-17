@@ -38,7 +38,7 @@ std::string ReadFile( const std::string& path )
 	{
 		std::string line;
 		while ( std::getline( programFile, line ) )
-			content += line;
+			content += line + "\n";
 
 		programFile.close();
 	}
@@ -180,7 +180,8 @@ int main( int argc, char* argv[] )
 		}
 		EXCEPTION_HANDLING;
 
-		QScript::FreeFunction( function );
+		if ( function )
+			QScript::FreeFunction( function );
 	}
 
 	return 0;
