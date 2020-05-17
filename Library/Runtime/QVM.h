@@ -2,16 +2,18 @@
 
 struct Frame_t
 {
-	Frame_t( QScript::ClosureObject* closure, QScript::Value* stackFrame, uint8_t* ip )
+	Frame_t( QScript::ClosureObject* closure, QScript::Value* stackFrame, uint8_t* ip, bool fromNative )
 	{
 		m_Closure = closure;
 		m_Base = stackFrame;
 		m_IP = ip;
+		m_FromNative = fromNative;
 	}
 
 	QScript::ClosureObject*			m_Closure;
 	QScript::Value*					m_Base;
 	uint8_t*						m_IP;
+	bool							m_FromNative;
 };
 
 struct VM_t
@@ -69,7 +71,7 @@ struct VM_t
 	}
 
 	void Init( const QScript::FunctionObject* function );
-	void Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target );
+	void Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target, bool fromNative = false );
 	void AddObject( QScript::Object* object );
 
 	uint8_t* OpenUpvalues( QScript::ClosureObject* closure, Frame_t* frame, uint8_t* ip );
@@ -110,5 +112,6 @@ struct VM_t
 
 namespace QVM
 {
+	QScript::Value Run( VM_t& vm, bool enableDebugging = true );
 	extern VM_t* VirtualMachine;
 }

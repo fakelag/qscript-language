@@ -162,7 +162,7 @@ namespace QVM
 		props[ propName ] = vm.Peek( 0 );
 	}
 
-	QScript::Value Run( VM_t& vm )
+	QScript::Value Run( VM_t& vm, bool enableDebugging )
 	{
 		Frame_t* frame = &vm.m_Frames.back();
 		uint8_t* ip = frame->m_IP;
@@ -180,7 +180,7 @@ namespace QVM
 		for (;;)
 		{
 #ifdef QVM_DEBUG
-			if ( !runTill || ip > runTill )
+			if ( ( !runTill || ip > runTill ) && enableDebugging )
 			{
 				std::string input;
 
@@ -723,11 +723,19 @@ namespace QVM
 					return returnValue;
 				}
 
+				auto fromNative = vm.m_Frames.back().m_FromNative;
+
 				vm.m_StackTop = frame->m_Base;
 
 				vm.m_Frames.pop_back();
 
 				vm.Push( returnValue );
+
+				if ( fromNative )
+				{
+					// Called from a native, return control to that native
+					return returnValue;
+				}
 
 				RESTORE_FRAME();
 				INTERP_DISPATCH;
@@ -825,7 +833,7 @@ void VM_t::Init( const QScript::FunctionObject* mainFunction )
 	m_Main = QS_NEW QScript::ClosureObject( mainFunction );
 
 	// Create initial call frame
-	m_Frames.emplace_back( m_Main, m_Stack, mainFunction->GetChunk()->m_Code.data() );
+	m_Frames.emplace_back( m_Main, m_Stack, mainFunction->GetChunk()->m_Code.data(), false );
 
 	// Push main function to stack slot 0. This is directly allocated, so
 	// the VM garbage collection won't ever release it
@@ -851,7 +859,7 @@ void VM_t::Release()
 	m_Objects.clear();
 }
 
-void VM_t::Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target )
+void VM_t::Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target, bool fromNative )
 {
 	if ( !IS_OBJECT( target ) )
 		QVM::RuntimeError( frame, "rt_invalid_call_target", "Call value was not object type" );
@@ -871,7 +879,7 @@ void VM_t::Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target )
 		}
 
 		m_StackTop[ -numArgs - 1 ] = MAKE_OBJECT( closure->GetThis() );
-		m_Frames.emplace_back( closure, m_StackTop - numArgs - 1, &function->GetChunk()->m_Code[ 0 ] );
+		m_Frames.emplace_back( closure, m_StackTop - numArgs - 1, &function->GetChunk()->m_Code[ 0 ], fromNative );
 		break;
 	}
 	case QScript::ObjectType::OT_NATIVE:
@@ -1182,7 +1190,7 @@ void QScript::Repl()
 			vm.m_Frames.pop_back();
 
 			// New frame in
-			vm.m_Frames.emplace_back( newClosure, vm.m_Stack, &newMain->GetChunk()->m_Code[ 0 ] );
+			vm.m_Frames.emplace_back( newClosure, vm.m_Stack, &newMain->GetChunk()->m_Code[ 0 ], false );
 
 			// Run code
 			QVM::Run( vm );
