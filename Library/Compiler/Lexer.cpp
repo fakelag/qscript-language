@@ -215,7 +215,8 @@ namespace Compiler
 					*/
 				}
 			}
-			else if ( matchItem( cursorView, languageOperators, &opInfo ) )
+			
+			if ( matchItem( cursorView, languageOperators, &opInfo ) )
 			{
 				switch ( opInfo.m_Token )
 				{
