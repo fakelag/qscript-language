@@ -334,6 +334,7 @@ namespace Compiler
 				break;
 			}
 			case '\t':
+				++columnNumber;
 				break;
 			default:
 				backBuffer += cursorView.at( 0 );
