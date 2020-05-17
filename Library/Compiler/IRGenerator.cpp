@@ -212,7 +212,12 @@ namespace Compiler
 		auto nextExpression = [ &parserState ]( int rbp = 0 ) -> BaseNode*
 		{
 			if ( parserState.IsFinished() )
-				throw CompilerException( "ir_parsing_past_eof", "Parsing past end of file", -1, -1, "" );
+			{
+				auto& tokenList = parserState.Builders();
+				auto lastToken = tokenList[ tokenList.size() - 1 ];
+				throw CompilerException( "ir_parsing_past_eof", "Parsing past end of file", lastToken->m_Token.m_LineNr,
+					lastToken->m_Token.m_ColNr, lastToken->m_Token.m_String );
+			}
 
 			// Get the current builder, increment counter to the next one
 			auto builder = parserState.NextBuilder();
@@ -230,7 +235,12 @@ namespace Compiler
 				return left;
 
 			if ( parserState.IsFinished() )
-				throw CompilerException( "ir_parsing_past_eof", "Parsing past end of file", -1, -1, "" );
+			{
+				auto& tokenList = parserState.Builders();
+				auto lastToken = tokenList[ tokenList.size() - 1 ];
+				throw CompilerException( "ir_parsing_past_eof", "Parsing past end of file", lastToken->m_Token.m_LineNr,
+					lastToken->m_Token.m_ColNr, lastToken->m_Token.m_String );
+			}
 
 			// while the next builder has a larger binding power
 			// deliver it the left hand node instead
@@ -239,7 +249,12 @@ namespace Compiler
 				builder = parserState.NextBuilder();
 
 				if ( parserState.IsFinished() )
-					throw CompilerException( "ir_parsing_past_eof", "Parsing past end of file", -1, -1, "" );
+				{
+					auto& tokenList = parserState.Builders();
+					auto lastToken = tokenList[ tokenList.size() - 1 ];
+					throw CompilerException( "ir_parsing_past_eof", "Parsing past end of file", lastToken->m_Token.m_LineNr,
+						lastToken->m_Token.m_ColNr, lastToken->m_Token.m_String );
+				}
 
 				if ( builder->m_Led == NULL )
 				{
@@ -250,7 +265,12 @@ namespace Compiler
 				left = builder->m_Led( *builder, left );
 
 				if ( parserState.IsFinished() )
-					throw CompilerException( "ir_parsing_past_eof", "Parsing past end of file", -1, -1, "" );
+				{
+					auto& tokenList = parserState.Builders();
+					auto lastToken = tokenList[ tokenList.size() - 1 ];
+					throw CompilerException( "ir_parsing_past_eof", "Parsing past end of file", lastToken->m_Token.m_LineNr,
+						lastToken->m_Token.m_ColNr, lastToken->m_Token.m_String );
+				}
 			}
 
 			return left;
