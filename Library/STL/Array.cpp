@@ -115,36 +115,40 @@ namespace ArrayModule
 		return returnValue;
 	}
 
-	//QScript::Value ArrayFilter( void* frame, const QScript::Value* args, int argCount )
-	//{
-	//	auto arr = args[ 0 ];
+	QScript::Value ArrayFilter( void* frame, const QScript::Value* args, int argCount )
+	{
+		auto arr = args[ 0 ];
 
-	//	if ( !IS_ARRAY( arr ) )
-	//	{
-	//		throw RuntimeException( "rt_native_expected",
-	//			"Expected array object, got \"" + arr.ToString() + "\"", 0, 0, "" );
-	//	}
+		if ( !IS_ARRAY( arr ) )
+		{
+			throw RuntimeException( "rt_native_expected",
+				"Expected array object, got \"" + arr.ToString() + "\"", 0, 0, "" );
+		}
 
-	//	if ( argCount != 2 )
-	//	{
-	//		throw RuntimeException( "rt_native_argcount",
-	//			"Expected 1 arguments, got " + std::to_string( argCount - 1 ), 0, 0, "" );
-	//	}
+		if ( argCount != 2 )
+		{
+			throw RuntimeException( "rt_native_argcount",
+				"Expected 1 arguments, got " + std::to_string( argCount - 1 ), 0, 0, "" );
+		}
 
-	//	auto filterFn = args[ 1 ];
-	//	auto& arrayRef = AS_ARRAY( arr )->GetArray();
+		auto filterFn = args[ 1 ];
+		auto& arrayRef = AS_ARRAY( arr )->GetArray();
 
-	//	QVM::VirtualMachine->Push( filterFn );
+		arrayRef.erase( std::remove_if( arrayRef.begin(), arrayRef.end(), [ &filterFn, frame ]( QScript::Value value ) {
+			QVM::VirtualMachine->Push( filterFn );
+			QVM::VirtualMachine->Push( value );
 
-	//	arrayRef.erase( std::remove_if( arrayRef.begin(), arrayRef.end(), [ &filterFn, frame ]( QScript::Value value ) {
-	//		QVM::VirtualMachine->Push( value );
-	//		QVM::VirtualMachine->Call( ( Frame_t* ) frame, 1, filterFn );
-	//		// TODO: Execute
-	//		return QVM::VirtualMachine->Pop().IsTruthy();
-	//	} ), arrayRef.end() );
+			QVM::VirtualMachine->Call( ( Frame_t* ) frame, 1, filterFn, true );
+			QVM::Run( *QVM::VirtualMachine, false );
 
-	//	return args[ 0 ];
-	//}
+			return !QVM::VirtualMachine->Pop().IsTruthy();
+		} ), arrayRef.end() );
+
+		// filterFn is currently at the top of the stack, but within our call frame,
+		// so it will get cleaned up when we return here
+
+		return args[ 0 ];
+	}
 
 	void LoadMethods( VM_t* vm )
 	{
@@ -152,6 +156,6 @@ namespace ArrayModule
 		vm->CreateArrayMethod( "concat", ArrayConcat );
 		vm->CreateArrayMethod( "length", ArrayLength );
 		vm->CreateArrayMethod( "pop", ArrayPop );
-		//vm->CreateArrayMethod( "filter", ArrayFilter );
+		vm->CreateArrayMethod( "filter", ArrayFilter );
 	}
 }
