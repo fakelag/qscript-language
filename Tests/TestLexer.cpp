@@ -201,7 +201,7 @@ bool Tests::TestLexer()
 		UTEST_CASE_CLOSED();
 	}( );
 
-	UTEST_CASE( "Word separation" )
+	UTEST_CASE( "Word separation (1)" )
 	{
 		auto tokens = Lexer( "const whileHalf = 0;" );
 
@@ -232,6 +232,19 @@ bool Tests::TestLexer()
 
 		UTEST_CASE_CLOSED();
 	}( );
+
+	// Another lexer bug, TODO: Address this
+	//UTEST_CASE( "Word separation (2)" )
+	//{
+	//	auto tokens = Lexer( "const whileHalf;" );
+
+	//	UTEST_ASSERT( tokens.size() == 3 );
+	//	UTEST_ASSERT( tokens[ 0 ].m_Id == TOK_CONST );
+	//	UTEST_ASSERT( tokens[ 1 ].m_Id == TOK_NAME );
+	//	UTEST_ASSERT( tokens[ 2 ].m_Id == TOK_SCOLON );
+
+	//	UTEST_CASE_CLOSED();
+	//}( );
 
 	UTEST_END();
 }

@@ -3,7 +3,7 @@
 
 namespace QScript
 {
-	using NativeFn = Value (*)( const Value* args, int argCount );
+	using NativeFn = Value (*)( void* frame, const Value* args, int argCount );
 
 	class StringObject : public Object
 	{
@@ -54,11 +54,15 @@ namespace QScript
 		{
 			m_Type = OT_NATIVE;
 			m_Native = native;
+			m_This = NULL;
 		}
 
-		FORCEINLINE NativeFn GetNative() { return m_Native; }
+		FORCEINLINE NativeFn GetNative()				{ return m_Native; }
+		FORCEINLINE Object* GetThis()					{ return m_This; }
+		FORCEINLINE void SetThis( Object* receiver )	{ m_This = receiver; }
 	private:
 		NativeFn m_Native;
+		Object* m_This;
 	};
 
 	class UpvalueObject : public Object
@@ -132,11 +136,13 @@ namespace QScript
 			m_Name = name;
 		}
 
-		FORCEINLINE	const std::string&									GetName() const { return m_Name; }
-		FORCEINLINE std::vector< Value >&								GetArray() { return m_Array; }
+		FORCEINLINE	const std::string&								GetName() const { return m_Name; }
+		FORCEINLINE std::vector< Value >&							GetArray() { return m_Array; }
+		FORCEINLINE std::unordered_map< std::string, Value >&		GetMethods() { return m_Methods; }
 
 	private:
 		std::string									m_Name;
 		std::vector< Value >						m_Array;
+		std::unordered_map< std::string, Value >	m_Methods;
 	};
 }

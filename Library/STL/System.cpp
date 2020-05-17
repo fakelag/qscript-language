@@ -1,6 +1,7 @@
 #include "QLibPCH.h"
 #include "NativeModule.h"
 #include "System.h"
+#include "Array.h"
 
 #include "../Common/Chunk.h"
 #include "../Compiler/Compiler.h"
@@ -8,8 +9,8 @@
 
 #include <time.h>
 
-QScript::Value Native_Exit( const QScript::Value* args, int numArgs );
-QScript::Value Native_Print( const QScript::Value* args, int numArgs );
+QScript::Value Native_Exit( void* frame, const QScript::Value* args, int numArgs );
+QScript::Value Native_Print( void* frame, const QScript::Value* args, int numArgs );
 
 SystemModule::SystemModule()
 {
@@ -20,6 +21,8 @@ void SystemModule::Import( VM_t* vm ) const
 {
 	vm->CreateNative( "exit", &Native_Exit );
 	vm->CreateNative( "print", &Native_Print );
+
+	ArrayModule::LoadMethods( vm );
 }
 
 void SystemModule::Import( Compiler::Assembler* assembler ) const
@@ -28,14 +31,14 @@ void SystemModule::Import( Compiler::Assembler* assembler ) const
 	assembler->AddGlobal( "print", true, Compiler::TYPE_NATIVE, Compiler::TYPE_NONE );
 }
 
-QScript::Value Native_Exit( const QScript::Value* args, int numArgs )
+QScript::Value Native_Exit( void* frame, const QScript::Value* args, int numArgs )
 {
 	throw RuntimeException( "rt_exit", "exit() called", 0, 0, "" );
 }
 
-QScript::Value Native_Print( const QScript::Value* args, int numArgs )
+QScript::Value Native_Print( void* frame, const QScript::Value* args, int numArgs )
 {
-	for ( auto arg = args; arg < args + numArgs; ++arg )
+	for ( auto arg = args + 1; arg < args + numArgs; ++arg )
 		std::cout << arg->ToString();
 
 	std::cout << std::endl;

@@ -11,7 +11,17 @@ std::string QScript::Value::ToString() const
 		{
 		case OT_STRING: return AS_STRING( *this )->GetString();
 		case OT_FUNCTION: return "<function, " + AS_FUNCTION( *this )->GetName() + ">";
-		case OT_NATIVE: return "<native code>";
+		case OT_NATIVE:
+		{
+			auto native = AS_NATIVE( *this );
+			auto receiver = native->GetThis();
+			std::string receiverString;
+			
+			if ( receiver )
+				receiverString = ", receiver=" + MAKE_OBJECT( receiver ).ToString();
+
+			return "<native code" + receiverString  + ">";
+		}
 		case OT_CLOSURE:
 		{
 			auto closure = AS_CLOSURE( *this );

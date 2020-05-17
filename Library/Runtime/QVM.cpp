@@ -108,24 +108,41 @@ namespace QVM
 		auto propName = AS_STRING( name )->GetString();
 		auto value = vm.Peek( 0 );
 
-		if ( !IS_TABLE( value ) )
+		if ( IS_TABLE( value ) )
+		{
+			auto table = AS_TABLE( value );
+			auto& props = table->GetProperties();
+
+			auto prop = props.find( propName );
+
+			if ( prop == props.end() )
+			{
+				QVM::RuntimeError( frame, "rt_unknown_property",
+					"Unknown property \"" + propName + "\" of table \"" + value.ToString() + "\"" );
+			}
+
+			vm.Peek( 0 ) = prop->second;
+		}
+		else if ( IS_ARRAY( value ) )
+		{
+			auto arr = AS_ARRAY( value );
+			auto& methods = arr->GetMethods();
+
+			auto prop = methods.find( propName );
+
+			if ( prop == methods.end() )
+			{
+				QVM::RuntimeError( frame, "rt_unknown_property",
+					"Unknown property \"" + propName + "\" of array \"" + value.ToString() + "\"" );
+			}
+
+			vm.Peek( 0 ) = prop->second;
+		}
+		else
 		{
 			QVM::RuntimeError( frame, "rt_invalid_instance",
-				"Can not read property \"" + propName + "\" of invalid table instance \"" + value.ToString() + "\"" );
+				"Can not read property \"" + propName + "\" of invalid table/array instance \"" + value.ToString() + "\"" );
 		}
-
-		auto table = AS_TABLE( value );
-		auto& props = table->GetProperties();
-
-		auto prop = props.find( propName );
-
-		if ( prop == props.end() )
-		{
-			QVM::RuntimeError( frame, "rt_unknown_property",
-				"Unknown property \"" + propName + "\" of \"" + value.ToString() + "\"" );
-		}
-
-		vm.Peek( 0 ) = prop->second;
 	}
 
 	void SetField( VM_t& vm, Frame_t* frame, QScript::Value& name )
@@ -145,7 +162,7 @@ namespace QVM
 		props[ propName ] = vm.Peek( 0 );
 	}
 
-	QScript::Value Run( VM_t& vm )
+	QScript::Value Run( VM_t& vm, bool enableDebugging )
 	{
 		Frame_t* frame = &vm.m_Frames.back();
 		uint8_t* ip = frame->m_IP;
@@ -163,7 +180,7 @@ namespace QVM
 		for (;;)
 		{
 #ifdef QVM_DEBUG
-			if ( !runTill || ip > runTill )
+			if ( ( !runTill || ip > runTill ) && enableDebugging )
 			{
 				std::string input;
 
@@ -706,11 +723,19 @@ namespace QVM
 					return returnValue;
 				}
 
+				auto fromNative = vm.m_Frames.back().m_FromNative;
+
 				vm.m_StackTop = frame->m_Base;
 
 				vm.m_Frames.pop_back();
 
 				vm.Push( returnValue );
+
+				if ( fromNative )
+				{
+					// Called from a native, return control to that native
+					return returnValue;
+				}
 
 				RESTORE_FRAME();
 				INTERP_DISPATCH;
@@ -770,6 +795,20 @@ namespace QVM
 	{
 		auto arrayObject = QS_NEW QScript::ArrayObject( name );
 		VirtualMachine->AddObject( ( QScript::Object* ) arrayObject );
+
+		VirtualMachine->Push( MAKE_OBJECT( arrayObject ) );
+
+		auto& arrayMethodTable = arrayObject->GetMethods();
+		for ( auto method : VirtualMachine->m_ArrayMethods )
+		{
+			auto methodNative = QVM::AllocateNative( ( void* ) method.second );
+			methodNative->SetThis( arrayObject );
+
+			arrayMethodTable[ method.first ] = MAKE_OBJECT( methodNative );
+		}
+
+		VirtualMachine->Pop();
+
 		return arrayObject;
 	}
 }
@@ -794,7 +833,7 @@ void VM_t::Init( const QScript::FunctionObject* mainFunction )
 	m_Main = QS_NEW QScript::ClosureObject( mainFunction );
 
 	// Create initial call frame
-	m_Frames.emplace_back( m_Main, m_Stack, mainFunction->GetChunk()->m_Code.data() );
+	m_Frames.emplace_back( m_Main, m_Stack, mainFunction->GetChunk()->m_Code.data(), false );
 
 	// Push main function to stack slot 0. This is directly allocated, so
 	// the VM garbage collection won't ever release it
@@ -820,7 +859,7 @@ void VM_t::Release()
 	m_Objects.clear();
 }
 
-void VM_t::Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target )
+void VM_t::Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target, bool fromNative )
 {
 	if ( !IS_OBJECT( target ) )
 		QVM::RuntimeError( frame, "rt_invalid_call_target", "Call value was not object type" );
@@ -840,13 +879,19 @@ void VM_t::Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target )
 		}
 
 		m_StackTop[ -numArgs - 1 ] = MAKE_OBJECT( closure->GetThis() );
-		m_Frames.emplace_back( closure, m_StackTop - numArgs - 1, &function->GetChunk()->m_Code[ 0 ] );
+		m_Frames.emplace_back( closure, m_StackTop - numArgs - 1, &function->GetChunk()->m_Code[ 0 ], fromNative );
 		break;
 	}
 	case QScript::ObjectType::OT_NATIVE:
 	{
-		auto native = AS_NATIVE( target )->GetNative();
-		auto returnValue = native( m_StackTop - numArgs, numArgs );
+		auto native = AS_NATIVE( target );
+		auto nativeFn = native->GetNative();
+		auto receiver = native->GetThis();
+
+		if ( receiver )
+			m_StackTop[ -numArgs - 1 ] = MAKE_OBJECT( receiver );
+
+		auto returnValue = nativeFn( frame, m_StackTop - numArgs - 1, numArgs + 1 );
 		m_StackTop -= numArgs + 1;
 
 		Push( returnValue );
@@ -925,54 +970,68 @@ void VM_t::MarkObject( QScript::Object* object )
 
 	switch ( object->m_Type )
 	{
-		case QScript::OT_CLOSURE:
+	case QScript::OT_NATIVE:
+	{
+		auto nativeObj = ( QScript::NativeFunctionObject* ) object;
+		auto receiver = nativeObj->GetThis();
+		
+		if ( receiver )
+			MarkObject( receiver );
+
+		break;
+	}
+	case QScript::OT_CLOSURE:
+	{
+		auto closureObj = ( QScript::ClosureObject* ) object;
+		auto& upvalues = ( closureObj )->GetUpvalues();
+
+		for ( auto upval : upvalues )
+			MarkObject( upval );
+
+		MarkObject( closureObj->GetThis() );
+		break;
+	}
+	case QScript::OT_UPVALUE:
+	{
+		auto value = ( ( QScript::UpvalueObject* ) object )->GetValue();
+
+		if ( IS_OBJECT( *value ) )
+			MarkObject( AS_OBJECT( *value ) );
+
+		break;
+	}
+	case QScript::OT_TABLE:
+	{
+		auto tableObj = ( ( QScript::TableObject* ) object );
+		auto& propList = tableObj->GetProperties();
+
+		for ( auto props : propList )
 		{
-			auto closureObj = ( QScript::ClosureObject* ) object;
-			auto& upvalues = ( closureObj )->GetUpvalues();
-
-			for ( auto upval : upvalues )
-				MarkObject( upval );
-
-			MarkObject( closureObj->GetThis() );
-			break;
+			if ( IS_OBJECT( props.second ) )
+				MarkObject( AS_OBJECT( props.second ) );
 		}
-		case QScript::OT_UPVALUE:
+
+		break;
+	}
+	case QScript::OT_ARRAY:
+	{
+		auto arrayObj = ( ( QScript::ArrayObject* ) object );
+		auto& itemList = arrayObj->GetArray();
+		auto& methodList = arrayObj->GetMethods();
+
+		for ( auto item : itemList )
 		{
-			auto value = ( ( QScript::UpvalueObject* ) object )->GetValue();
-
-			if ( IS_OBJECT( *value ) )
-				MarkObject( AS_OBJECT( *value ) );
-
-			break;
+			if ( IS_OBJECT( item ) )
+				MarkObject( AS_OBJECT( item ) );
 		}
-		case QScript::OT_TABLE:
-		{
-			auto tableObj = ( ( QScript::TableObject* ) object );
-			auto& propList = tableObj->GetProperties();
 
-			for ( auto props : propList )
-			{
-				if ( IS_OBJECT( props.second ) )
-					MarkObject( AS_OBJECT( props.second ) );
-			}
+		for ( auto method : methodList )
+			MarkObject( AS_OBJECT( method.second ) );
 
-			break;
-		}
-		case QScript::OT_ARRAY:
-		{
-			auto arrayObj = ( ( QScript::ArrayObject* ) object );
-			auto& itemList = arrayObj->GetArray();
-
-			for ( auto item : itemList )
-			{
-				if ( IS_OBJECT( item ) )
-					MarkObject( AS_OBJECT( item ) );
-			}
-
-			break;
-		}
-		default:
-			break;
+		break;
+	}
+	default:
+		break;
 	}
 }
 
@@ -984,6 +1043,11 @@ void VM_t::Recycle()
 	{
 		if ( m_Objects[ i ]->m_IsReachable )
 			continue;
+
+#ifdef QVM_AGGRESSIVE_GC
+		// Zero out object to track memory errors
+		m_Objects[ i ]->m_Type = QScript::OT_INVALID;
+#endif
 
 		delete m_Objects[ i ];
 		m_Objects.erase( m_Objects.begin() + i );
@@ -1070,6 +1134,11 @@ void VM_t::CreateNative( const std::string name, QScript::NativeFn native )
 	m_Globals.insert( global );
 }
 
+void VM_t::CreateArrayMethod( const std::string name, QScript::NativeFn native )
+{
+	m_ArrayMethods[ name ] = native;
+}
+
 void QScript::Repl()
 {
 	static int s_ReplID = 0;
@@ -1121,7 +1190,7 @@ void QScript::Repl()
 			vm.m_Frames.pop_back();
 
 			// New frame in
-			vm.m_Frames.emplace_back( newClosure, vm.m_Stack, &newMain->GetChunk()->m_Code[ 0 ] );
+			vm.m_Frames.emplace_back( newClosure, vm.m_Stack, &newMain->GetChunk()->m_Code[ 0 ], false );
 
 			// Run code
 			QVM::Run( vm );

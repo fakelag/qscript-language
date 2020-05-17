@@ -8,7 +8,7 @@
 
 #include <time.h>
 
-QScript::Value Native_Clock( const QScript::Value* args, int numArgs );
+QScript::Value Native_Clock( void* frame, const QScript::Value* args, int numArgs );
 
 TimeModule::TimeModule()
 {
@@ -25,7 +25,7 @@ void TimeModule::Import( Compiler::Assembler* assembler ) const
 	assembler->AddGlobal( "clock", true, Compiler::TYPE_NATIVE, Compiler::TYPE_NUMBER );
 }
 
-QScript::Value Native_Clock( const QScript::Value* args, int numArgs )
+QScript::Value Native_Clock( void* frame, const QScript::Value* args, int numArgs )
 {
 	return MAKE_NUMBER( (double) clock() / CLOCKS_PER_SEC );
 }

@@ -10,7 +10,11 @@ using namespace Tests;
 
 bool Tests::TestInterpreter()
 {
+#ifdef _DEBUG
+	static const int s_LargeConstCount = 10;
+#else
 	static const int s_LargeConstCount = 300;
+#endif
 
 	// Generate a body of more than 255 instructions
 	auto largeBodyOfCode = TestUtils::GenerateSequence( s_LargeConstCount, []( int iter ) {
@@ -1034,6 +1038,244 @@ bool Tests::TestInterpreter()
 
 		UTEST_ASSERT( IS_NUMBER( exitCode ) );
 		UTEST_ASSERT( AS_NUMBER( exitCode ) == 2.00 );
+
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "Arrays (STL Push)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "var g0 = 0;		\
+			{												\
+				Array a;									\
+				num l0 = 0;									\
+				l0 +=[ a.push 1 ];							\
+				l0 +=[ a.push \"hello\" ];					\
+				l0 +=[ a.push \" \" ];						\
+				l0 +=[ a.push \"world\" ];					\
+				[a.push l0];								\
+				g0 = a;										\
+			}												\
+			return g0;", &exitCode ) );
+
+		UTEST_ASSERT( IS_ARRAY( exitCode ) );
+
+		auto arr = AS_ARRAY( exitCode )->GetArray();
+
+		UTEST_ASSERT( arr.size() == 5 );
+		UTEST_ASSERT( IS_NUMBER( arr[ 0 ] ) && AS_NUMBER( arr[ 0 ] ) == 1.00 );
+		UTEST_ASSERT( IS_STRING( arr[ 1 ] ) && AS_STRING( arr[ 1 ] )->GetString() == "hello" );
+		UTEST_ASSERT( IS_STRING( arr[ 2 ] ) && AS_STRING( arr[ 2 ] )->GetString() == " " );
+		UTEST_ASSERT( IS_STRING( arr[ 3 ] ) && AS_STRING( arr[ 3 ] )->GetString() == "world" );
+		UTEST_ASSERT( IS_NUMBER( arr[ 4 ] ) && AS_NUMBER( arr[ 4 ] ) == 6.00 );
+
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "Arrays (STL Concat)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "var g0 = 0;		\
+			{												\
+				Array a ={ 1, 2, 3 };						\
+				Array b ={ 4, \"5\", 6 };					\
+				g0 =[ a.concat b ];							\
+			}												\
+			return g0; ", &exitCode ) );
+
+		UTEST_ASSERT( IS_ARRAY( exitCode ) );
+
+		auto arr = AS_ARRAY( exitCode )->GetArray();
+
+		UTEST_ASSERT( arr.size() == 6 );
+		UTEST_ASSERT( IS_NUMBER( arr[ 0 ] ) && AS_NUMBER( arr[ 0 ] ) == 1.00 );
+		UTEST_ASSERT( IS_NUMBER( arr[ 1 ] ) && AS_NUMBER( arr[ 1 ] ) == 2.00 );
+		UTEST_ASSERT( IS_NUMBER( arr[ 2 ] ) && AS_NUMBER( arr[ 2 ] ) == 3.00 );
+		UTEST_ASSERT( IS_NUMBER( arr[ 3 ] ) && AS_NUMBER( arr[ 3 ] ) == 4.00 );
+		UTEST_ASSERT( IS_STRING( arr[ 4 ] ) && AS_STRING( arr[ 4 ] )->GetString() == "5" );
+		UTEST_ASSERT( IS_NUMBER( arr[ 5 ] ) && AS_NUMBER( arr[ 5 ] ) == 6.00 );
+
+		TestUtils::FreeExitCode( exitCode );
+
+		UTEST_ASSERT( TestUtils::RunVM( "var g0 = 0;		\
+			{												\
+				Array a ={ 1, 2, 3 };						\
+				Array b ={ 4, \"5\", 6 };					\
+				Array c ={ 7, 8, 9 };						\
+				g0 = [a.concat b, c];						\
+			}												\
+			return g0; ", &exitCode ) );
+
+		UTEST_ASSERT( IS_ARRAY( exitCode ) );
+
+		arr = AS_ARRAY( exitCode )->GetArray();
+
+		UTEST_ASSERT( arr.size() == 9 );
+		UTEST_ASSERT( IS_NUMBER( arr[ 0 ] ) && AS_NUMBER( arr[ 0 ] ) == 1.00 );
+		UTEST_ASSERT( IS_NUMBER( arr[ 1 ] ) && AS_NUMBER( arr[ 1 ] ) == 2.00 );
+		UTEST_ASSERT( IS_NUMBER( arr[ 2 ] ) && AS_NUMBER( arr[ 2 ] ) == 3.00 );
+		UTEST_ASSERT( IS_NUMBER( arr[ 3 ] ) && AS_NUMBER( arr[ 3 ] ) == 4.00 );
+		UTEST_ASSERT( IS_STRING( arr[ 4 ] ) && AS_STRING( arr[ 4 ] )->GetString() == "5" );
+		UTEST_ASSERT( IS_NUMBER( arr[ 5 ] ) && AS_NUMBER( arr[ 5 ] ) == 6.00 );
+		UTEST_ASSERT( IS_NUMBER( arr[ 6 ] ) && AS_NUMBER( arr[ 6 ] ) == 7.00 );
+		UTEST_ASSERT( IS_NUMBER( arr[ 7 ] ) && AS_NUMBER( arr[ 7 ] ) == 8.00 );
+		UTEST_ASSERT( IS_NUMBER( arr[ 8 ] ) && AS_NUMBER( arr[ 8 ] ) == 9.00 );
+
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "Arrays (STL Pop)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "var g0 = 0;		\
+			{												\
+				Array a = { 1, \"2\", 3 };					\
+				g0 = [a.pop] + [a.length];					\
+			}												\
+			return g0; ", &exitCode ) );
+
+		UTEST_ASSERT( IS_NUMBER( exitCode ) );
+		UTEST_ASSERT( AS_NUMBER( exitCode ) == 5 );
+
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "Arrays (STL Length)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "var g0 = 0;			\
+			{													\
+				Array a ={ 1, 2, 3 };							\
+				[a.push 4];										\
+				Array b ={ 5, 6, 7 };							\
+				g0 = Array { [ a.length ], [ b.length ] };		\
+			}													\
+			return g0;", &exitCode ) );
+
+		UTEST_ASSERT( IS_ARRAY( exitCode ) );
+
+		auto arr = AS_ARRAY( exitCode )->GetArray();
+		UTEST_ASSERT( arr.size() == 2 );
+		UTEST_ASSERT( IS_NUMBER( arr[ 0 ] ) && AS_NUMBER( arr[ 0 ] ) == 4.00 );
+		UTEST_ASSERT( IS_NUMBER( arr[ 1 ] ) && AS_NUMBER( arr[ 1 ] ) == 3.00 );
+
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "Arrays (STL Filter, basic filtering)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "Array a = { 5, 7, 1, 2, 9, 3 };			\
+			var g;																	\
+			{																		\
+				Array b ={ 9, 7 };													\
+				Array c ={ 6, 7, 8 };												\
+				const filterTrice = ( item ) -> bool {								\
+					return item == 7;												\
+				}																	\
+				const filterTwice = ( item ) -> {									\
+					[c.filter filterTrice];											\
+					for ( num i = 0; i < [ c.length ]; ++i ) {						\
+						if ( c( i ) == item ) return true;							\
+					}																\
+					return false;													\
+				}																	\
+				const filterFn = ( item ) -> {										\
+					const filtered =[ b.filter filterTwice ];						\
+					for ( num i = 0; i < [ filtered.length ]; ++i ) {				\
+						if ( filtered( i ) == item ) return true;					\
+					}																\
+					return false;													\
+				};																	\
+				[a.filter filterFn];												\
+				g = [a.concat b, c];												\
+			}																		\
+			return g;", &exitCode ) );
+
+		UTEST_ASSERT( IS_ARRAY( exitCode ) );
+
+		auto arr = AS_ARRAY( exitCode )->GetArray();
+		UTEST_ASSERT( arr.size() == 3 );
+		UTEST_ASSERT( IS_NUMBER( arr[ 0 ] ) && AS_NUMBER( arr[ 0 ] ) == 7.00 );
+		UTEST_ASSERT( IS_NUMBER( arr[ 1 ] ) && AS_NUMBER( arr[ 1 ] ) == 7.00 );
+		UTEST_ASSERT( IS_NUMBER( arr[ 2 ] ) && AS_NUMBER( arr[ 2 ] ) == 7.00 );
+
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "Arrays (STL Filter, use variables from outside filterFn)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "Array a = { 5, 7, 1, 2, 9, 3 };		\
+			var g1 = 2;															\
+			var g0;																\
+			{																	\
+				const filterFn = ( item ) -> {									\
+					return item == g1;											\
+				}																\
+				g0 =[ a.filter filterFn ];										\
+			}																	\
+			return g0;", &exitCode ) );
+
+		UTEST_ASSERT( IS_ARRAY( exitCode ) );
+
+		auto arr = AS_ARRAY( exitCode )->GetArray();
+		UTEST_ASSERT( arr.size() == 1 );
+		UTEST_ASSERT( IS_NUMBER( arr[ 0 ] ) && AS_NUMBER( arr[ 0 ] ) == 2.00 );
+
+		TestUtils::FreeExitCode( exitCode );
+
+		UTEST_ASSERT( TestUtils::RunVM( "Array a = { 5, 7, 1, 2, 9, 3 };		\
+			var g0;																\
+			{																	\
+				num l0 = 123;													\
+				num l1 = 5;														\
+				num l2 = 555;													\
+				const filterFn = ( item ) -> {									\
+					return item == l1;											\
+				}																\
+				g0 =[ a.filter filterFn ];										\
+			}																	\
+			return g0; ", &exitCode ) );
+
+		UTEST_ASSERT( IS_ARRAY( exitCode ) );
+
+		arr = AS_ARRAY( exitCode )->GetArray();
+		UTEST_ASSERT( arr.size() == 1 );
+		UTEST_ASSERT( IS_NUMBER( arr[ 0 ] ) && AS_NUMBER( arr[ 0 ] ) == 5.00 );
+
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
+	UTEST_CASE( "Arrays (STL Filter, filterFn as a closure)" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "Array a = { 5, 7, 1, 2, 9, 3 };		\
+			var g0;																\
+			{																	\
+				const getFilterFn = ( ) -> {									\
+					num filterNum = 3;											\
+					const filterFn = ( item ) -> {								\
+						return item == filterNum;								\
+					}															\
+					return filterFn;											\
+				}																\
+				g0 =[ a.filter[ getFilterFn ] ];								\
+			}																	\
+			return g0;", &exitCode ) );
+
+		UTEST_ASSERT( IS_ARRAY( exitCode ) );
+
+		auto arr = AS_ARRAY( exitCode )->GetArray();
+		UTEST_ASSERT( arr.size() == 1 );
+		UTEST_ASSERT( IS_NUMBER( arr[ 0 ] ) && AS_NUMBER( arr[ 0 ] ) == 3.00 );
 
 		TestUtils::FreeExitCode( exitCode );
 		UTEST_CASE_CLOSED();

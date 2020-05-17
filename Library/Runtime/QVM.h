@@ -2,16 +2,18 @@
 
 struct Frame_t
 {
-	Frame_t( QScript::ClosureObject* closure, QScript::Value* stackFrame, uint8_t* ip )
+	Frame_t( QScript::ClosureObject* closure, QScript::Value* stackFrame, uint8_t* ip, bool fromNative )
 	{
 		m_Closure = closure;
 		m_Base = stackFrame;
 		m_IP = ip;
+		m_FromNative = fromNative;
 	}
 
 	QScript::ClosureObject*			m_Closure;
 	QScript::Value*					m_Base;
 	uint8_t*						m_IP;
+	bool							m_FromNative;
 };
 
 struct VM_t
@@ -69,12 +71,13 @@ struct VM_t
 	}
 
 	void Init( const QScript::FunctionObject* function );
-	void Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target );
+	void Call( Frame_t* frame, uint8_t numArgs, QScript::Value& target, bool fromNative = false );
 	void AddObject( QScript::Object* object );
 
 	uint8_t* OpenUpvalues( QScript::ClosureObject* closure, Frame_t* frame, uint8_t* ip );
 	void CloseUpvalues( QScript::Value* last );
 
+	void CreateArrayMethod( const std::string name, QScript::NativeFn native );
 	void CreateNative( const std::string name, QScript::NativeFn native );
 	void Release();
 
@@ -83,23 +86,32 @@ struct VM_t
 	void Recycle();
 
 	// Call frames
-	QScript::ClosureObject*								m_Main;
-	std::vector< Frame_t >								m_Frames;
+	QScript::ClosureObject*									m_Main;
+	std::vector< Frame_t >									m_Frames;
 
 	// Keep track of allocated objects in the VM
-	std::vector< QScript::Object* >						m_Objects;
+	std::vector< QScript::Object* >							m_Objects;
 
 	// Global scope
-	std::unordered_map< std::string, QScript::Value >	m_Globals;
+	std::unordered_map< std::string, QScript::Value >		m_Globals;
 
 	// Stack
-	QScript::Value*										m_StackTop;
-	QScript::Value* 									m_Stack;
-	int													m_StackCapacity;
+	QScript::Value*											m_StackTop;
+	QScript::Value* 										m_Stack;
+	int														m_StackCapacity;
 
 	// Upvalues in use (not closed over)
-	QScript::UpvalueObject*								m_LivingUpvalues;
+	QScript::UpvalueObject*									m_LivingUpvalues;
 
 	// Number of allocations until garbage collection
-	int 												m_ObjectsToNextGC;
+	int 													m_ObjectsToNextGC;
+
+	// Built-in array methods
+	std::unordered_map< std::string, QScript::NativeFn >	m_ArrayMethods;
 };
+
+namespace QVM
+{
+	QScript::Value Run( VM_t& vm, bool enableDebugging = true );
+	extern VM_t* VirtualMachine;
+}
