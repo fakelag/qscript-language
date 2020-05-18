@@ -39,6 +39,10 @@ public:
 			+ " (\"" + m_Token + "\")" );
 	}
 
+	int						LineNr()		{ return m_LineNr; }
+	int						ColNr()			{ return m_ColNr; }
+	const std::string&		Token()			{ return m_Token; }
+
 protected:
 	int 			m_LineNr;
 	int 			m_ColNr;
