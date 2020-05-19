@@ -43,10 +43,11 @@ namespace Compiler
 	public:
 		struct Variable_t
 		{
-			std::string				m_Name;
-			bool					m_IsConst;
-			uint32_t				m_Type;
-			uint32_t				m_ReturnType;
+			std::string					m_Name;
+			bool						m_IsConst;
+			uint32_t					m_Type;
+			uint32_t					m_ReturnType;
+			QScript::FunctionObject*	m_Function;
 		};
 
 		struct Local_t
@@ -85,8 +86,8 @@ namespace Compiler
 
 		void 										AddArgument( const std::string& name, bool isConstant, uint32_t type, uint32_t returnType = TYPE_UNKNOWN );
 		bool 										AddGlobal( const std::string& name );
-		bool 										AddGlobal( const std::string& name, bool isConstant, uint32_t type, uint32_t returnType = TYPE_UNKNOWN );
-		uint32_t 									AddLocal( const std::string& name, bool isConstant, uint32_t type, uint32_t returnType = TYPE_UNKNOWN );
+		bool 										AddGlobal( const std::string& name, bool isConstant, uint32_t type, uint32_t returnType = TYPE_UNKNOWN, QScript::FunctionObject* fn = NULL );
+		uint32_t 									AddLocal( const std::string& name, bool isConstant, uint32_t type, uint32_t returnType = TYPE_UNKNOWN, QScript::FunctionObject* fn = NULL );
 		uint32_t									AddLocal( const std::string& name );
 		uint32_t 									AddUpvalue( FunctionContext_t* context, uint32_t index, bool isLocal );
 		void 										ClearArguments();

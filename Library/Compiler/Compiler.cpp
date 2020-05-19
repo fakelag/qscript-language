@@ -622,7 +622,7 @@ namespace Compiler
 
 	void Assembler::AddArgument( const std::string& name, bool isConstant, uint32_t type, uint32_t returnType )
 	{
-		m_FunctionArgs.push_back( Variable_t{ name, isConstant, type, returnType } );
+		m_FunctionArgs.push_back( Variable_t{ name, isConstant, type, returnType, NULL } );
 	}
 
 	uint32_t Assembler::AddLocal( const std::string& name )
@@ -630,11 +630,11 @@ namespace Compiler
 		return AddLocal( name, false, TYPE_UNKNOWN, TYPE_UNKNOWN );
 	}
 
-	uint32_t Assembler::AddLocal( const std::string& name, bool isConstant, uint32_t type, uint32_t returnType )
+	uint32_t Assembler::AddLocal( const std::string& name, bool isConstant, uint32_t type, uint32_t returnType, QScript::FunctionObject* fn )
 	{
 		auto stack = CurrentStack();
 
-		auto variable = Variable_t{ name, isConstant, type, returnType };
+		auto variable = Variable_t{ name, isConstant, type, returnType, fn };
 
 		stack->m_Locals.push_back( Assembler::Local_t{ variable, stack->m_CurrentDepth, false } );
 		return ( uint32_t ) stack->m_Locals.size() - 1;
@@ -734,15 +734,15 @@ namespace Compiler
 
 	bool Assembler::AddGlobal( const std::string& name )
 	{
-		return AddGlobal( name, false, TYPE_UNKNOWN, TYPE_UNKNOWN );
+		return AddGlobal( name, false, TYPE_UNKNOWN, TYPE_UNKNOWN, NULL );
 	}
 
-	bool Assembler::AddGlobal( const std::string& name, bool isConstant, uint32_t type, uint32_t returnType )
+	bool Assembler::AddGlobal( const std::string& name, bool isConstant, uint32_t type, uint32_t returnType, QScript::FunctionObject* fn )
 	{
 		if ( m_Globals.find( name ) != m_Globals.end() )
 			return false;
 
-		Variable_t global = Variable_t{ name, isConstant, type, returnType };
+		Variable_t global = Variable_t{ name, isConstant, type, returnType, fn };
 		m_Globals.insert( std::make_pair( name, global ) );
 		return true;
 	}

@@ -198,7 +198,7 @@ namespace Compiler
 		return argsList;
 	}
 
-	void CompileFunction( bool isAnonymous, bool isConst, bool isMember, const std::string& name, ListNode* funcNode, Assembler& assembler )
+	QScript::FunctionObject* CompileFunction( bool isAnonymous, bool isConst, bool isMember, const std::string& name, ListNode* funcNode, Assembler& assembler )
 	{
 		auto chunk = assembler.CurrentChunk();
 		auto& nodeList = funcNode->GetList();
@@ -243,6 +243,8 @@ namespace Compiler
 			EmitByte( ENCODE_LONG( upvalue.m_Index, 2 ), chunk );
 			EmitByte( ENCODE_LONG( upvalue.m_Index, 3 ), chunk );
 		}
+
+		return function;
 	}
 
 	BaseNode::BaseNode( int lineNr, int colNr, const std::string token, NodeType type, NodeId id )
@@ -673,6 +675,72 @@ namespace Compiler
 			// Function object
 			m_Left->Compile( assembler, COMPILE_EXPRESSION( options ) );
 
+			// Check arity if target can be resolved
+			if ( m_Left->Id() == NODE_NAME )
+			{
+				auto varNameValue = static_cast< ValueNode* >( m_Left )->GetValue();
+
+				if ( IS_STRING( varNameValue ) )
+				{
+					auto varName = AS_STRING( varNameValue )->GetString();
+
+					auto findFunction = [ &assembler ]( const std::string& name ) -> QScript::FunctionObject*
+					{
+						Assembler::Variable_t varInfo;
+						uint32_t nameIndex;
+
+						if ( !assembler.FindArgument( name, &varInfo ) &&
+							!assembler.FindLocal( name, &nameIndex, &varInfo ) &&
+							!assembler.FindUpvalue( name, &nameIndex, &varInfo ) &&
+							!assembler.FindGlobal( name, &varInfo ) )
+						{
+							return NULL;
+						}
+
+						if ( !varInfo.m_IsConst )
+							return NULL;
+
+						if ( varInfo.m_Type != TYPE_FUNCTION )
+							return NULL;
+
+						return varInfo.m_Function;
+					};
+
+					auto function = findFunction( varName );
+
+					if ( function )
+					{
+						int lineNr = LineNr();
+						int colNr = ColNr();
+						std::string token = Token();
+
+						if ( args.size() > 0 )
+						{
+							auto lastArg = args[ args.size() - 1 ];
+
+							lineNr = lastArg->LineNr();
+							colNr = lastArg->ColNr();
+							token = lastArg->Token();
+						}
+
+						if ( function->NumArgs() > ( int ) args.size() )
+						{
+							throw CompilerException( "cp_invalid_call_arity", "Calling function \""
+								+ function->GetName() + "\" with too few arguments. Function accepts "
+								+ std::to_string( function->NumArgs() ) + " args, got "
+								+ std::to_string( args.size() ), lineNr, colNr, token );
+						}
+						else if ( function->NumArgs() < ( int ) args.size() )
+						{
+							throw CompilerException( "cp_invalid_call_arity", "Calling function \""
+								+ function->GetName() + "\" with too many arguments. Function accepts "
+								+ std::to_string( function->NumArgs() ) + " args, got "
+								+ std::to_string( args.size() ), lineNr, colNr, token );
+						}
+					}
+				}
+			}
+
 			// Push arguments to stack
 			for ( auto arg : args )
 				arg->Compile( assembler, COMPILE_EXPRESSION( options ) );
@@ -782,7 +850,7 @@ namespace Compiler
 				{
 					throw CompilerException( "cp_invalid_expression_type", "Expected expression of type " +
 						TypeToString( TYPE_NUMBER ) + ", got: " + TypeToString( leftType ),
-						m_Right->LineNr(), m_Right->ColNr(), m_Right->Token() );
+						m_Left->LineNr(), m_Left->ColNr(), m_Left->Token() );
 				}
 
 				if ( !TypeCheck( rightType, TYPE_NUMBER ) )
@@ -809,7 +877,7 @@ namespace Compiler
 					{
 						throw CompilerException( "cp_invalid_expression_type", "Expected expression of type " +
 							TypeToString( TYPE_NUMBER | TYPE_STRING ) + ", got: " + TypeToString( leftType ),
-							m_Right->LineNr(), m_Right->ColNr(), m_Right->Token() );
+							m_Left->LineNr(), m_Left->ColNr(), m_Left->Token() );
 					}
 
 					if ( !TypeCheck( rightType, TYPE_NUMBER ) && !rightString )
@@ -1354,6 +1422,7 @@ namespace Compiler
 
 			bool isLocal = ( assembler.StackDepth() > 0 );
 			bool isConst = ( m_NodeId == NODE_CONSTVAR );
+			QScript::FunctionObject* fn = NULL;
 
 			if ( m_NodeList[ 1 ] )
 			{
@@ -1377,7 +1446,8 @@ namespace Compiler
 				if ( m_NodeList[ 1 ]->Id() == NODE_FUNC )
 				{
 					// Compile a named function
-					CompileFunction( false, isConst, false, varString, static_cast< ListNode* >( m_NodeList[ 1 ] ), assembler );
+					fn = CompileFunction( false, isConst, false, varString, static_cast< ListNode* >( m_NodeList[ 1 ] ), assembler );
+					varType = TYPE_FUNCTION;
 				}
 				else
 				{
@@ -1387,11 +1457,11 @@ namespace Compiler
 
 				if ( isLocal )
 				{
-					assembler.AddLocal( varString, isConst, varType );
+					assembler.AddLocal( varString, isConst, varType, TYPE_UNKNOWN, fn );
 				}
 				else
 				{
-					if ( !assembler.AddGlobal( varString, isConst, varType ) )
+					if ( !assembler.AddGlobal( varString, isConst, varType, TYPE_UNKNOWN, fn ) )
 					{
 						throw CompilerException( "cp_identifier_already_exists", "Identifier already exits: \"" + varString + "\"",
 							m_LineNr, m_ColNr, m_Token );
