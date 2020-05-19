@@ -1,7 +1,4 @@
 #include "QLibPCH.h"
-#include "../Library/Common/Chunk.h"
-#include "../Library/Compiler/Compiler.h"
-#include "../Library/Compiler/AST/AST.h"
 
 bool GetArg( const std::string& argument, int argc, char* argv[], std::string* next )
 {
@@ -47,7 +44,14 @@ int main( int argc, char* argv[] )
 		catch ( std::vector< CompilerException >& exceptions )
 		{
 			for ( auto ex : exceptions )
-				std::cout << "[" + ex.id() + "]:" + ex.describe() << std::endl;
+			{
+				std::cout << "[" + ex.id() + ","
+					+ std::to_string( ex.LineNr() ) + ","
+					+ std::to_string( ex.ColNr() ) + ","
+					+ std::to_string( ex.Token().length() ) + "]:" + ( ex.What() + std::string( " on line " )
+						+ std::to_string( ex.LineNr() ) + " character " + std::to_string( ex.ColNr() )
+						+ " (\"" + ex.Token() + "\")" ) << std::endl;
+			}
 		}
 		catch ( const Exception& exception )
 		{
