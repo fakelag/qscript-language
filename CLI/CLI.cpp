@@ -98,7 +98,9 @@ int main( int argc, char* argv[] )
 
 		for ( auto token : tokens )
 		{
-			std::cout << "\"" + token.m_String + "\" lbp=" + std::to_string( token.m_LBP ) << std::endl;
+			std::cout << "\""
+				+ token.m_String + "\" line=" + std::to_string( token.m_LineNr )
+				+ " column=" + std::to_string( token.m_ColNr ) << std::endl;
 		}
 	}
 	else if ( GetArg( "--typer", argc, argv, &next ) )
