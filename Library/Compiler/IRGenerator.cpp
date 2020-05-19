@@ -211,14 +211,6 @@ namespace Compiler
 		// TDOP expression parsing
 		auto nextExpression = [ &parserState ]( int rbp = 0 ) -> BaseNode*
 		{
-			if ( parserState.IsFinished() )
-			{
-				auto& tokenList = parserState.Builders();
-				auto lastToken = tokenList[ tokenList.size() - 1 ];
-				throw CompilerException( "ir_parsing_past_eof", "Parsing past end of file", lastToken->m_Token.m_LineNr,
-					lastToken->m_Token.m_ColNr, lastToken->m_Token.m_String );
-			}
-
 			// Get the current builder, increment counter to the next one
 			auto builder = parserState.NextBuilder();
 
@@ -234,27 +226,13 @@ namespace Compiler
 			if ( rbp == -1 )
 				return left;
 
-			if ( parserState.IsFinished() )
-			{
-				auto& tokenList = parserState.Builders();
-				auto lastToken = tokenList[ tokenList.size() - 1 ];
-				throw CompilerException( "ir_parsing_past_eof", "Parsing past end of file", lastToken->m_Token.m_LineNr,
-					lastToken->m_Token.m_ColNr, lastToken->m_Token.m_String );
-			}
+			parserState.CheckEOF();
 
 			// while the next builder has a larger binding power
 			// deliver it the left hand node instead
 			while ( rbp < parserState.CurrentBuilder()->m_Token.m_LBP )
 			{
 				builder = parserState.NextBuilder();
-
-				if ( parserState.IsFinished() )
-				{
-					auto& tokenList = parserState.Builders();
-					auto lastToken = tokenList[ tokenList.size() - 1 ];
-					throw CompilerException( "ir_parsing_past_eof", "Parsing past end of file", lastToken->m_Token.m_LineNr,
-						lastToken->m_Token.m_ColNr, lastToken->m_Token.m_String );
-				}
 
 				if ( builder->m_Led == NULL )
 				{
@@ -264,13 +242,7 @@ namespace Compiler
 
 				left = builder->m_Led( *builder, left );
 
-				if ( parserState.IsFinished() )
-				{
-					auto& tokenList = parserState.Builders();
-					auto lastToken = tokenList[ tokenList.size() - 1 ];
-					throw CompilerException( "ir_parsing_past_eof", "Parsing past end of file", lastToken->m_Token.m_LineNr,
-						lastToken->m_Token.m_ColNr, lastToken->m_Token.m_String );
-				}
+				parserState.CheckEOF();
 			}
 
 			return left;
@@ -944,8 +916,8 @@ namespace Compiler
 					if ( parserState.NextBuilder()->m_Token.m_Id != TOK_PAREN_RIGHT )
 					{
 						auto curBuilder = parserState.CurrentBuilder();
-						throw Exception( "ir_missing_rparen",
-							std::string( "Expected an end of expression, got: \"" + curBuilder->m_Token.m_String + "\"" ) );
+						throw CompilerException( "ir_missing_rparen", std::string( "Expected an end of expression, got: \"" + curBuilder->m_Token.m_String + "\"" ),
+							curBuilder->m_Token.m_LineNr, curBuilder->m_Token.m_ColNr, curBuilder->m_Token.m_String );
 					}
 
 					return expression;
@@ -980,9 +952,8 @@ namespace Compiler
 				break;
 			}
 			default:
-				throw Exception( "ir_unknown_token", std::string( "Unknown token id: " )
-					+ std::to_string( token.m_Id )
-					+ " \"" +  token.m_String  + "\"" );
+				throw CompilerException( "ir_unknown_token", std::string( "Unknown token id: " ) + std::to_string( token.m_Id ) + " \"" +  token.m_String  + "\"",
+					token.m_LineNr, token.m_ColNr, token.m_String );
 			}
 
 			return builder;
