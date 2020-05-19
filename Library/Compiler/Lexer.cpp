@@ -189,7 +189,7 @@ namespace Compiler
 				{
 					results.push_back( Token_t{ wordInfo.m_Token, wordInfo.m_LBP, lineNumber, columnNumber, wordInfo.m_String } );
 					backBuffer = "";
-					columnNumber += wordInfo.m_String.length();
+					columnNumber += wordInfo.m_String.length() + 1;
 					continue;
 				}
 				else if ( matchItem( wordBuffer.substr( wordInfo.m_String.length() ), languageOperators, &opInfo ) )
@@ -279,6 +279,24 @@ namespace Compiler
 							cursor += nextCursor;
 						else
 							cursor += cursorView.length();
+
+						auto subString = cursorView.substr( 2, nextCursor );
+
+						int newChars = 0, newLines = 0;
+						std::for_each( subString.begin(), subString.end(), [ &newChars, &newLines ]( char c ) {
+							if ( c == '\n' )
+							{
+								newChars = 0;
+								++newLines;
+							}
+							else
+							{
+								++newChars;
+							}
+						} );
+
+						lineNumber += newLines;
+						columnNumber += newChars + 2;
 
 						cursor += 3;
 						continue;
