@@ -98,7 +98,7 @@ bool Tests::TestCompiler()
 
 		fn = QScript::Compile( "const z = () -> { const localVal = 10; 	\
 		const localFunc = () -> { [print localVal + 1]; } 				\
-		}" );
+		};" );
 		QScript::FreeFunction( fn );
 
 		UTEST_THROW_EXCEPTION( QScript::Compile( "const x = 1; x = 2;" ),
@@ -107,7 +107,7 @@ bool Tests::TestCompiler()
 
 		UTEST_THROW_EXCEPTION( QScript::Compile( "const z = () -> { const localVal = 10; 	\
 			const localFunc = () -> { localVal = 1; } 										\
-			}" ),
+			};" ),
 			const std::vector< CompilerException >& e,
 			e.size() == 1 && e[ 0 ].id() == "cp_assign_to_const" );
 
@@ -201,13 +201,13 @@ bool Tests::TestCompiler()
 
 	UTEST_CASE( "Function return types" )
 	{
-		UTEST_ASSERT( QScript::Typer( "const auto x = (num a, string b) -> { return a + b; }" )[ 0 ].second == TYPE_UNKNOWN );
+		UTEST_ASSERT( QScript::Typer( "const auto x = (num a, string b) -> { return a + b; };" )[ 0 ].second == TYPE_UNKNOWN );
 
-		UTEST_ASSERT( ( QScript::Typer( "const auto x = (num a, string b) -> auto { return a + b; }" )[ 0 ].second & TYPE_STRING ) == TYPE_STRING );
+		UTEST_ASSERT( ( QScript::Typer( "const auto x = (num a, string b) -> auto { return a + b; };" )[ 0 ].second & TYPE_STRING ) == TYPE_STRING );
 
-		UTEST_ASSERT( ( QScript::Typer( "const auto x = (num a, num b) -> auto { return a + b; }" )[ 0 ].second & TYPE_NUMBER ) == TYPE_NUMBER );
+		UTEST_ASSERT( ( QScript::Typer( "const auto x = (num a, num b) -> auto { return a + b; };" )[ 0 ].second & TYPE_NUMBER ) == TYPE_NUMBER );
 
-		UTEST_THROW_EXCEPTION( QScript::Compile( "const x = () -> num { return \"abcdefg\"; }" ),
+		UTEST_THROW_EXCEPTION( QScript::Compile( "const x = () -> num { return \"abcdefg\"; };" ),
 			const std::vector< CompilerException >& e,
 			e.size() == 1 && e[ 0 ].id() == "cp_invalid_expression_type" );
 
@@ -218,15 +218,15 @@ bool Tests::TestCompiler()
 	{
 		QScript::FreeFunction( QScript::Compile( "const x = (num a, string b) -> {	\
 				return a + b;														\
-			}" ) );
+			};" ) );
 
 		UTEST_THROW_EXCEPTION( QScript::Compile( "const x = (num a, string b) -> {	\
 				return a - b;														\
-			}" ),
+			};" ),
 			const std::vector< CompilerException >& e,
 			e.size() == 1 && e[ 0 ].id() == "cp_invalid_expression_type" );
 
-		UTEST_THROW_EXCEPTION( QScript::Compile( "const x = (xxx) -> { xxx = 4; }" ),
+		UTEST_THROW_EXCEPTION( QScript::Compile( "const x = (xxx) -> { xxx = 4; };" ),
 			const std::vector< CompilerException >& e,
 			e.size() == 1 && e[ 0 ].id() == "cp_assign_to_const" );
 

@@ -98,7 +98,9 @@ int main( int argc, char* argv[] )
 
 		for ( auto token : tokens )
 		{
-			std::cout << "\"" + token.m_String + "\" lbp=" + std::to_string( token.m_LBP ) << std::endl;
+			std::cout << "\""
+				+ token.m_String + "\" line=" + std::to_string( token.m_LineNr )
+				+ " column=" + std::to_string( token.m_ColNr ) << std::endl;
 		}
 	}
 	else if ( GetArg( "--typer", argc, argv, &next ) )
@@ -146,8 +148,9 @@ int main( int argc, char* argv[] )
 
 				if ( source.length() == 0 )
 				{
-					std::cout << "Json >";
-					std::getline( std::cin, source );
+					std::string newLine;
+					while ( std::getline( std::cin, newLine ) )
+						source += newLine + "\n";
 				}
 
 				auto astNodes = QScript::GenerateAST( source );
@@ -165,17 +168,20 @@ int main( int argc, char* argv[] )
 			}
 			EXCEPTION_HANDLING;
 
-			if ( input.length() > 0 )
+			if ( input.length() > 0 || GetArg( "--exit", argc, argv, &next ) )
 				break;
 		}
 	}
-	else if ( input.length() > 0 )
+	else
 	{
+		if ( input.length() == 0 )
+			std::cin >> input;
+
 		QScript::FunctionObject* function = NULL;
 
 		try
 		{
-			function = QScript::Compile( ReadFile( next ) );
+			function = QScript::Compile( input );
 			QScript::Interpret( *function );
 		}
 		EXCEPTION_HANDLING;

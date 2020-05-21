@@ -53,8 +53,8 @@ namespace Compiler
 
 		bool 							IsFinished()						const { return ( size_t ) m_CurrentBuilder >= m_Builders.size(); }
 		bool 							IsError()							const { return m_Errors.size() > 0; }
-		IrBuilder_t*					CurrentBuilder()					const { return m_Builders[ m_CurrentBuilder ]; }
-		IrBuilder_t*					NextBuilder() 						{ return m_Builders[ m_CurrentBuilder++ ]; }
+		IrBuilder_t*					CurrentBuilder()					const { CheckEOF(); return m_Builders[ m_CurrentBuilder ]; }
+		IrBuilder_t*					NextBuilder() 						{ CheckEOF(); return m_Builders[ m_CurrentBuilder++ ]; }
 		int 							Offset()							{ return m_CurrentBuilder; }
 
 		IrBuilder_t*					Peek( int offset )
@@ -67,8 +67,7 @@ namespace Compiler
 
 		void 							Expect( Token token, const std::string desc )
 		{
-			if ( IsFinished() )
-				return;
+			CheckEOF();
 
 			auto builder = CurrentBuilder();
 			if ( builder->m_Token.m_Id != token )
@@ -82,6 +81,8 @@ namespace Compiler
 
 		bool 							Match( Token token )
 		{
+			CheckEOF();
+
 			if ( ( size_t ) m_CurrentBuilder + 1 >= m_Builders.size() )
 				return false;
 
@@ -96,8 +97,7 @@ namespace Compiler
 
 		bool 							MatchCurrent( Token token )
 		{
-			if ( IsFinished() )
-				return false;
+			CheckEOF();
 
 			if ( m_Builders[ m_CurrentBuilder ]->m_Token.m_Id == token )
 			{
@@ -117,8 +117,8 @@ namespace Compiler
 				switch ( m_Builders[ m_CurrentBuilder ]->m_Token.m_Id )
 				{
 				case Compiler::TOK_SCOLON:
-				case Compiler::TOK_BRACE_RIGHT:
 					++m_CurrentBuilder;
+				case Compiler::TOK_BRACE_RIGHT:
 					break;
 				default:
 					++m_CurrentBuilder;
@@ -138,6 +138,27 @@ namespace Compiler
 			}
 
 			return node;
+		}
+
+		void							CheckEOF() const
+		{
+			if ( !IsFinished() )
+				return;
+
+			int lineNr, colNr;
+			std::string token;
+
+			if ( m_Builders.size() > 0 )
+			{
+				auto lastToken = m_Builders[ m_Builders.size() - 1 ];
+
+				lineNr = lastToken->m_Token.m_LineNr;
+				colNr = lastToken->m_Token.m_ColNr;
+				token = lastToken->m_Token.m_String;
+			}
+
+			throw CompilerException( "ir_parsing_past_eof", "Parsing past end of file", lineNr,
+				colNr, token );
 		}
 
 		template <typename T, class... Args>
