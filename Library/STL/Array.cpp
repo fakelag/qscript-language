@@ -150,6 +150,86 @@ namespace ArrayModule
 		return args[ 0 ];
 	}
 
+	QScript::Value ArrayFind( void* frame, const QScript::Value* args, int argCount )
+	{
+		auto arr = args[ 0 ];
+
+		if ( !IS_ARRAY( arr ) )
+		{
+			throw RuntimeException( "rt_native_expected",
+				"Expected array object, got \"" + arr.ToString() + "\"", 0, 0, "" );
+		}
+
+		if ( argCount != 2 )
+		{
+			throw RuntimeException( "rt_native_argcount",
+				"Expected 1 arguments, got " + std::to_string( argCount - 1 ), 0, 0, "" );
+		}
+
+		auto findFn = args[ 1 ];
+		auto& arrayRef = AS_ARRAY( arr )->GetArray();
+
+		auto element = std::find_if( arrayRef.begin(), arrayRef.end(), [ &findFn, frame ]( QScript::Value value ) {
+			QVM::VirtualMachine->Push( findFn );
+			QVM::VirtualMachine->Push( value );
+
+			QVM::VirtualMachine->Call( ( Frame_t* ) frame, 1, findFn, true );
+			QVM::Run( *QVM::VirtualMachine, false );
+
+			return !QVM::VirtualMachine->Pop().IsTruthy();
+		} );
+
+		if ( element == arrayRef.end() )
+			return MAKE_NULL;
+
+		return *element;
+	}
+
+	QScript::Value ArraySlice( void* frame, const QScript::Value* args, int argCount )
+	{
+		auto arr = args[ 0 ];
+
+		if ( !IS_ARRAY( arr ) )
+		{
+			throw RuntimeException( "rt_native_expected",
+				"Expected array object, got \"" + arr.ToString() + "\"", 0, 0, "" );
+		}
+
+		if ( argCount < 2 )
+		{
+			throw RuntimeException( "rt_native_argcount",
+				"Expected >= 1 arguments, got " + std::to_string( argCount - 1 ), 0, 0, "" );
+		}
+
+		if ( !IS_NUMBER( args[ 1 ] ) || ( argCount > 2 && !IS_NUMBER( args[ 2 ] ) ) )
+		{
+			throw RuntimeException( "rt_native_expected",
+				"Both arguments of slice must be numbers, got \""
+				+ args[ 1 ].ToString() + ( argCount > 2 ? "\", \"" + args[ 2 ].ToString() + "\"" : "\"" ), 0, 0, "" );
+		}
+
+		auto newArray = MAKE_ARRAY( "" );
+		auto& arrayRef = AS_ARRAY( arr )->GetArray();
+
+		int startSlice = std::max( 0, ( int ) AS_NUMBER( args[ 1 ] ) );
+
+		if ( startSlice >= ( int ) arrayRef.size() )
+			return newArray;
+
+		int endSlice = ( int ) arrayRef.size();
+		
+		if ( argCount > 2 )
+		{
+			endSlice = std::min( ( int ) arrayRef.size(), std::max( 0, ( int ) AS_NUMBER( args[ 2 ] ) ) );
+
+			if ( endSlice < startSlice )
+				return newArray;
+		}
+
+		AS_ARRAY( newArray )->GetArray() = std::vector< QScript::Value >( arrayRef.begin() + startSlice, arrayRef.begin() + endSlice );
+		return newArray;
+	}
+
 	void LoadMethods( VM_t* vm )
 	{
 		vm->CreateArrayMethod( "push", ArrayPush );
@@ -157,5 +237,7 @@ namespace ArrayModule
 		vm->CreateArrayMethod( "length", ArrayLength );
 		vm->CreateArrayMethod( "pop", ArrayPop );
 		vm->CreateArrayMethod( "filter", ArrayFilter );
+		vm->CreateArrayMethod( "find", ArrayFind );
+		vm->CreateArrayMethod( "slice", ArraySlice );
 	}
 }
