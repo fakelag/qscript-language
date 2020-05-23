@@ -250,6 +250,30 @@ bool Tests::TestInterpreter()
 		UTEST_CASE_CLOSED();
 	}( );
 
+	UTEST_CASE( "Value truthiness" )
+	{
+		QScript::Value exitCode;
+		UTEST_ASSERT( TestUtils::RunVM( "var g0 = \"\";			\
+			{													\
+				Table a; Array b; const c = \"abcdefg\";		\
+				if (a) g0 += \"a\";								\
+				if (b) g0 += \"b\";								\
+				if (c) g0 += \"c\";								\
+				if (true) g0 += \"d\";							\
+				if (false) g0 += \"x\";							\
+				if (0.00) g0 += \"x\";							\
+				if (0.50) g0 += \"e\";							\
+				if (1.00) g0 += \"f\";							\
+				if (null) g0 += \"x\";							\
+			} return g0;", &exitCode ) );
+
+		UTEST_ASSERT( IS_STRING( exitCode ) == true );
+		UTEST_ASSERT( AS_STRING( exitCode )->GetString() == "abcdef" );
+
+		TestUtils::FreeExitCode( exitCode );
+		UTEST_CASE_CLOSED();
+	}( );
+
 	UTEST_CASE( "And / Or operators" )
 	{
 		QScript::Value exitCode;

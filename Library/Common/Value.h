@@ -301,6 +301,9 @@ namespace QScript
 		if ( IS_BOOL( *this ) )
 			return AS_BOOL( *this );
 
+		if ( IS_OBJECT( *this ) )
+			return true;
+
 		if ( IS_NUMBER( *this ) )
 			return AS_NUMBER( *this ) != 0;
 
