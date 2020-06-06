@@ -93,11 +93,11 @@ bool Tests::TestCompiler()
 		auto fn = QScript::Compile( "const x; const y = 10 * 10 + x;" );
 		QScript::FreeFunction( fn );
 
-		fn = QScript::Compile( "{ const x = 10; const z; [print z]; }" );
+		fn = QScript::Compile( "{ const x = 10; const z; [print: z]; }" );
 		QScript::FreeFunction( fn );
 
 		fn = QScript::Compile( "const z = () -> { const localVal = 10; 	\
-		const localFunc = () -> { [print localVal + 1]; } 				\
+		const localFunc = () -> { [print: localVal + 1]; }; 			\
 		};" );
 		QScript::FreeFunction( fn );
 
@@ -106,7 +106,7 @@ bool Tests::TestCompiler()
 			e.size() == 1 && e[ 0 ].id() == "cp_assign_to_const" );
 
 		UTEST_THROW_EXCEPTION( QScript::Compile( "const z = () -> { const localVal = 10; 	\
-			const localFunc = () -> { localVal = 1; } 										\
+			const localFunc = () -> { localVal = 1; }; 										\
 			};" ),
 			const std::vector< CompilerException >& e,
 			e.size() == 1 && e[ 0 ].id() == "cp_assign_to_const" );
