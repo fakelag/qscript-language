@@ -273,8 +273,8 @@ namespace Compiler
 	{
 		switch ( m_NodeId )
 		{
-		case NODE_TABLE: return TYPE_NONE;
-		case NODE_ARRAY: return TYPE_NONE;
+		case NODE_TABLE: return TYPE_TABLE;
+		case NODE_ARRAY: return TYPE_ARRAY;
 		case NODE_DO: return TYPE_NONE;
 		case NODE_FOR: return TYPE_NONE;
 		case NODE_FUNC: return TYPE_FUNCTION;
