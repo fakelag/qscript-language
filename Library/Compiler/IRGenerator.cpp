@@ -124,7 +124,8 @@ namespace Compiler
 
 		auto body = parserState.ToScope( nextExpression( irBuilder.m_Token.m_LBP ) );
 
-		// TODO: Skip } ?
+		// Skip over "}"
+		parserState.Expect( TOK_BRACE_RIGHT, "Expected \"}\" after function body, got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
 
 		auto args = parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
 			irBuilder.m_Token.m_String, NODE_ARGUMENTS, argsList );
@@ -150,8 +151,6 @@ namespace Compiler
 
 		if ( !funcNode )
 			return NULL;
-
-		parserState.Expect( TOK_BRACE_RIGHT, "Expected \"}\" after \"<method name>(...) -> {...\", got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
 
 		return parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
 			irBuilder.m_Token.m_String, NODE_METHOD, std::vector< BaseNode* >{ methodName, funcNode } );
@@ -193,9 +192,8 @@ namespace Compiler
 	{
 		if ( node && node->Id() == NODE_FUNC )
 		{
-			// Don't mandate a semicolon after functions
-			parserState.Expect( TOK_BRACE_RIGHT, "Expected end of block declaration" );
-			parserState.MatchCurrent( TOK_SCOLON );
+			if ( !parserState.IsFinished() )
+				parserState.Expect( TOK_SCOLON, "Expected end of expression" );
 		}
 		else
 		{
@@ -226,12 +224,12 @@ namespace Compiler
 			if ( rbp == -1 )
 				return left;
 
-			parserState.CheckEOF();
-
 			// while the next builder has a larger binding power
 			// deliver it the left hand node instead
-			while ( rbp < parserState.CurrentBuilder()->m_Token.m_LBP )
+			while ( !parserState.IsFinished() && rbp < parserState.CurrentBuilder()->m_Token.m_LBP )
 			{
+				parserState.CheckEOF();
+
 				builder = parserState.NextBuilder();
 
 				if ( builder->m_Led == NULL )
@@ -241,8 +239,6 @@ namespace Compiler
 				}
 
 				left = builder->m_Led( *builder, left );
-
-				parserState.CheckEOF();
 			}
 
 			return left;
@@ -745,35 +741,41 @@ namespace Compiler
 						}
 					}
 
-					if ( !varName || parserState.MatchCurrent( TOK_EQUALS ) )
+					if ( !parserState.MatchCurrent( TOK_SCOLON ) )
 					{
-						parserState.Expect( TOK_BRACE_LEFT, "Expected \"{\" before table body, got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
+						if ( varName )
+							parserState.Expect( TOK_EQUALS, "Expected \"=\" before table body, got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
 
-						std::vector< BaseNode* > properties;
-						while ( parserState.CurrentBuilder()->m_Token.m_Id != TOK_BRACE_RIGHT )
+						if ( !parserState.MatchCurrent( TOK_BRACE_RIGHT ) )
 						{
-							auto node = ParseField( parserState, irBuilder, nextExpression );
+							parserState.Expect( TOK_BRACE_LEFT, "Expected \"{\" before table body, got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
 
-							if ( node )
+							std::vector< BaseNode* > properties;
+							while ( parserState.CurrentBuilder()->m_Token.m_Id != TOK_BRACE_RIGHT )
 							{
-								properties.push_back( node );
-							}
-							else
-							{
-								node = ParseMethod( parserState, irBuilder, nextExpression );
+								auto node = ParseField( parserState, irBuilder, nextExpression );
 
 								if ( node )
+								{
 									properties.push_back( node );
+								}
+								else
+								{
+									node = ParseMethod( parserState, irBuilder, nextExpression );
+
+									if ( node )
+										properties.push_back( node );
+								}
+
+								// Check for trailing semicolon
+								parserState.Expect( TOK_SCOLON, "Expected end of expression" );
 							}
 
-							// Skip over trailing semicolon
-							parserState.MatchCurrent( TOK_SCOLON );
+							parserState.Expect( TOK_BRACE_RIGHT, "Expected \"}\" after table body, got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
+
+							propertyNode = parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
+								irBuilder.m_Token.m_String, NODE_PROPERTYLIST, properties );
 						}
-
-						parserState.Expect( TOK_BRACE_RIGHT, "Expected \"}\" after table body, got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
-
-						propertyNode = parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-							irBuilder.m_Token.m_String, NODE_PROPERTYLIST, properties );
 					}
 
 					return parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
@@ -881,16 +883,32 @@ namespace Compiler
 				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder )
 				{
 					std::vector< BaseNode* > argsList;
-					auto target = nextExpression();
+					auto target = nextExpression( BP_INLINE_IF /* Look ahead till ":" */ );
+
+					bool hasColon = parserState.MatchCurrent( TOK_COLON );
+					auto afterColon = parserState.CurrentBuilder();
 
 					// Parse argument list
 					if ( !parserState.MatchCurrent( TOK_SQUARE_BRACKET_RIGHT ) )
 					{
+						if ( !hasColon )
+						{
+							auto current = parserState.CurrentBuilder();
+
+							throw CompilerException( "ir_expect", "Expected \":\" after function call target, got: \"" + current->m_Token.m_String + "\"",
+								current->m_Token.m_LineNr, current->m_Token.m_ColNr, current->m_Token.m_String );
+						}
+
 						do {
 							argsList.push_back( nextExpression() );
 						} while ( parserState.MatchCurrent( TOK_COMMA ) );
 
 						parserState.Expect( TOK_SQUARE_BRACKET_RIGHT, "Expected \"]\" after function call, got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
+					}
+					else if( hasColon )
+					{
+						throw CompilerException( "ir_expect", "Expected arguments after \":\", got: \"" + afterColon->m_Token.m_String + "\"",
+							afterColon->m_Token.m_LineNr, afterColon->m_Token.m_ColNr, afterColon->m_Token.m_String );
 					}
 
 					auto args = parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
@@ -946,8 +964,13 @@ namespace Compiler
 			{
 				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder )
 				{
+					BaseNode* returnValue = NULL;
+					
+					if ( parserState.CurrentBuilder()->m_Token.m_Id != TOK_SCOLON )
+						returnValue = nextExpression( irBuilder.m_Token.m_LBP );
+
 					return parserState.AllocateNode< SimpleNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-						irBuilder.m_Token.m_String, NODE_RETURN, nextExpression( irBuilder.m_Token.m_LBP ) );
+						irBuilder.m_Token.m_String, NODE_RETURN, returnValue );
 				};
 				break;
 			}

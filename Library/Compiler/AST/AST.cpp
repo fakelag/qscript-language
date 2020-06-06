@@ -973,7 +973,7 @@ namespace Compiler
 			{
 				// Check return type match
 				uint32_t retnType = assembler.CurrentContext()->m_ReturnType;
-				uint32_t exprType = m_Node->ExprType( assembler );
+				uint32_t exprType = m_Node ? m_Node->ExprType( assembler ) : TYPE_NULL;
 
 				if ( retnType != TYPE_UNKNOWN && exprType != TYPE_UNKNOWN )
 				{
@@ -989,7 +989,11 @@ namespace Compiler
 			auto opCode = singleByte.find( m_NodeId );
 			if ( opCode != singleByte.end() )
 			{
-				m_Node->Compile( assembler, COMPILE_EXPRESSION( options ) );
+				if ( m_Node )
+					m_Node->Compile( assembler, COMPILE_EXPRESSION( options ) );
+				else if ( m_NodeId == NODE_RETURN )
+					EmitByte( QScript::OpCode::OP_LOAD_NULL, chunk );
+
 				EmitByte( opCode->second, chunk );
 			}
 			else
