@@ -15,6 +15,7 @@ struct VM_t;
 namespace Compiler
 {
 	class BaseNode;
+	struct Variable_t;
 
 	std::string TypeToString( uint32_t type );
 	bool TypeCheck( uint32_t targetType, uint32_t exprType, bool strict = true );
@@ -25,6 +26,8 @@ namespace QScript
 	struct Chunk_t;
 	class FunctionObject;
 	struct Value;
+
+	using IdentifierCreatedFn = void( *)( int lineNr, int colNr, Compiler::Variable_t& variable, const std::string& context );
 
 	struct Config_t
 	{
@@ -37,6 +40,7 @@ namespace QScript
 		{
 			m_CompilerFlags = OF_NONE;
 			m_DebugSymbols = debugSymbols;
+			m_IdentifierCb = NULL;
 		}
 
 		Config_t( const Config_t& other )
@@ -44,11 +48,13 @@ namespace QScript
 			m_CompilerFlags = other.m_CompilerFlags;
 			m_Globals = other.m_Globals;
 			m_DebugSymbols = other.m_DebugSymbols;
+			m_IdentifierCb = other.m_IdentifierCb;
 		}
 
 		uint8_t							m_CompilerFlags;
 		std::vector< std::string >		m_Globals;
 		bool							m_DebugSymbols;
+		IdentifierCreatedFn				m_IdentifierCb;
 	};
 
 	Chunk_t* AllocChunk();

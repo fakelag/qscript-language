@@ -38,25 +38,25 @@ namespace Compiler
 	void GarbageCollect( const std::vector< Compiler::BaseNode* >& nodes );
 	void GarbageCollect( const std::vector< QScript::Value >& values );
 
+	struct Variable_t
+	{
+		std::string					m_Name;
+		bool						m_IsConst;
+		uint32_t					m_Type;
+		uint32_t					m_ReturnType;
+		QScript::FunctionObject*	m_Function;
+	};
+
+	struct Local_t
+	{
+		Variable_t		m_Var;
+		uint32_t		m_Depth;
+		bool			m_Captured;
+	};
+
 	class Assembler
 	{
 	public:
-		struct Variable_t
-		{
-			std::string					m_Name;
-			bool						m_IsConst;
-			uint32_t					m_Type;
-			uint32_t					m_ReturnType;
-			QScript::FunctionObject*	m_Function;
-		};
-
-		struct Local_t
-		{
-			Variable_t		m_Var;
-			uint32_t		m_Depth;
-			bool			m_Captured;
-		};
-
 		struct Stack_t
 		{
 			Stack_t()
@@ -84,12 +84,16 @@ namespace Compiler
 
 		Assembler( QScript::Chunk_t* chunk, const QScript::Config_t& config );
 
-		void 										AddArgument( const std::string& name, bool isConstant, uint32_t type, uint32_t returnType = TYPE_UNKNOWN );
-		bool 										AddGlobal( const std::string& name );
-		bool 										AddGlobal( const std::string& name, bool isConstant, uint32_t type, uint32_t returnType = TYPE_UNKNOWN, QScript::FunctionObject* fn = NULL );
-		uint32_t 									AddLocal( const std::string& name, bool isConstant, uint32_t type, uint32_t returnType = TYPE_UNKNOWN, QScript::FunctionObject* fn = NULL );
-		uint32_t									AddLocal( const std::string& name );
-		uint32_t 									AddUpvalue( FunctionContext_t* context, uint32_t index, bool isLocal );
+		void 										AddArgument( const std::string& name, bool isConstant, int lineNr, int colNr, uint32_t type, uint32_t returnType = TYPE_UNKNOWN );
+		bool 										AddGlobal( const std::string& name, int lineNr, int colNr );
+		bool 										AddGlobal( const std::string& name, bool isConstant, int lineNr, int colNr,
+																uint32_t type, uint32_t returnType = TYPE_UNKNOWN, QScript::FunctionObject* fn = NULL );
+
+		uint32_t 									AddLocal( const std::string& name, bool isConstant, int lineNr, int colNr,
+																uint32_t type, uint32_t returnType = TYPE_UNKNOWN, QScript::FunctionObject* fn = NULL );
+
+		uint32_t									AddLocal( const std::string& name, int lineNr, int colNr );
+		uint32_t 									AddUpvalue( FunctionContext_t* context, uint32_t index, bool isLocal, int lineNr, int colNr, Variable_t* varInfo );
 		void 										ClearArguments();
 		const QScript::Config_t&					Config() const;
 		QScript::FunctionObject*					CreateFunction( const std::string& name, bool isConst, uint32_t retnType, int arity, bool isAnonymous, bool addLocal, QScript::Chunk_t* chunk );
@@ -110,7 +114,7 @@ namespace Compiler
 		void										PopScope();
 		void										PushScope();
 		void										Release();
-		bool 										RequestUpvalue( const std::string name, uint32_t* out, Variable_t* varInfo );
+		bool 										RequestUpvalue( const std::string name, uint32_t* out, int lineNr, int colNr, Variable_t* varInfo );
 		int											StackDepth();
 
 	private:

@@ -27,8 +27,8 @@ void SystemModule::Import( VM_t* vm ) const
 
 void SystemModule::Import( Compiler::Assembler* assembler ) const
 {
-	assembler->AddGlobal( "exit", true, Compiler::TYPE_NATIVE, Compiler::TYPE_NONE );
-	assembler->AddGlobal( "print", true, Compiler::TYPE_NATIVE, Compiler::TYPE_NONE );
+	assembler->AddGlobal( "exit", true, -1, -1, Compiler::TYPE_NATIVE, Compiler::TYPE_NONE );
+	assembler->AddGlobal( "print", true, -1, -1, Compiler::TYPE_NATIVE, Compiler::TYPE_NONE );
 }
 
 QScript::Value Native_Exit( void* frame, const QScript::Value* args, int numArgs )

@@ -170,7 +170,7 @@ namespace Compiler
 				case TYPE_UNKNOWN:
 				case TYPE_BOOL:
 				{
-					argsList.push_back( Argument_t{ AS_STRING( varName )->GetString(), varType } );
+					argsList.push_back( Argument_t{ AS_STRING( varName )->GetString(), varType, varNameNode->LineNr(), varNameNode->ColNr() } );
 					break;
 				}
 				default:
@@ -184,7 +184,7 @@ namespace Compiler
 			case NODE_NAME:
 			{
 				argsList.push_back( Argument_t{ AS_STRING( static_cast< ValueNode* >( arg )->GetValue() )->GetString(),
-					TYPE_UNKNOWN } );
+					TYPE_UNKNOWN, arg->LineNr(), arg->ColNr() } );
 				break;
 			}
 			default:
@@ -198,26 +198,30 @@ namespace Compiler
 		return argsList;
 	}
 
-	QScript::FunctionObject* CompileFunction( bool isAnonymous, bool isConst, bool isMember, const std::string& name, ListNode* funcNode, Assembler& assembler )
+	QScript::FunctionObject* CompileFunction( bool isAnonymous, bool isConst, bool isMember, const std::string& name, ListNode* funcNode, Assembler& assembler, uint32_t* outReturnType = NULL )
 	{
 		auto chunk = assembler.CurrentChunk();
 		auto& nodeList = funcNode->GetList();
 
 		auto argNode = static_cast< ListNode* >( nodeList[ 0 ] );
 		auto functionArity = ( uint32_t ) argNode->GetList().size();
+		auto returnType = ResolveReturnType( funcNode, assembler );
 
 		// Allocate chunk & create function
-		auto function = assembler.CreateFunction( name, isConst, ResolveReturnType( funcNode, assembler ), functionArity, isAnonymous, !isMember, QScript::AllocChunk() );
+		auto function = assembler.CreateFunction( name, isConst, returnType, functionArity, isAnonymous, !isMember, QScript::AllocChunk() );
+
+		if ( outReturnType )
+			*outReturnType = returnType;
 
 		if ( isMember )
-			assembler.AddLocal( "this", false, TYPE_TABLE );
+			assembler.AddLocal( "this", false, -1, -1, TYPE_TABLE );
 
 		assembler.PushScope();
 
 		// Create args in scope
 		auto argsList = ParseArgsList( argNode );
 		std::for_each( argsList.begin(), argsList.end(), [ &assembler ]( const Argument_t& item ) {
-			assembler.AddLocal( item.m_Name, true, item.m_Type, TYPE_UNKNOWN );
+			assembler.AddLocal( item.m_Name, true, item.m_LineNr, item.m_ColNr, item.m_Type, TYPE_UNKNOWN );
 		} );
 
 		// Compile function body
@@ -303,6 +307,7 @@ namespace Compiler
 	void ValueNode::Compile( Assembler& assembler, uint32_t options )
 	{
 		auto chunk = assembler.CurrentChunk();
+		auto& config = assembler.Config();
 		uint32_t start = ( uint32_t ) chunk->m_Code.size();
 
 		switch ( m_NodeId )
@@ -318,7 +323,7 @@ namespace Compiler
 			QScript::OpCode opCodeShortAssign = QScript::OpCode::OP_NOP;
 			QScript::OpCode opCodeLongAssign = QScript::OpCode::OP_NOP;
 
-			Assembler::Variable_t varInfo;
+			Variable_t varInfo;
 			if ( assembler.FindLocal( name, &nameIndex, &varInfo ) )
 			{
 				if ( IS_ASSIGN_TARGET( options ) )
@@ -346,8 +351,11 @@ namespace Compiler
 				opCodeLong = QScript::OpCode::OP_LOAD_LOCAL_LONG;
 				opCodeShortAssign = QScript::OpCode::OP_SET_LOCAL_SHORT;
 				opCodeLongAssign = QScript::OpCode::OP_SET_LOCAL_LONG;
+
+				if ( config.m_IdentifierCb )
+					config.m_IdentifierCb( m_LineNr, m_ColNr, varInfo, "Local" );
 			}
-			else if ( assembler.RequestUpvalue( name, &nameIndex, &varInfo ) )
+			else if ( assembler.RequestUpvalue( name, &nameIndex, m_LineNr, m_ColNr, &varInfo ) )
 			{
 				if ( ( options & CO_REASSIGN ) && varInfo.m_IsConst )
 				{
@@ -360,6 +368,9 @@ namespace Compiler
 				opCodeLong = QScript::OpCode::OP_LOAD_UPVALUE_LONG;
 				opCodeShortAssign = QScript::OpCode::OP_SET_UPVALUE_SHORT;
 				opCodeLongAssign = QScript::OpCode::OP_SET_UPVALUE_LONG;
+
+				if ( config.m_IdentifierCb )
+					config.m_IdentifierCb( m_LineNr, m_ColNr, varInfo, "Upvalue" );
 			}
 			else if ( assembler.FindGlobal( name, &varInfo ) )
 			{
@@ -377,6 +388,9 @@ namespace Compiler
 				{
 					EmitConstant( chunk, m_Value, QScript::OpCode::OP_LOAD_GLOBAL_SHORT, QScript::OpCode::OP_LOAD_GLOBAL_LONG, assembler );
 				}
+
+				if ( config.m_IdentifierCb )
+					config.m_IdentifierCb( m_LineNr, m_ColNr, varInfo, "Global" );
 			}
 			else
 			{
@@ -686,7 +700,7 @@ namespace Compiler
 
 					auto findFunction = [ &assembler ]( const std::string& name ) -> QScript::FunctionObject*
 					{
-						Assembler::Variable_t varInfo;
+						Variable_t varInfo;
 						uint32_t nameIndex;
 
 						if ( !assembler.FindArgument( name, &varInfo ) &&
@@ -947,7 +961,7 @@ namespace Compiler
 			{
 				throw CompilerException( "cp_unknown_module",
 					"Unknown module: \"" + AS_STRING( moduleName )->GetString() + "\"",
-					LineNr(), ColNr(), m_Token );
+					m_Node->LineNr(), m_Node->ColNr(), m_Node->Token() );
 			}
 
 			// Import into compiler context
@@ -1051,6 +1065,9 @@ namespace Compiler
 				varNameString = AS_STRING( varName )->GetString();
 			}
 
+			int lineNr = m_NodeList[ 0 ] ? m_NodeList[ 0 ]->LineNr() : -1;
+			int colNr = m_NodeList[ 0 ] ? m_NodeList[ 0 ]->ColNr() : -1;
+
 			// Empty table
 			EmitConstant( chunk, MAKE_STRING( varNameString ), QScript::OpCode::OP_CREATE_TABLE_SHORT, QScript::OpCode::OP_CREATE_TABLE_LONG, assembler );
 
@@ -1065,7 +1082,7 @@ namespace Compiler
 				if ( !isLocal )
 				{
 					// Global variable
-					if ( !assembler.AddGlobal( varNameString, true, TYPE_TABLE ) )
+					if ( !assembler.AddGlobal( varNameString, true, lineNr, colNr, TYPE_TABLE ) )
 					{
 						throw CompilerException( "cp_identifier_already_exists", "Identifier already exits: \"" + varNameString + "\"",
 							m_LineNr, m_ColNr, m_Token );
@@ -1076,7 +1093,7 @@ namespace Compiler
 				else
 				{
 					// Local variable
-					assembler.AddLocal( varNameString, true, TYPE_TABLE );
+					assembler.AddLocal( varNameString, true, lineNr, colNr, TYPE_TABLE );
 				}
 			}
 			else
@@ -1195,6 +1212,9 @@ namespace Compiler
 				varNameString = AS_STRING( varName )->GetString();
 			}
 
+			int lineNr = m_NodeList[ 0 ] ? m_NodeList[ 0 ]->LineNr() : -1;
+			int colNr = m_NodeList[ 0 ] ? m_NodeList[ 0 ]->ColNr() : -1;
+
 			// Empty array
 			EmitConstant( chunk, MAKE_STRING( varNameString ), QScript::OpCode::OP_CREATE_ARRAY_SHORT, QScript::OpCode::OP_CREATE_ARRAY_LONG, assembler );
 
@@ -1208,7 +1228,7 @@ namespace Compiler
 
 				if ( !isLocal )
 				{
-					if ( !assembler.AddGlobal( varNameString, true, TYPE_ARRAY ) )
+					if ( !assembler.AddGlobal( varNameString, true, lineNr, colNr, TYPE_ARRAY ) )
 					{
 						throw CompilerException( "cp_identifier_already_exists", "Identifier already exits: \"" + varNameString + "\"",
 							m_LineNr, m_ColNr, m_Token );
@@ -1218,7 +1238,7 @@ namespace Compiler
 				}
 				else
 				{
-					assembler.AddLocal( varNameString, true, TYPE_ARRAY );
+					assembler.AddLocal( varNameString, true, lineNr, colNr, TYPE_ARRAY );
 				}
 			}
 
@@ -1423,10 +1443,14 @@ namespace Compiler
 
 			auto varString = AS_STRING( varName )->GetString();
 			uint32_t varType = ( uint32_t ) AS_NUMBER( varTypeValue );
+			uint32_t varReturnType = TYPE_UNKNOWN;
 
 			bool isLocal = ( assembler.StackDepth() > 0 );
 			bool isConst = ( m_NodeId == NODE_CONSTVAR );
 			QScript::FunctionObject* fn = NULL;
+
+			int lineNr = m_NodeList[ 0 ]->LineNr();
+			int colNr = m_NodeList[ 0 ]->ColNr();
 
 			if ( m_NodeList[ 1 ] )
 			{
@@ -1450,7 +1474,7 @@ namespace Compiler
 				if ( m_NodeList[ 1 ]->Id() == NODE_FUNC )
 				{
 					// Compile a named function
-					fn = CompileFunction( false, isConst, false, varString, static_cast< ListNode* >( m_NodeList[ 1 ] ), assembler );
+					fn = CompileFunction( false, isConst, false, varString, static_cast< ListNode* >( m_NodeList[ 1 ] ), assembler, &varReturnType );
 					varType = TYPE_FUNCTION;
 				}
 				else
@@ -1461,11 +1485,11 @@ namespace Compiler
 
 				if ( isLocal )
 				{
-					assembler.AddLocal( varString, isConst, varType, TYPE_UNKNOWN, fn );
+					assembler.AddLocal( varString, isConst, lineNr, colNr, varType, varReturnType, fn );
 				}
 				else
 				{
-					if ( !assembler.AddGlobal( varString, isConst, varType, TYPE_UNKNOWN, fn ) )
+					if ( !assembler.AddGlobal( varString, isConst, lineNr, colNr, varType, varReturnType, fn ) )
 					{
 						throw CompilerException( "cp_identifier_already_exists", "Identifier already exits: \"" + varString + "\"",
 							m_LineNr, m_ColNr, m_Token );
@@ -1488,7 +1512,7 @@ namespace Compiler
 				if ( !isLocal )
 				{
 					// Global variable
-					if ( !assembler.AddGlobal( varString, isConst, TYPE_UNKNOWN ) )
+					if ( !assembler.AddGlobal( varString, isConst, lineNr, colNr, TYPE_UNKNOWN ) )
 					{
 						throw CompilerException( "cp_identifier_already_exists", "Identifier already exits: \"" + varString + "\"",
 							m_LineNr, m_ColNr, m_Token );
@@ -1500,7 +1524,7 @@ namespace Compiler
 				else
 				{
 					// Local variable
-					assembler.AddLocal( varString, isConst, TYPE_UNKNOWN );
+					assembler.AddLocal( varString, isConst, lineNr, colNr, TYPE_UNKNOWN );
 				}
 			}
 			break;

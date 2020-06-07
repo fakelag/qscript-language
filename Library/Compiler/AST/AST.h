@@ -105,6 +105,8 @@ namespace Compiler
 	{
 		std::string 	m_Name;
 		uint32_t		m_Type;
+		int				m_LineNr;
+		int				m_ColNr;
 	};
 
 	class BaseNode

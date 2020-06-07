@@ -162,7 +162,7 @@ namespace QScript
 						auto nameValue = static_cast< Compiler::ValueNode* >( node )->GetValue();
 						auto name = AS_STRING( nameValue )->GetString();
 
-						Compiler::Assembler::Variable_t varInfo;
+						Compiler::Variable_t varInfo;
 
 						if ( assembler.FindGlobal( name, &varInfo ) )
 							retnType = varInfo.m_ReturnType;
@@ -533,8 +533,9 @@ namespace Compiler
 	Assembler::Assembler( QScript::Chunk_t* chunk, const QScript::Config_t& config )
 		: m_Config( config )
 	{
+		// Fill out globals for REPL
 		for ( auto identifier : config.m_Globals )
-			AddGlobal( identifier );
+			AddGlobal( identifier, -1, -1 );
 
 		CreateFunction( "<main>", true, TYPE_UNKNOWN, 0, true, true, chunk );
 	}
@@ -564,7 +565,7 @@ namespace Compiler
 		return m_Compiled;
 	}
 
-	const std::vector< Assembler::Variable_t >& Assembler::CurrentArguments()
+	const std::vector< Variable_t >& Assembler::CurrentArguments()
 	{
 		return m_FunctionArgs;
 	}
@@ -597,7 +598,8 @@ namespace Compiler
 		m_Functions.push_back( context );
 
 		if ( addLocal )
-			AddLocal( isAnonymous ? "" : name, isConst, TYPE_FUNCTION, retnType );
+			AddLocal( isAnonymous ? "" : name, isConst, -1, -1, TYPE_FUNCTION, retnType );
+
 		return function;
 	}
 
@@ -620,27 +622,35 @@ namespace Compiler
 		m_Functions.pop_back();
 	}
 
-	void Assembler::AddArgument( const std::string& name, bool isConstant, uint32_t type, uint32_t returnType )
+	void Assembler::AddArgument( const std::string& name, bool isConstant, int lineNr, int colNr, uint32_t type, uint32_t returnType )
 	{
-		m_FunctionArgs.push_back( Variable_t{ name, isConstant, type, returnType, NULL } );
+		auto variable = Variable_t{ name, isConstant, type, returnType, NULL };
+
+		if ( m_Config.m_IdentifierCb )
+			m_Config.m_IdentifierCb( lineNr, colNr, variable, "Argument" );
+
+		m_FunctionArgs.push_back( variable );
 	}
 
-	uint32_t Assembler::AddLocal( const std::string& name )
+	uint32_t Assembler::AddLocal( const std::string& name, int lineNr, int colNr )
 	{
-		return AddLocal( name, false, TYPE_UNKNOWN, TYPE_UNKNOWN );
+		return AddLocal( name, false, lineNr, colNr, TYPE_UNKNOWN, TYPE_UNKNOWN );
 	}
 
-	uint32_t Assembler::AddLocal( const std::string& name, bool isConstant, uint32_t type, uint32_t returnType, QScript::FunctionObject* fn )
+	uint32_t Assembler::AddLocal( const std::string& name, bool isConstant, int lineNr, int colNr, uint32_t type, uint32_t returnType, QScript::FunctionObject* fn )
 	{
 		auto stack = CurrentStack();
 
 		auto variable = Variable_t{ name, isConstant, type, returnType, fn };
 
-		stack->m_Locals.push_back( Assembler::Local_t{ variable, stack->m_CurrentDepth, false } );
+		if ( m_Config.m_IdentifierCb )
+			m_Config.m_IdentifierCb( lineNr, colNr, variable, "Local" );
+
+		stack->m_Locals.push_back( Local_t{ variable, stack->m_CurrentDepth, false } );
 		return ( uint32_t ) stack->m_Locals.size() - 1;
 	}
 
-	Assembler::Local_t* Assembler::GetLocal( int local )
+	Local_t* Assembler::GetLocal( int local )
 	{
 		return &CurrentStack()->m_Locals[ local ];
 	}
@@ -692,30 +702,6 @@ namespace Compiler
 		return FindLocalFromStack( CurrentStack(), name, out, varInfo );
 	}
 
-	bool Assembler::RequestUpvalue( const std::string name, uint32_t* out, Variable_t* varInfo )
-	{
-		int thisFunction = ( int ) m_Functions.size() - 1;
-
-		for ( int i = thisFunction; i > 0; --i )
-		{
-			uint32_t upValue = 0;
-			if ( !FindLocalFromStack( m_Functions[ i - 1 ].m_Stack, name, &upValue, varInfo ) )
-				continue;
-
-			// Capture it
-			m_Functions[ i - 1 ].m_Stack->m_Locals[ upValue ].m_Captured = true;
-
-			// Link upvalue through the closure chain
-			for ( int j = i; j <= thisFunction; ++j )
-				upValue = AddUpvalue( &m_Functions[ j ], upValue, j == i );
-
-			*out = upValue;
-			return true;
-		}
-
-		return false;
-	}
-
 	bool Assembler::FindUpvalue( const std::string name, uint32_t* out, Variable_t* varInfo )
 	{
 		int thisFunction = ( int ) m_Functions.size() - 1;
@@ -732,22 +718,50 @@ namespace Compiler
 		return false;
 	}
 
-	bool Assembler::AddGlobal( const std::string& name )
+	bool Assembler::AddGlobal( const std::string& name, int lineNr, int colNr )
 	{
-		return AddGlobal( name, false, TYPE_UNKNOWN, TYPE_UNKNOWN, NULL );
+		return AddGlobal( name, false, lineNr, colNr, TYPE_UNKNOWN, TYPE_UNKNOWN, NULL );
 	}
 
-	bool Assembler::AddGlobal( const std::string& name, bool isConstant, uint32_t type, uint32_t returnType, QScript::FunctionObject* fn )
+	bool Assembler::AddGlobal( const std::string& name, bool isConstant, int lineNr, int colNr, uint32_t type, uint32_t returnType, QScript::FunctionObject* fn )
 	{
 		if ( m_Globals.find( name ) != m_Globals.end() )
 			return false;
 
 		Variable_t global = Variable_t{ name, isConstant, type, returnType, fn };
 		m_Globals.insert( std::make_pair( name, global ) );
+
+		if ( m_Config.m_IdentifierCb )
+			m_Config.m_IdentifierCb( lineNr, colNr, global, "Global" );
+
 		return true;
 	}
 
-	uint32_t Assembler::AddUpvalue( FunctionContext_t* context, uint32_t index, bool isLocal )
+	bool Assembler::RequestUpvalue( const std::string name, uint32_t* out, int lineNr, int colNr, Variable_t* varInfo )
+	{
+		int thisFunction = ( int ) m_Functions.size() - 1;
+
+		for ( int i = thisFunction; i > 0; --i )
+		{
+			uint32_t upValue = 0;
+			if ( !FindLocalFromStack( m_Functions[ i - 1 ].m_Stack, name, &upValue, varInfo ) )
+				continue;
+
+			// Capture it
+			m_Functions[ i - 1 ].m_Stack->m_Locals[ upValue ].m_Captured = true;
+
+			// Link upvalue through the closure chain
+			for ( int j = i; j <= thisFunction; ++j )
+				upValue = AddUpvalue( &m_Functions[ j ], upValue, j == i, lineNr, colNr, varInfo );
+
+			*out = upValue;
+			return true;
+		}
+
+		return false;
+	}
+
+	uint32_t Assembler::AddUpvalue( FunctionContext_t* context, uint32_t index, bool isLocal, int lineNr, int colNr, Variable_t* varInfo )
 	{
 		for ( uint32_t i = 0; i < context->m_Upvalues.size(); ++i )
 		{
@@ -755,6 +769,9 @@ namespace Compiler
 			if ( upvalue.m_Index == index && upvalue.m_IsLocal == isLocal )
 				return i;
 		}
+
+		if ( m_Config.m_IdentifierCb )
+			m_Config.m_IdentifierCb( lineNr, colNr, *varInfo, "Upvalue" );
 
 		context->m_Upvalues.push_back( Upvalue_t{ isLocal, index } );
 

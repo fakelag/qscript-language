@@ -22,7 +22,7 @@ void TimeModule::Import( VM_t* vm ) const
 
 void TimeModule::Import( Compiler::Assembler* assembler ) const
 {
-	assembler->AddGlobal( "clock", true, Compiler::TYPE_NATIVE, Compiler::TYPE_NUMBER );
+	assembler->AddGlobal( "clock", true, -1, -1, Compiler::TYPE_NATIVE, Compiler::TYPE_NUMBER );
 }
 
 QScript::Value Native_Clock( void* frame, const QScript::Value* args, int numArgs )
