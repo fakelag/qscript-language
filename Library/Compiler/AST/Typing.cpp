@@ -63,13 +63,16 @@ namespace Compiler
 		// Combine all return statement types
 		uint32_t returnTypes = TYPE_NULL;
 
+		// Is first return?
+		bool firstReturn = true;
+
 		auto argsList = ParseArgsList( static_cast< ListNode* >( funcNode->GetList()[ 0 ] ) );
 
 		for ( auto arg : argsList )
-			assembler.AddArgument( arg.m_Name, true, arg.m_Type, TYPE_UNKNOWN );
+			assembler.AddArgument( arg.m_Name, true, arg.m_LineNr, arg.m_ColNr, arg.m_Type, TYPE_UNKNOWN );
 
 		std::function< void( const BaseNode* ) > visitNode;
-		visitNode = [ &visitNode, &returnTypes, &assembler ]( const BaseNode* node ) -> void
+		visitNode = [ &visitNode, &returnTypes, &firstReturn, &assembler ]( const BaseNode* node ) -> void
 		{
 			if ( !node )
 				return;
@@ -79,7 +82,10 @@ namespace Compiler
 			case NT_TERM:
 			{
 				if ( node->Id() == NODE_RETURN )
+				{
 					returnTypes |= TYPE_NULL;
+					firstReturn = false;
+				}
 
 				break;
 			}
@@ -88,9 +94,20 @@ namespace Compiler
 				auto simple = static_cast< const SimpleNode* >( node );
 
 				if ( simple->Id() == NODE_RETURN )
+				{
+					if ( firstReturn )
+					{
+						// Reset return type to 0, since there is at least 1 return, we can discard the default null -type
+						returnTypes = 0;
+						firstReturn = false;
+					}
+
 					returnTypes |= simple->GetNode()->ExprType( assembler );
+				}
 				else
+				{
 					visitNode( node );
+				}
 
 				break;
 			}
@@ -134,7 +151,7 @@ namespace Compiler
 			uint32_t nameIndex;
 			auto name = AS_STRING( m_Value )->GetString();
 
-			Assembler::Variable_t varInfo;
+			Variable_t varInfo;
 			if ( assembler.FindArgument( name, &varInfo ) )
 				return varInfo.m_Type;
 
@@ -207,7 +224,7 @@ namespace Compiler
 				auto name = AS_STRING( nameValue )->GetString();
 
 				uint32_t nameIndex;
-				Assembler::Variable_t varInfo;
+				Variable_t varInfo;
 
 				if ( assembler.FindLocal( name, &nameIndex, &varInfo ) )
 					return varInfo.m_ReturnType;
