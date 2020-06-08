@@ -26,8 +26,10 @@ namespace QScript
 	struct Chunk_t;
 	class FunctionObject;
 	struct Value;
+	struct NativeFunctionSpec_t;
 
 	using IdentifierCreatedFn = void( *)( int lineNr, int colNr, Compiler::Variable_t& variable, const std::string& context );
+	using ImportCreatedFn = void( *)( int lineNr, int colNr, const std::string& moduleName, const std::vector< NativeFunctionSpec_t >& functions );
 
 	struct Config_t
 	{
@@ -41,6 +43,7 @@ namespace QScript
 			m_CompilerFlags = OF_NONE;
 			m_DebugSymbols = debugSymbols;
 			m_IdentifierCb = NULL;
+			m_ImportCb = NULL;
 		}
 
 		Config_t( const Config_t& other )
@@ -49,12 +52,14 @@ namespace QScript
 			m_Globals = other.m_Globals;
 			m_DebugSymbols = other.m_DebugSymbols;
 			m_IdentifierCb = other.m_IdentifierCb;
+			m_ImportCb = other.m_ImportCb;
 		}
 
 		uint8_t							m_CompilerFlags;
 		std::vector< std::string >		m_Globals;
 		bool							m_DebugSymbols;
 		IdentifierCreatedFn				m_IdentifierCb;
+		ImportCreatedFn					m_ImportCb;
 	};
 
 	Chunk_t* AllocChunk();

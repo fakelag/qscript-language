@@ -965,7 +965,7 @@ namespace Compiler
 			}
 
 			// Import into compiler context
-			module->Import( &assembler );
+			module->Import( &assembler, m_Node->LineNr(), m_Node->ColNr() );
 
 			// Import in VM
 			uint32_t constIndex = AddConstant( moduleName, chunk );

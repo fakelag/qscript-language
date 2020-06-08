@@ -9,5 +9,5 @@ public:
 	const std::string& GetName() const { return m_Name; }
 
 	void Import( VM_t* vm ) const;
-	void Import( Compiler::Assembler* assembler ) const;
+	void Import( Compiler::Assembler* assembler, int lineNr, int colNr ) const;
 };

@@ -25,10 +25,21 @@ void SystemModule::Import( VM_t* vm ) const
 	ArrayModule::LoadMethods( vm );
 }
 
-void SystemModule::Import( Compiler::Assembler* assembler ) const
+void SystemModule::Import( Compiler::Assembler* assembler, int lineNr, int colNr ) const
 {
+	auto config = assembler->Config();
 	assembler->AddGlobal( "exit", true, -1, -1, Compiler::TYPE_NATIVE, Compiler::TYPE_NONE );
 	assembler->AddGlobal( "print", true, -1, -1, Compiler::TYPE_NATIVE, Compiler::TYPE_NONE );
+
+	if ( config.m_ImportCb )
+	{
+		std::vector< QScript::NativeFunctionSpec_t > functions = {
+			QScript::NativeFunctionSpec_t{ "exit", { }, Compiler::TYPE_NULL },
+			QScript::NativeFunctionSpec_t{ "print", { QScript::NativeFunctionSpec_t::NativeArg_t{ "", Compiler::TYPE_UNKNOWN, Compiler::TYPE_UNKNOWN, true } }, Compiler::TYPE_NULL },
+		};
+
+		config.m_ImportCb( lineNr, colNr, m_Name, functions );
+	}
 }
 
 QScript::Value Native_Exit( void* frame, const QScript::Value* args, int numArgs )

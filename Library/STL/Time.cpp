@@ -20,9 +20,19 @@ void TimeModule::Import( VM_t* vm ) const
 	vm->CreateNative( "clock", &Native_Clock );
 }
 
-void TimeModule::Import( Compiler::Assembler* assembler ) const
+void TimeModule::Import( Compiler::Assembler* assembler, int lineNr, int colNr ) const
 {
+	auto& config = assembler->Config();
 	assembler->AddGlobal( "clock", true, -1, -1, Compiler::TYPE_NATIVE, Compiler::TYPE_NUMBER );
+
+	if ( config.m_ImportCb )
+	{
+		std::vector< QScript::NativeFunctionSpec_t > functions ={
+			QScript::NativeFunctionSpec_t{ "clock", { }, Compiler::TYPE_NUMBER },
+		};
+
+		config.m_ImportCb( lineNr, colNr, m_Name, functions );
+	}
 }
 
 QScript::Value Native_Clock( void* frame, const QScript::Value* args, int numArgs )
