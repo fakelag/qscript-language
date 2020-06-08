@@ -27,9 +27,10 @@ namespace Compiler
 
 		std::map< CompileTypeInfo, std::string > typeStrings ={
 			{ TYPE_NULL, 			"null" },
-			{ TYPE_NUMBER, 			"number" },
+			{ TYPE_NUMBER, 			"num" },
 			{ TYPE_BOOL, 			"bool" },
 			{ TYPE_TABLE, 			"Table" },
+			{ TYPE_ARRAY, 			"Array" },
 			{ TYPE_FUNCTION, 		"function" },
 			{ TYPE_NATIVE, 			"native" },
 			{ TYPE_STRING, 			"string" },
@@ -74,7 +75,7 @@ namespace Compiler
 		std::function< void( const BaseNode* ) > visitNode;
 		visitNode = [ &visitNode, &returnTypes, &firstReturn, &assembler ]( const BaseNode* node ) -> void
 		{
-			if ( !node )
+			if ( !node || returnTypes == TYPE_UNKNOWN )
 				return;
 
 			switch ( node->Type() )
@@ -102,7 +103,12 @@ namespace Compiler
 						firstReturn = false;
 					}
 
-					returnTypes |= simple->GetNode()->ExprType( assembler );
+					auto returnExpressionType = simple->GetNode()->ExprType( assembler );
+
+					if ( returnExpressionType == TYPE_UNKNOWN )
+						returnTypes = TYPE_UNKNOWN;
+					else
+						returnTypes |= returnExpressionType;
 				}
 				else
 				{
@@ -254,6 +260,12 @@ namespace Compiler
 
 			if ( ( leftType & TYPE_STRING ) || ( rightType & TYPE_STRING ) )
 				return TYPE_STRING;
+
+			if ( leftType == TYPE_UNKNOWN )
+				return TYPE_UNKNOWN;
+
+			if ( rightType == TYPE_UNKNOWN )
+				return TYPE_UNKNOWN;
 
 			return TYPE_NUMBER;
 		}
