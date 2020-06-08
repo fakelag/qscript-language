@@ -116,5 +116,8 @@
     <ClInclude Include="STL\Array.h">
       <Filter>STL</Filter>
     </ClInclude>
+    <ClInclude Include="Common\Disassembler.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

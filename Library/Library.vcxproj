@@ -115,6 +115,8 @@
       <AdditionalIncludeDirectories>$(SolutionDir)Includes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <PrecompiledHeaderOutputFile>QLibPCH.h.pch</PrecompiledHeaderOutputFile>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -134,6 +136,8 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>QLibPCH.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>QLibPCH.h.pch</PrecompiledHeaderOutputFile>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -169,6 +173,7 @@
     <ClInclude Include="..\Includes\QLibPCH.h" />
     <ClInclude Include="..\Includes\QScript.h" />
     <ClInclude Include="Common\Chunk.h" />
+    <ClInclude Include="Common\Disassembler.h" />
     <ClInclude Include="Common\Object.h" />
     <ClInclude Include="Common\Value.h" />
     <ClInclude Include="Compiler\AST\AST.h" />
