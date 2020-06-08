@@ -16,15 +16,6 @@ namespace Compiler
 	uint32_t AddConstant( const QScript::Value& value, QScript::Chunk_t* chunk );
 	void EmitByte( uint8_t byte, QScript::Chunk_t* chunk );
 
-	// Disassembler
-	void DisassembleChunk( const QScript::Chunk_t& chunk, const std::string& identifier, int ip = -1 );
-	uint32_t DisassembleInstruction( const QScript::Chunk_t& chunk, uint32_t offset, bool isIp );
-	int InstructionSize( uint8_t inst );
-	void DumpConstants( const QScript::Chunk_t& chunk );
-	void DumpGlobals( const VM_t& vm );
-	void DumpStack( const VM_t& vm );
-	bool FindDebugSymbol( const QScript::Chunk_t& chunk, uint32_t offset, QScript::Chunk_t::Debug_t* out );
-
 	// Object allocation
 	QScript::StringObject* AllocateString( const std::string& string );
 	QScript::FunctionObject* AllocateFunction( const std::string& name, int arity );

@@ -4,6 +4,7 @@
 #include "Instructions.h"
 #include "QVM.h"
 #include "../Compiler/Compiler.h"
+#include "../Common/Disassembler.h"
 
 #include "../STL/NativeModule.h"
 
@@ -37,7 +38,6 @@ QScript::Object::AllocateArray = NULL;
 #define INTERP_JMPTABLE ((void)0)
 #ifdef QVM_DEBUG
 #define INTERP_SWITCH( inst ) inst = ( QScript::OpCode ) READ_BYTE( ); \
-if (traceExec) Compiler::DisassembleInstruction( *chunk, ip - &chunk->m_Code[ 0 ], false ); \
 switch ( inst )
 #else
 #define INTERP_SWITCH( inst ) switch ( inst = ( QScript::OpCode ) READ_BYTE( ) )
@@ -92,7 +92,7 @@ namespace QVM
 		QScript::Chunk_t::Debug_t debug;
 
 		auto function = frame->m_Closure->GetFunction();
-		if ( frame && Compiler::FindDebugSymbol( *function->GetChunk(),
+		if ( frame && Disassembler::FindDebugSymbol( *function->GetChunk(),
 			( uint32_t ) ( frame->m_IP - &function->GetChunk()->m_Code[ 0 ] ), &debug ) )
 		{
 			token = debug.m_Token;
@@ -172,7 +172,6 @@ namespace QVM
 
 #ifdef QVM_DEBUG
 		const uint8_t* runTill = NULL;
-		bool traceExec = false;
 #endif
 
 		INTERP_JMPTABLE;
@@ -194,21 +193,17 @@ namespace QVM
 						runTill = ( const uint8_t* ) -1;
 						break;
 					}
-					else if ( input == "t" )
-					{
-						traceExec = !traceExec;
-						std::cout << "Tracing: " << ( traceExec ? "Enabled" : "Disabled" ) << std::endl;
-						continue;
-					}
 					else if ( input == "ds" )
 					{
-						Compiler::DumpStack( vm );
+						Disassembler::DumpStack( vm );
 						continue;
 					}
 					else if ( input == "dc" )
 					{
-						Compiler::DisassembleChunk( *function->GetChunk(), "<function, " + function->GetName() + ">",
+						auto disasm = Disassembler::DisassembleChunk( *function->GetChunk(), "<function, " + function->GetName() + ">",
 							( unsigned int ) ( ip - ( uint8_t* ) &function->GetChunk()->m_Code[ 0 ] ) );
+
+						Disassembler::DumpDisassembly( disasm );
 						continue;
 					}
 					else if ( input == "dca" )
@@ -220,8 +215,10 @@ namespace QVM
 						{
 							auto isExecuting = vm.m_Frames.back().m_Closure->GetFunction() == function;
 
-							Compiler::DisassembleChunk( *function->GetChunk(), "<function, " + function->GetName() + ">",
+							auto disasm = Disassembler::DisassembleChunk( *function->GetChunk(), "<function, " + function->GetName() + ">",
 								isExecuting ? ( unsigned int ) ( ip - ( uint8_t* ) &function->GetChunk()->m_Code[ 0 ] ) : -1 );
+
+							Disassembler::DumpDisassembly( disasm );
 
 							for ( auto constant : function->GetChunk()->m_Constants )
 							{
@@ -237,12 +234,12 @@ namespace QVM
 					}
 					else if ( input == "dcnst" )
 					{
-						Compiler::DumpConstants( *function->GetChunk() );
+						Disassembler::DumpConstants( *function->GetChunk() );
 						continue;
 					}
 					else if ( input == "dg" )
 					{
-						Compiler::DumpGlobals( vm );
+						Disassembler::DumpGlobals( vm );
 						continue;
 					}
 					else if ( input.substr( 0, 2 ) == "s " )
