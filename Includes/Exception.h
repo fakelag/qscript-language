@@ -34,9 +34,9 @@ public:
 
 	std::string describe() const _NOEXCEPT
 	{
-		return ( "Compiler Exception (" + m_Id + "): " + m_What + " on line "
+		return ( "Compiler Exception (" + m_Id + "): " + m_What + " ( line "
 			+ std::to_string( m_LineNr ) + " character " + std::to_string( m_ColNr )
-			+ " (\"" + m_Token + "\")" );
+			+ " \"" + m_Token + "\")" );
 	}
 
 	int						LineNr()		{ return m_LineNr; }
@@ -64,7 +64,7 @@ public:
 
 	std::string describe() const _NOEXCEPT
 	{
-		return ( "Runtime Exception (" + m_Id + "): " + m_What + " on line "
+		return ( "Runtime Exception (" + m_Id + "): " + m_What + " ( line "
 			+ std::to_string( m_LineNr ) + " character " + std::to_string( m_ColNr )
 			+ " (\"" + m_Token + "\")" );
 	}
