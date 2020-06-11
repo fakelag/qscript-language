@@ -4,6 +4,7 @@
 
 #include "../Library/Common/Chunk.h"
 #include "../Library/Compiler/Compiler.h"
+#include "../Library/Common/Disassembler.h"
 
 #include "Utils.h"
 
@@ -11,12 +12,12 @@ using namespace Tests;
 using namespace Compiler;
 
 #define ASSERT_OPCODE( address, opcode ) \
-int opcodeOffset = Compiler::InstructionSize( fn->GetChunk()->m_Code[ address ] ); \
+int opcodeOffset = Disassembler::InstructionSize( fn->GetChunk()->m_Code[ address ] ); \
 UTEST_ASSERT( fn->GetChunk()->m_Code[ address ] == QScript::OpCode::opcode )
 
 #define ASSERT_OPCODE_NEXT( opcode ) \
 UTEST_ASSERT( fn->GetChunk()->m_Code[ opcodeOffset ] == QScript::OpCode::opcode ) \
-opcodeOffset += Compiler::InstructionSize( fn->GetChunk()->m_Code[ opcodeOffset ] ); \
+opcodeOffset += Disassembler::InstructionSize( fn->GetChunk()->m_Code[ opcodeOffset ] ); \
 
 bool Tests::TestCompiler()
 {
