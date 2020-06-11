@@ -1084,7 +1084,7 @@ namespace Compiler
 					// Global variable
 					if ( !assembler.AddGlobal( varNameString, true, lineNr, colNr, TYPE_TABLE ) )
 					{
-						throw CompilerException( "cp_identifier_already_exists", "Identifier already exits: \"" + varNameString + "\"",
+						throw CompilerException( "cp_identifier_already_exists", "Identifier \"" + varNameString + "\" already exists",
 							m_LineNr, m_ColNr, m_Token );
 					}
 
@@ -1230,7 +1230,7 @@ namespace Compiler
 				{
 					if ( !assembler.AddGlobal( varNameString, true, lineNr, colNr, TYPE_ARRAY ) )
 					{
-						throw CompilerException( "cp_identifier_already_exists", "Identifier already exits: \"" + varNameString + "\"",
+						throw CompilerException( "cp_identifier_already_exists", "Identifier \"" + varNameString + "\" already exists",
 							m_LineNr, m_ColNr, m_Token );
 					}
 
@@ -1452,6 +1452,7 @@ namespace Compiler
 			int lineNr = m_NodeList[ 0 ]->LineNr();
 			int colNr = m_NodeList[ 0 ]->ColNr();
 
+			// Assign now?
 			if ( m_NodeList[ 1 ] )
 			{
 				uint32_t exprType = m_NodeList[ 1 ]->ExprType( assembler );
@@ -1462,7 +1463,7 @@ namespace Compiler
 					{
 						throw CompilerException( "cp_invalid_expression_type", "Can not assign expression of type " +
 							TypeToString( exprType ) + " to variable of type " + TypeToString( varType ),
-							m_LineNr, m_ColNr, m_Token );
+							m_NodeList[ 1 ]->LineNr(), m_NodeList[ 1 ]->ColNr(), m_NodeList[ 1 ]->Token() );
 					}
 				}
 				else if ( varType & TYPE_AUTO )
@@ -1491,8 +1492,8 @@ namespace Compiler
 				{
 					if ( !assembler.AddGlobal( varString, isConst, lineNr, colNr, varType, varReturnType, fn ) )
 					{
-						throw CompilerException( "cp_identifier_already_exists", "Identifier already exits: \"" + varString + "\"",
-							m_LineNr, m_ColNr, m_Token );
+						throw CompilerException( "cp_identifier_already_exists", "Identifier \"" + varString + "\" already exists",
+							lineNr, colNr, m_NodeList[ 0 ]->Token() );
 					}
 
 					m_NodeList[ 0 ]->Compile( assembler, COMPILE_ASSIGN_TARGET( options ) );
@@ -1509,13 +1510,20 @@ namespace Compiler
 				// Empty variable
 				EmitByte( QScript::OpCode::OP_LOAD_NULL, chunk );
 
+				if ( !TypeCheck( varType, TYPE_NULL ) )
+				{
+					throw CompilerException( "cp_invalid_expression_type", "Expected expression of type " +
+						TypeToString( varType ) + ", got: " + TypeToString( TYPE_NULL ),
+						lineNr, colNr, m_NodeList[ 0 ]->Token() );
+				}
+
 				if ( !isLocal )
 				{
 					// Global variable
 					if ( !assembler.AddGlobal( varString, isConst, lineNr, colNr, TYPE_UNKNOWN ) )
 					{
-						throw CompilerException( "cp_identifier_already_exists", "Identifier already exits: \"" + varString + "\"",
-							m_LineNr, m_ColNr, m_Token );
+						throw CompilerException( "cp_identifier_already_exists", "Identifier \"" + varString + "\" already exists",
+							m_NodeList[ 0 ]->LineNr(), m_NodeList[ 0 ]->ColNr(), m_NodeList[ 0 ]->Token() );
 					}
 
 					EmitConstant( chunk, varName, QScript::OpCode::OP_SET_GLOBAL_SHORT, QScript::OpCode::OP_SET_GLOBAL_LONG, assembler );
