@@ -204,11 +204,10 @@ namespace Compiler
 		auto& nodeList = funcNode->GetList();
 
 		auto argNode = static_cast< ListNode* >( nodeList[ 0 ] );
-		auto functionArity = ( uint32_t ) argNode->GetList().size();
 		auto returnType = ResolveReturnType( funcNode, assembler );
 
 		// Allocate chunk & create function
-		auto function = assembler.CreateFunction( name, isConst, returnType, functionArity, isAnonymous, !isMember, QScript::AllocChunk() );
+		auto function = assembler.CreateFunction( name, isConst, returnType, isAnonymous, !isMember, QScript::AllocChunk() );
 
 		if ( outReturnType )
 			*outReturnType = returnType;
@@ -220,7 +219,8 @@ namespace Compiler
 
 		// Create args in scope
 		auto argsList = ParseArgsList( argNode );
-		std::for_each( argsList.begin(), argsList.end(), [ &assembler ]( const Argument_t& item ) {
+		std::for_each( argsList.begin(), argsList.end(), [ &assembler, &function ]( const Argument_t& item ) {
+			function->AddArgument( item.m_Name, item.m_Type, TYPE_UNKNOWN ); // TODO: Return type support
 			assembler.AddLocal( item.m_Name, true, item.m_LineNr, item.m_ColNr, item.m_Type, TYPE_UNKNOWN );
 		} );
 
@@ -228,14 +228,13 @@ namespace Compiler
 		for ( auto node : static_cast< ListNode* >( nodeList[ 1 ] )->GetList() )
 			node->Compile( assembler, COMPILE_STATEMENT( 0 ) );
 
-		QScript::FunctionObject* functionObject;
 		std::vector< Assembler::Upvalue_t > upvalues;
 
 		// Remove body scope
-		assembler.FinishFunction( &functionObject, &upvalues );
+		assembler.FinishFunction( &upvalues );
 
 		// Create a constant (function) in enclosing chunk
-		EmitConstant( chunk, MAKE_OBJECT( functionObject ), QScript::OpCode::OP_CLOSURE_SHORT,
+		EmitConstant( chunk, MAKE_OBJECT( function ), QScript::OpCode::OP_CLOSURE_SHORT,
 			QScript::OpCode::OP_CLOSURE_LONG, assembler );
 
 		// Emit upvalues

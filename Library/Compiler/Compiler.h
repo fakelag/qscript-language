@@ -18,7 +18,7 @@ namespace Compiler
 
 	// Object allocation
 	QScript::StringObject* AllocateString( const std::string& string );
-	QScript::FunctionObject* AllocateFunction( const std::string& name, int arity );
+	QScript::FunctionObject* AllocateFunction( const std::string& name );
 	QScript::NativeFunctionObject* AllocateNative( void* nativeFn );
 	QScript::ClosureObject* AllocateClosure( QScript::FunctionObject* function );
 	QScript::UpvalueObject* AllocateUpvalue( QScript::Value* valuePtr );
@@ -87,7 +87,7 @@ namespace Compiler
 		uint32_t 									AddUpvalue( FunctionContext_t* context, uint32_t index, bool isLocal, int lineNr, int colNr, Variable_t* varInfo );
 		void 										ClearArguments();
 		const QScript::Config_t&					Config() const;
-		QScript::FunctionObject*					CreateFunction( const std::string& name, bool isConst, uint32_t retnType, int arity, bool isAnonymous, bool addLocal, QScript::Chunk_t* chunk );
+		QScript::FunctionObject*					CreateFunction( const std::string& name, bool isConst, uint32_t retnType, bool isAnonymous, bool addLocal, QScript::Chunk_t* chunk );
 		const std::vector< Variable_t >& 			CurrentArguments();
 		QScript::Chunk_t*							CurrentChunk();
 		const FunctionContext_t*					CurrentContext();
@@ -98,7 +98,7 @@ namespace Compiler
 		bool										FindLocal( const std::string& name, uint32_t* out, Variable_t* varInfo );
 		bool 										FindLocalFromStack( Stack_t* stack, const std::string& name, uint32_t* out, Variable_t* varInfo );
 		bool 										FindUpvalue( const std::string name, uint32_t* out, Variable_t* varInfo );
-		void										FinishFunction( QScript::FunctionObject** func, std::vector< Upvalue_t >* upvalues );
+		void										FinishFunction( std::vector< Upvalue_t >* upvalues );
 		std::vector< QScript::FunctionObject* >		Finish();
 		Local_t*									GetLocal( int local );
 		bool										IsTopLevel();

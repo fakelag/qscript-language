@@ -23,28 +23,39 @@ namespace QScript
 	class FunctionObject : public Object
 	{
 	public:
-		FORCEINLINE FunctionObject( const std::string& name, int arity, Chunk_t* chunk )
+		struct Arg_t
+		{
+			std::string 	m_Name;
+			uint32_t 		m_Type;
+			uint32_t 		m_RetType;
+		};
+
+		FORCEINLINE FunctionObject( const std::string& name, Chunk_t* chunk )
 		{
 			m_Type = OT_FUNCTION;
 			m_Name = name;
-			m_Arity = arity;
 			m_NumUpvalues = 0;
 			m_Chunk = chunk;
 		}
 
 		FORCEINLINE void Rename( const std::string& newName ) 		{ m_Name = newName; }
 		FORCEINLINE const std::string& GetName() 					const { return m_Name; }
-		FORCEINLINE int NumArgs() 									const { return m_Arity; }
+		FORCEINLINE int NumArgs() 									const { return m_Arguments.size(); }
 		FORCEINLINE int NumUpvalues() 								const { return m_NumUpvalues; }
 		FORCEINLINE Chunk_t* GetChunk() 							const { return m_Chunk; }
+		FORCEINLINE const std::vector< Arg_t >& GetArgs()			const { return m_Arguments; }
 
-		FORCEINLINE void SetUpvalues( int numUpvalues ) { ++m_NumUpvalues; }
+		FORCEINLINE void SetUpvalues( int numUpvalues ) 							{ ++m_NumUpvalues; }
+		FORCEINLINE void AddArgument( const std::string& name, uint32_t type, uint32_t retType )
+		{
+			m_Arguments.push_back( Arg_t{ name, type, retType } );
+		}
 
 	private:
 		std::string				m_Name;
-		int						m_Arity;
 		int 					m_NumUpvalues;
 		Chunk_t*				m_Chunk;
+		std::vector< Arg_t >	m_Arguments;
 	};
 
 	class NativeFunctionObject : public Object

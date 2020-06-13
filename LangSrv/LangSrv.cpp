@@ -110,7 +110,7 @@ int AddDisassembly( const QScript::Chunk_t* chunk, const std::string& name )
 
 		if ( i > 0 ) g_DisasmList += ",";
 
-		g_DisasmList += "{\"full\":\"" + opcode.m_Full + "\""
+		g_DisasmList += "{\"full\":\"" + JsonEscape( opcode.m_Full ) + "\""
 			+ ",\"address\":\"" + std::to_string( opcode.m_Address ) + "\""
 			+ ",\"lineNr\":" + std::to_string( opcode.m_LineNr )
 			+ ",\"colNr\":" + std::to_string( opcode.m_ColNr )
@@ -182,19 +182,36 @@ int main( int argc, char* argv[] )
 
 				if ( variable.m_IsConst && variable.m_Function )
 				{
+					auto function = variable.m_Function;
+
 					// Function constant, include disassembly
-					auto chunk = variable.m_Function->GetChunk();
+					auto chunk = function->GetChunk();
 
 					auto disassembly = g_Disassemblies.find( chunk );
 
 					int disasmId = 0;
 					if ( disassembly == g_Disassemblies.end() )
-						disasmId = AddDisassembly( chunk, variable.m_Function->GetName() );
+						disasmId = AddDisassembly( chunk, function->GetName() );
 					else
 						disasmId = disassembly->second;
 
-					
-					g_SymbolList += ",\"disassemblyId\":" + std::to_string( disasmId );
+					g_SymbolList += ",\"disassemblyId\":" + std::to_string( disasmId ) + ",";
+
+					g_SymbolList += "\"args\":[";
+
+					auto& argList = function->GetArgs();
+					for ( size_t i = 0; i < argList.size(); ++i )
+					{
+						auto arg = argList[ i ];
+
+						std::string argType = Compiler::TypeToString( arg.m_Type );
+						g_SymbolList += "{\"name\":\"" + JsonEscape( arg.m_Name ) + "\",\"type\":\"" + argType + "\"}";
+
+						if ( i < argList.size() - 1 )
+							g_SymbolList += ",";
+					}
+
+					g_SymbolList += "]";
 				}
 
 				g_SymbolList += "}";

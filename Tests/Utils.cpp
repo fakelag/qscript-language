@@ -29,17 +29,17 @@ QScript::Object* DeepCopyObject( const QScript::Object* object )
 	case QScript::ObjectType::OT_STRING:
 	{
 		auto oldString = ( ( QScript::StringObject* )( object ) );
-		return new QScript::StringObject( oldString->GetString() );
+		return QS_NEW QScript::StringObject( oldString->GetString() );
 	}
 	case QScript::ObjectType::OT_UPVALUE:
 	{
 		auto oldUpvalue = ( ( QScript::UpvalueObject* )( object ) );
 
 		auto oldValue = oldUpvalue->GetValue();
-		
+
 		QScript::Value newValue;
 		DeepCopy( &newValue, oldValue );
-		
+
 		auto newUpvalueObject = QS_NEW QScript::UpvalueObject( &newValue );
 		newUpvalueObject->Close();
 

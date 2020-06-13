@@ -174,7 +174,7 @@ namespace QScript
 		bool 			m_IsReachable;
 
 		using StringAllocatorFn = StringObject*(*)( const std::string& string );
-		using FunctionAllocatorFn = FunctionObject * ( *)( const std::string& name, int arity );
+		using FunctionAllocatorFn = FunctionObject * ( *)( const std::string& name );
 		using NativeAllocatorFn = NativeFunctionObject * ( *)( void* nativeFn );
 		using ClosureAllocatorFn = ClosureObject* ( *)( FunctionObject* function );
 		using UpvalueAllocatorFn = UpvalueObject * ( *)( Value* valuePtr );

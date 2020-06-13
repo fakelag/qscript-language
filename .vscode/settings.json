@@ -65,6 +65,7 @@
 		"set": "cpp",
 		"__functional_03": "cpp",
 		"stack": "cpp",
-		"fstream": "cpp"
+		"fstream": "cpp",
+		"numeric": "cpp"
 	}
 }

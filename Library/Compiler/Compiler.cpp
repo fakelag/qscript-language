@@ -390,9 +390,9 @@ namespace Compiler
 		return stringObject;
 	}
 
-	QScript::FunctionObject* AllocateFunction( const std::string& name, int arity )
+	QScript::FunctionObject* AllocateFunction( const std::string& name )
 	{
-		auto functionObject = QS_NEW QScript::FunctionObject( name, arity, NULL );
+		auto functionObject = QS_NEW QScript::FunctionObject( name, NULL );
 		ObjectList.push_back( ( QScript::Object* ) functionObject );
 		return functionObject;
 	}
@@ -537,7 +537,7 @@ namespace Compiler
 		for ( auto identifier : config.m_Globals )
 			AddGlobal( identifier, -1, -1 );
 
-		CreateFunction( "<main>", true, TYPE_UNKNOWN, 0, true, true, chunk );
+		CreateFunction( "<main>", true, TYPE_UNKNOWN, true, true, chunk );
 	}
 
 	void Assembler::Release()
@@ -590,9 +590,9 @@ namespace Compiler
 		return m_Functions.back().m_Stack;
 	}
 
-	QScript::FunctionObject* Assembler::CreateFunction( const std::string& name, bool isConst, uint32_t retnType, int arity, bool isAnonymous, bool addLocal, QScript::Chunk_t* chunk )
+	QScript::FunctionObject* Assembler::CreateFunction( const std::string& name, bool isConst, uint32_t retnType, bool isAnonymous, bool addLocal, QScript::Chunk_t* chunk )
 	{
-		auto function = QS_NEW QScript::FunctionObject( name, arity, chunk );
+		auto function = QS_NEW QScript::FunctionObject( name, chunk );
 		auto context = FunctionContext_t{ function, QS_NEW Assembler::Stack_t(), retnType };
 
 		m_Functions.push_back( context );
@@ -603,11 +603,9 @@ namespace Compiler
 		return function;
 	}
 
-	void Assembler::FinishFunction( QScript::FunctionObject** func, std::vector< Upvalue_t >* upvalues )
+	void Assembler::FinishFunction( std::vector< Upvalue_t >* upvalues )
 	{
 		auto function = &m_Functions.back();
-
-		*func = function->m_Func;
 		*upvalues = function->m_Upvalues;
 
 		// Implicit return (null)

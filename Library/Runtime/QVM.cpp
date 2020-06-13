@@ -751,11 +751,11 @@ namespace QVM
 		return stringObject;
 	}
 
-	QScript::FunctionObject* AllocateFunction( const std::string& name, int arity )
+	QScript::FunctionObject* AllocateFunction( const std::string& name )
 	{
 		assert( 0 );
 
-		auto functionObject = QS_NEW QScript::FunctionObject( name, arity, NULL );
+		auto functionObject = QS_NEW QScript::FunctionObject( name, NULL );
 		VirtualMachine->AddObject( ( QScript::Object* ) functionObject );
 		return functionObject;
 	}
@@ -1141,7 +1141,7 @@ void QScript::Repl()
 	static int s_ReplID = 0;
 
 	auto chunk = QScript::AllocChunk();
-	auto function = QS_NEW QScript::FunctionObject( "<repl>", 0, chunk );
+	auto function = QS_NEW QScript::FunctionObject( "<repl>", chunk );
 
 	VM_t vm( function );
 
