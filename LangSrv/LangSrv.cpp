@@ -3,10 +3,10 @@
 #include <sstream>
 #include <iomanip>
 
-#include "..\Library\Common\Chunk.h"
-#include "..\Library\Compiler\Compiler.h"
-#include "..\Library\Common\Disassembler.h"
-#include "..\Library\STL\NativeModule.h"
+#include "../Library/Common/Chunk.h"
+#include "../Library/Compiler/Compiler.h"
+#include "../Library/Common/Disassembler.h"
+#include "../Library/STL/NativeModule.h"
 
 bool g_ListSymbols = false;
 bool g_FirstSymbol = true;
