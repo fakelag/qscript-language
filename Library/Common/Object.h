@@ -1,5 +1,6 @@
 #pragma once
 #include "Value.h"
+#include "Typing.h"
 
 namespace QScript
 {
@@ -25,9 +26,8 @@ namespace QScript
 	public:
 		struct Arg_t
 		{
-			std::string 	m_Name;
-			uint32_t 		m_Type;
-			uint32_t 		m_RetType;
+			std::string 		m_Name;
+			Compiler::Type_t 	m_Type;
 		};
 
 		FORCEINLINE FunctionObject( const std::string& name, Chunk_t* chunk )
@@ -46,9 +46,9 @@ namespace QScript
 		FORCEINLINE const std::vector< Arg_t >& GetArgs()			const { return m_Arguments; }
 
 		FORCEINLINE void SetUpvalues( int numUpvalues ) 							{ ++m_NumUpvalues; }
-		FORCEINLINE void AddArgument( const std::string& name, uint32_t type, uint32_t retType )
+		FORCEINLINE void AddArgument( const std::string& name, Compiler::Type_t type )
 		{
-			m_Arguments.push_back( Arg_t{ name, type, retType } );
+			m_Arguments.push_back( Arg_t{ name, type } );
 		}
 
 	private:

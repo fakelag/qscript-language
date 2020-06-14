@@ -76,35 +76,10 @@ namespace Compiler
 		CO_EXPRESSION			= ( 1 << 2 ),
 	};
 
-	enum CompileTypeInfo : uint32_t
-	{
-		// Primitives
-		TYPE_UNKNOWN			= ( 0 << 0 ),
-		TYPE_NULL				= ( 1 << 0 ),
-		TYPE_NUMBER				= ( 1 << 1 ),
-		TYPE_BOOL				= ( 1 << 2 ),
-
-		// Objects
-		TYPE_TABLE				= ( 1 << 3 ),
-		TYPE_CLOSURE			= ( 1 << 4 ),
-		TYPE_FUNCTION			= ( 1 << 5 ),
-		TYPE_INSTANCE			= ( 1 << 6 ),
-		TYPE_NATIVE				= ( 1 << 7 ),
-		TYPE_STRING				= ( 1 << 8 ),
-		TYPE_UPVALUE			= ( 1 << 9 ),
-		TYPE_ARRAY				= ( 1 << 10 ),
-
-		// No type (statements)
-		TYPE_NONE				= ( 1 << 11 ),
-
-		// Hint compiler to deduce type
-		TYPE_AUTO				= ( 1 << 12 ),
-	};
-
 	struct Argument_t
 	{
 		std::string 	m_Name;
-		uint32_t		m_Type;
+		Type_t			m_Type;
 		int				m_LineNr;
 		int				m_ColNr;
 	};
@@ -126,7 +101,7 @@ namespace Compiler
 		virtual void Compile( Assembler& assembler, uint32_t options = CO_NONE ) = 0;
 		virtual std::string ToJson( const std::string& ind = "" ) const = 0;
 
-		virtual uint32_t ExprType( Assembler& assembler ) const { return Compiler::TYPE_NONE; }
+		virtual Type_t ExprType( Assembler& assembler ) const { return Compiler::TYPE_NONE; }
 
 	protected:
 		NodeId				m_NodeId;
@@ -149,7 +124,7 @@ namespace Compiler
 	public:
 		ValueNode( int lineNr, int colNr, const std::string token, NodeId id, const QScript::Value& value );
 		void Compile( Assembler& assembler, uint32_t options = CO_NONE ) override;
-		uint32_t ExprType( Assembler& assembler ) const override;
+		Type_t ExprType( Assembler& assembler ) const override;
 		std::string ToJson( const std::string& ind = "" ) const override;
 
 		QScript::Value& GetValue() { return m_Value; }
@@ -165,7 +140,7 @@ namespace Compiler
 
 		void Release() override;
 		void Compile( Assembler& assembler, uint32_t options = CO_NONE ) override;
-		uint32_t ExprType( Assembler& assembler ) const override;
+		Type_t ExprType( Assembler& assembler ) const override;
 		std::string ToJson( const std::string& ind = "" ) const override;
 
 		const BaseNode* GetLeft() const;
@@ -183,7 +158,7 @@ namespace Compiler
 
 		void Release() override;
 		void Compile( Assembler& assembler, uint32_t options = CO_NONE ) override;
-		uint32_t ExprType( Assembler& assembler ) const override;
+		Type_t ExprType( Assembler& assembler ) const override;
 		std::string ToJson( const std::string& ind = "" ) const override;
 
 		const BaseNode* GetNode() const;
@@ -199,7 +174,7 @@ namespace Compiler
 
 		void Release() override;
 		void Compile( Assembler& assembler, uint32_t options = CO_NONE ) override;
-		uint32_t ExprType( Assembler& assembler ) const override;
+		Type_t ExprType( Assembler& assembler ) const override;
 		const std::vector< BaseNode* >& GetList() const;
 		std::string ToJson( const std::string& ind = "" ) const override;
 
@@ -207,6 +182,5 @@ namespace Compiler
 		std::vector< BaseNode* >		m_NodeList;
 	};
 
-	uint32_t ResolveReturnType( const ListNode* funcNode, Assembler& assembler );
 	std::vector< Argument_t > ParseArgsList( ListNode* argNode );
 }

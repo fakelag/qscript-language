@@ -2,12 +2,15 @@
 
 #include "Tokens.h"
 #include "AST/AST.h"
+#include "Typing.h"
 
 struct VM_t;
 class Object;
 
 namespace Compiler
 {
+	struct Type_t;
+
 	std::vector< Token_t > Lexer( const std::string& source );
 	std::vector< BaseNode* > GenerateIR( const std::vector< Token_t >& tokens );
 	// std::vector< BaseNode* > OptimizeIR( std::vector< BaseNode* > nodes );
@@ -31,10 +34,15 @@ namespace Compiler
 
 	struct Variable_t
 	{
+		Variable_t() : m_Type( TYPE_UNKNOWN )
+		{
+			m_IsConst = false;
+			m_Function = NULL;
+		}
+
 		std::string					m_Name;
 		bool						m_IsConst;
-		uint32_t					m_Type;
-		uint32_t					m_ReturnType;
+		Type_t						m_Type;
 		QScript::FunctionObject*	m_Function;
 	};
 
@@ -69,25 +77,23 @@ namespace Compiler
 		{
 			QScript::FunctionObject*	m_Func;
 			Stack_t*					m_Stack;
-			uint32_t 					m_ReturnType;
+			Type_t 						m_Type;
 			std::vector< Upvalue_t >	m_Upvalues;
 		};
 
 		Assembler( QScript::Chunk_t* chunk, const QScript::Config_t& config );
 
-		void 										AddArgument( const std::string& name, bool isConstant, int lineNr, int colNr, uint32_t type, uint32_t returnType = TYPE_UNKNOWN );
-		bool 										AddGlobal( const std::string& name, int lineNr, int colNr );
+		void 										AddArgument( const std::string& name, bool isConstant, int lineNr, int colNr, Type_t type );
 		bool 										AddGlobal( const std::string& name, bool isConstant, int lineNr, int colNr,
-																uint32_t type, uint32_t returnType = TYPE_UNKNOWN, QScript::FunctionObject* fn = NULL );
+																Type_t type, QScript::FunctionObject* fn = NULL );
 
 		uint32_t 									AddLocal( const std::string& name, bool isConstant, int lineNr, int colNr,
-																uint32_t type, uint32_t returnType = TYPE_UNKNOWN, QScript::FunctionObject* fn = NULL );
+																Type_t type, QScript::FunctionObject* fn = NULL );
 
-		uint32_t									AddLocal( const std::string& name, int lineNr, int colNr );
 		uint32_t 									AddUpvalue( FunctionContext_t* context, uint32_t index, bool isLocal, int lineNr, int colNr, Variable_t* varInfo );
 		void 										ClearArguments();
 		const QScript::Config_t&					Config() const;
-		QScript::FunctionObject*					CreateFunction( const std::string& name, bool isConst, uint32_t retnType, bool isAnonymous, bool addLocal, QScript::Chunk_t* chunk );
+		QScript::FunctionObject*					CreateFunction( const std::string& name, bool isConst, Type_t type, bool isAnonymous, bool addLocal, QScript::Chunk_t* chunk );
 		const std::vector< Variable_t >& 			CurrentArguments();
 		QScript::Chunk_t*							CurrentChunk();
 		const FunctionContext_t*					CurrentContext();

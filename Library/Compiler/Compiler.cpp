@@ -4,6 +4,7 @@
 
 #include "Instructions.h"
 #include "Compiler.h"
+#include "Typing.h"
 
 #define BEGIN_COMPILER \
 Object::AllocateString = &Compiler::AllocateString; \
@@ -115,7 +116,7 @@ namespace QScript
 		}
 	}
 
-	std::vector< std::pair< uint32_t, uint32_t > > Typer( const std::string& source, const Config_t& config )
+	/*std::vector< std::pair< uint32_t, uint32_t > > Typer( const std::string& source, const Config_t& config )
 	{
 		BEGIN_COMPILER;
 
@@ -165,7 +166,7 @@ namespace QScript
 						Compiler::Variable_t varInfo;
 
 						if ( assembler.FindGlobal( name, &varInfo ) )
-							retnType = varInfo.m_ReturnType;
+							retnType = varInfo.m_Type->m_ReturnType ? varInfo.m_Type->m_ReturnType->m_Bits : Compiler::TYPE_NONE;
 
 						break;
 					}
@@ -267,7 +268,7 @@ namespace QScript
 			// Rethrow
 			throw;
 		}
-	}
+	}*/
 
 	std::vector< Compiler::BaseNode* > GenerateAST( const std::string& source )
 	{
@@ -535,9 +536,9 @@ namespace Compiler
 	{
 		// Fill out globals for REPL
 		for ( auto identifier : config.m_Globals )
-			AddGlobal( identifier, -1, -1 );
+			AddGlobal( identifier, false, -1, -1, Type_t( TYPE_UNKNOWN ), NULL );
 
-		CreateFunction( "<main>", true, TYPE_UNKNOWN, true, true, chunk );
+		CreateFunction( "<main>", true, Type_t( TYPE_UNKNOWN ), true, true, chunk );
 	}
 
 	void Assembler::Release()
@@ -590,15 +591,15 @@ namespace Compiler
 		return m_Functions.back().m_Stack;
 	}
 
-	QScript::FunctionObject* Assembler::CreateFunction( const std::string& name, bool isConst, uint32_t retnType, bool isAnonymous, bool addLocal, QScript::Chunk_t* chunk )
+	QScript::FunctionObject* Assembler::CreateFunction( const std::string& name, bool isConst, Type_t type, bool isAnonymous, bool addLocal, QScript::Chunk_t* chunk )
 	{
 		auto function = QS_NEW QScript::FunctionObject( name, chunk );
-		auto context = FunctionContext_t{ function, QS_NEW Assembler::Stack_t(), retnType };
+		auto context = FunctionContext_t{ function, QS_NEW Assembler::Stack_t(), type };
 
 		m_Functions.push_back( context );
 
 		if ( addLocal )
-			AddLocal( isAnonymous ? "" : name, isConst, -1, -1, TYPE_FUNCTION, retnType );
+			AddLocal( isAnonymous ? "" : name, isConst, -1, -1, type );
 
 		return function;
 	}
@@ -620,9 +621,9 @@ namespace Compiler
 		m_Functions.pop_back();
 	}
 
-	void Assembler::AddArgument( const std::string& name, bool isConstant, int lineNr, int colNr, uint32_t type, uint32_t returnType )
+	void Assembler::AddArgument( const std::string& name, bool isConstant, int lineNr, int colNr, Type_t type )
 	{
-		auto variable = Variable_t{ name, isConstant, type, returnType, NULL };
+		auto variable = Variable_t{ name, isConstant, type, NULL };
 
 		if ( m_Config.m_IdentifierCb )
 			m_Config.m_IdentifierCb( lineNr, colNr, variable, "Argument" );
@@ -630,16 +631,11 @@ namespace Compiler
 		m_FunctionArgs.push_back( variable );
 	}
 
-	uint32_t Assembler::AddLocal( const std::string& name, int lineNr, int colNr )
-	{
-		return AddLocal( name, false, lineNr, colNr, TYPE_UNKNOWN, TYPE_UNKNOWN );
-	}
-
-	uint32_t Assembler::AddLocal( const std::string& name, bool isConstant, int lineNr, int colNr, uint32_t type, uint32_t returnType, QScript::FunctionObject* fn )
+	uint32_t Assembler::AddLocal( const std::string& name, bool isConstant, int lineNr, int colNr, Type_t type, QScript::FunctionObject* fn )
 	{
 		auto stack = CurrentStack();
 
-		auto variable = Variable_t{ name, isConstant, type, returnType, fn };
+		auto variable = Variable_t{ name, isConstant, type, fn };
 
 		if ( m_Config.m_IdentifierCb )
 			m_Config.m_IdentifierCb( lineNr, colNr, variable, "Local" );
@@ -716,17 +712,12 @@ namespace Compiler
 		return false;
 	}
 
-	bool Assembler::AddGlobal( const std::string& name, int lineNr, int colNr )
-	{
-		return AddGlobal( name, false, lineNr, colNr, TYPE_UNKNOWN, TYPE_UNKNOWN, NULL );
-	}
-
-	bool Assembler::AddGlobal( const std::string& name, bool isConstant, int lineNr, int colNr, uint32_t type, uint32_t returnType, QScript::FunctionObject* fn )
+	bool Assembler::AddGlobal( const std::string& name, bool isConstant, int lineNr, int colNr, Type_t type, QScript::FunctionObject* fn )
 	{
 		if ( m_Globals.find( name ) != m_Globals.end() )
 			return false;
 
-		Variable_t global = Variable_t{ name, isConstant, type, returnType, fn };
+		Variable_t global = Variable_t{ name, isConstant, type, fn };
 		m_Globals.insert( std::make_pair( name, global ) );
 
 		if ( m_Config.m_IdentifierCb )

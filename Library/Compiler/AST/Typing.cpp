@@ -2,30 +2,91 @@
 #include "../../Common/Value.h"
 #include "../../Common/Chunk.h"
 #include "../Compiler.h"
+#include "Typing.h"
 #include "AST.h"
 
 namespace Compiler
 {
-	bool TypeCheck( uint32_t targetType, uint32_t exprType, bool strict )
-	{
-		if ( targetType == TYPE_UNKNOWN || exprType == TYPE_UNKNOWN )
-			return true;
+	std::vector< const Type_t* > Type_t::m_Types = {};
 
-		if ( !strict && ( targetType & TYPE_NULL ) )
+	Type_t* Type_t::AddReturnType( uint32_t bits )
+	{
+		auto type = QS_NEW Type_t( bits );
+		m_ReturnType = type;
+		return type;
+	}
+
+	Type_t* Type_t::AddArgument( const std::string& name, uint32_t bits )
+	{
+		assert( m_Bits & TYPE_FUNCTION == TYPE_FUNCTION );
+		m_ArgTypes.push_back( std::make_pair( name, QS_NEW Type_t( bits ) ) );
+		return m_ArgTypes.back().second;
+	}
+
+	Type_t* Type_t::AddProperty( const std::string& name, uint32_t bits )
+	{
+		assert( m_Bits & TYPE_TABLE == TYPE_TABLE );
+		m_PropTypes.push_back( std::make_pair( name, QS_NEW Type_t( bits ) ) );
+		return m_PropTypes.back().second;
+	}
+
+	Type_t* Type_t::AddIndice( uint32_t bits )
+	{
+		assert( m_Bits & TYPE_ARRAY == TYPE_ARRAY );
+		m_IndiceTypes.push_back( QS_NEW Type_t( bits ) );
+		return m_IndiceTypes.back();
+	}
+
+	size_t SaveTypes( const Type_t* types )
+	{
+		if ( !types )
+			return NULL;
+
+		Type_t::m_Types.push_back( types );
+		return Type_t::m_Types.size() - 1;
+	}
+
+	const Type_t* LoadTypes( size_t index )
+	{
+		return Type_t::m_Types[ index ];
+	}
+
+	void FreeTypes( const Type_t* types )
+	{
+		if ( !types )
+			return;
+
+		FreeTypes( types->m_ReturnType );
+
+		for ( auto arg : types->m_ArgTypes )
+			FreeTypes( arg.second );
+
+		for ( auto prop : types->m_PropTypes )
+			FreeTypes( prop.second );
+
+		for ( auto indice : types->m_IndiceTypes )
+			FreeTypes( indice );
+
+		delete types;
+	}
+
+	bool TypeCheck( Type_t targetType, Type_t exprType )
+	{
+		if ( targetType.IsUnknown() || exprType.IsUnknown() )
 			return true;
 
 		// Strict type checking
 		return targetType == exprType;
 	}
 
-	std::string TypeToString( uint32_t type )
+	std::string TypeToString( Type_t type )
 	{
-		if ( type == TYPE_UNKNOWN )
+		if ( type.IsUnknown() )
 			return "unknown";
 
 		std::string result = "";
 
-		std::map< CompileTypeInfo, std::string > typeStrings ={
+		std::map< CompileTypeBits, std::string > typeStrings ={
 			{ TYPE_NULL, 			"null" },
 			{ TYPE_NUMBER, 			"num" },
 			{ TYPE_BOOL, 			"bool" },
@@ -39,7 +100,7 @@ namespace Compiler
 
 		for ( auto typeString : typeStrings )
 		{
-			if ( type & typeString.first )
+			if ( type.m_Bits & typeString.first )
 			{
 				if ( result.length() > 0 )
 					result += " | " + typeString.second;
@@ -51,7 +112,7 @@ namespace Compiler
 		return result.length() > 0 ? result : "not_supported";
 	}
 
-	uint32_t ResolveReturnType( const ListNode* funcNode, Assembler& assembler )
+	Type_t ResolveReturnType( const ListNode* funcNode, Assembler& assembler )
 	{
 		// Is there an explicitly defined return type?
 		auto retnTypeNode = static_cast< ValueNode* >( funcNode->GetList()[ 2 ] );
@@ -62,7 +123,7 @@ namespace Compiler
 			return retnType;
 
 		// Combine all return statement types
-		uint32_t returnTypes = TYPE_NULL;
+		Type_t returnTypes = Type_t( TYPE_NULL );
 
 		// Is first return?
 		bool firstReturn = true;
@@ -70,12 +131,12 @@ namespace Compiler
 		auto argsList = ParseArgsList( static_cast< ListNode* >( funcNode->GetList()[ 0 ] ) );
 
 		for ( auto arg : argsList )
-			assembler.AddArgument( arg.m_Name, true, arg.m_LineNr, arg.m_ColNr, arg.m_Type, TYPE_UNKNOWN );
+			assembler.AddArgument( arg.m_Name, true, arg.m_LineNr, arg.m_ColNr, arg.m_Type );
 
 		std::function< void( const BaseNode* ) > visitNode;
 		visitNode = [ &visitNode, &returnTypes, &firstReturn, &assembler ]( const BaseNode* node ) -> void
 		{
-			if ( !node || returnTypes == TYPE_UNKNOWN )
+			if ( !node || returnTypes.m_Bits == TYPE_UNKNOWN )
 				return;
 
 			switch ( node->Type() )
@@ -84,7 +145,7 @@ namespace Compiler
 			{
 				if ( node->Id() == NODE_RETURN )
 				{
-					returnTypes |= TYPE_NULL;
+					returnTypes.m_Bits |= TYPE_NULL;
 					firstReturn = false;
 				}
 
@@ -105,10 +166,10 @@ namespace Compiler
 
 					auto returnExpressionType = simple->GetNode()->ExprType( assembler );
 
-					if ( returnExpressionType == TYPE_UNKNOWN )
-						returnTypes = TYPE_UNKNOWN;
+					if ( returnExpressionType.m_Bits == TYPE_UNKNOWN )
+						returnTypes.m_Bits = TYPE_UNKNOWN;
 					else
-						returnTypes |= returnExpressionType;
+						returnTypes.m_Bits |= returnExpressionType.m_Bits;
 				}
 				else
 				{
@@ -148,7 +209,7 @@ namespace Compiler
 		return returnTypes;
 	}
 
-	uint32_t ValueNode::ExprType( Assembler& assembler ) const
+	Type_t ValueNode::ExprType( Assembler& assembler ) const
 	{
 		switch ( m_NodeId )
 		{
@@ -174,49 +235,49 @@ namespace Compiler
 		}
 		case NODE_CONSTANT:
 		{
-			if ( IS_NUMBER( m_Value ) ) return TYPE_NUMBER;
-			else if ( IS_NULL( m_Value ) ) return TYPE_NULL;
-			else if ( IS_BOOL( m_Value ) ) return TYPE_BOOL;
+			if ( IS_NUMBER( m_Value ) ) return Type_t( TYPE_NUMBER );
+			else if ( IS_NULL( m_Value ) ) return Type_t( TYPE_NULL );
+			else if ( IS_BOOL( m_Value ) ) return Type_t( TYPE_BOOL );
 			else if ( IS_OBJECT( m_Value ) )
 			{
 				switch ( AS_OBJECT( m_Value )->m_Type )
 				{
-				case QScript::OT_TABLE: return TYPE_TABLE;
-				case QScript::OT_CLOSURE: return TYPE_CLOSURE;
-				case QScript::OT_FUNCTION: return TYPE_FUNCTION;
-				case QScript::OT_NATIVE: return TYPE_NATIVE;
-				case QScript::OT_STRING: return TYPE_STRING;
-				case QScript::OT_UPVALUE: return TYPE_UPVALUE;
+				case QScript::OT_TABLE: return Type_t( TYPE_TABLE );
+				case QScript::OT_CLOSURE: return Type_t( TYPE_CLOSURE );
+				case QScript::OT_FUNCTION: return Type_t( TYPE_FUNCTION );
+				case QScript::OT_NATIVE: return Type_t( TYPE_NATIVE );
+				case QScript::OT_STRING: return Type_t( TYPE_STRING );
+				case QScript::OT_UPVALUE: return Type_t( TYPE_UPVALUE );
 				default: break;
 				}
 			}
-			return TYPE_UNKNOWN;
+			return Type_t( TYPE_UNKNOWN );
 		}
 		default:
 			throw CompilerException( "cp_invalid_value_node", "Unknown value node: " + std::to_string( m_NodeId ), m_LineNr, m_ColNr, m_Token );
 		}
 	}
 
-	uint32_t ComplexNode::ExprType( Assembler& assembler ) const
+	Type_t ComplexNode::ExprType( Assembler& assembler ) const
 	{
 		switch ( m_NodeId )
 		{
 		case NODE_ACCESS_PROP:
 		{
 			// TODO: Resolve table property types compile-time
-			return TYPE_UNKNOWN;
+			return Type_t( TYPE_UNKNOWN );
 		}
 		case NODE_ACCESS_ARRAY:
 		{
 			// TODO: Compile-time arrays?
-			return TYPE_UNKNOWN;
+			return Type_t( TYPE_UNKNOWN );
 		}
 		case NODE_ASSIGN: return m_Right->ExprType( assembler );
 		case NODE_ASSIGNADD: return m_Right->ExprType( assembler );
-		case NODE_ASSIGNDIV: return TYPE_NUMBER;
-		case NODE_ASSIGNMOD: return TYPE_NUMBER;
-		case NODE_ASSIGNMUL: return TYPE_NUMBER;
-		case NODE_ASSIGNSUB: return TYPE_NUMBER;
+		case NODE_ASSIGNDIV: return Type_t( TYPE_NUMBER );
+		case NODE_ASSIGNMOD: return Type_t( TYPE_NUMBER );
+		case NODE_ASSIGNMUL: return Type_t( TYPE_NUMBER );
+		case NODE_ASSIGNSUB: return Type_t( TYPE_NUMBER );
 		case NODE_CALL:
 		{
 			// Return type
@@ -233,13 +294,13 @@ namespace Compiler
 				Variable_t varInfo;
 
 				if ( assembler.FindLocal( name, &nameIndex, &varInfo ) )
-					return varInfo.m_ReturnType;
+					return varInfo.m_Type.m_ReturnType ? *varInfo.m_Type.m_ReturnType : Type_t( TYPE_NONE );
 
 				if ( assembler.FindUpvalue( name, &nameIndex, &varInfo ) )
-					return varInfo.m_ReturnType;
+					return varInfo.m_Type.m_ReturnType ? *varInfo.m_Type.m_ReturnType : Type_t( TYPE_NONE );
 
 				if ( assembler.FindGlobal( name, &varInfo ) )
-					return varInfo.m_ReturnType;
+					return varInfo.m_Type.m_ReturnType ? *varInfo.m_Type.m_ReturnType : Type_t( TYPE_NONE );
 
 				break;
 			}
@@ -251,8 +312,8 @@ namespace Compiler
 		}
 		case NODE_AND: return m_Left->ExprType( assembler ) | m_Right->ExprType( assembler );
 		case NODE_OR: return m_Left->ExprType( assembler ) | m_Right->ExprType( assembler );
-		case NODE_DEC: return TYPE_NUMBER;
-		case NODE_INC: return TYPE_NUMBER;
+		case NODE_DEC: return Type_t( TYPE_NUMBER );
+		case NODE_INC: return Type_t( TYPE_NUMBER );
 		case NODE_ADD:
 		{
 			auto leftType = m_Left->ExprType( assembler );
@@ -261,55 +322,55 @@ namespace Compiler
 			if ( ( leftType & TYPE_STRING ) || ( rightType & TYPE_STRING ) )
 				return TYPE_STRING;
 
-			if ( leftType == TYPE_UNKNOWN )
-				return TYPE_UNKNOWN;
+			if ( leftType.IsUnknown() )
+				return leftType;
 
-			if ( rightType == TYPE_UNKNOWN )
-				return TYPE_UNKNOWN;
+			if ( rightType.IsUnknown() )
+				return rightType;
 
 			return TYPE_NUMBER;
 		}
-		case NODE_SUB: return TYPE_NUMBER;
-		case NODE_MUL: return TYPE_NUMBER;
-		case NODE_DIV: return TYPE_NUMBER;
-		case NODE_MOD: return TYPE_NUMBER;
-		case NODE_POW: return TYPE_NUMBER;
-		case NODE_EQUALS: return TYPE_BOOL;
-		case NODE_NOTEQUALS: return TYPE_BOOL;
-		case NODE_GREATERTHAN: return TYPE_BOOL;
-		case NODE_GREATEREQUAL: return TYPE_BOOL;
-		case NODE_LESSTHAN: return TYPE_BOOL;
-		case NODE_LESSEQUAL: return TYPE_BOOL;
+		case NODE_SUB: return Type_t( TYPE_NUMBER );
+		case NODE_MUL: return Type_t( TYPE_NUMBER );
+		case NODE_DIV: return Type_t( TYPE_NUMBER );
+		case NODE_MOD: return Type_t( TYPE_NUMBER );
+		case NODE_POW: return Type_t( TYPE_NUMBER );
+		case NODE_EQUALS: return Type_t( TYPE_BOOL );
+		case NODE_NOTEQUALS: return Type_t( TYPE_BOOL );
+		case NODE_GREATERTHAN: return Type_t( TYPE_BOOL );
+		case NODE_GREATEREQUAL: return Type_t( TYPE_BOOL );
+		case NODE_LESSTHAN: return Type_t( TYPE_BOOL );
+		case NODE_LESSEQUAL: return Type_t( TYPE_BOOL );
 		default:
 			throw CompilerException( "cp_invalid_complex_node", "Unknown complex node: " + std::to_string( m_NodeId ), m_LineNr, m_ColNr, m_Token );
 		}
 	}
 
-	uint32_t SimpleNode::ExprType( Assembler& assembler ) const
+	Type_t SimpleNode::ExprType( Assembler& assembler ) const
 	{
 		switch ( m_NodeId )
 		{
-		case NODE_IMPORT: return TYPE_NONE;
+		case NODE_IMPORT: return Type_t( TYPE_NONE );
 		case NODE_RETURN: return m_Node->ExprType( assembler );
-		case NODE_NOT: return TYPE_BOOL;
-		case NODE_NEG: return TYPE_NUMBER;
+		case NODE_NOT: return Type_t( TYPE_BOOL );
+		case NODE_NEG: return Type_t( TYPE_NUMBER );
 		default:
 			throw CompilerException( "cp_invalid_simple_node", "Unknown simple node: " + std::to_string( m_NodeId ), m_LineNr, m_ColNr, m_Token );
 		}
 	}
 
-	uint32_t ListNode::ExprType( Assembler& assembler ) const
+	Type_t ListNode::ExprType( Assembler& assembler ) const
 	{
 		switch ( m_NodeId )
 		{
-		case NODE_TABLE: return TYPE_TABLE;
-		case NODE_ARRAY: return TYPE_ARRAY;
-		case NODE_DO: return TYPE_NONE;
-		case NODE_FOR: return TYPE_NONE;
-		case NODE_FUNC: return TYPE_FUNCTION;
-		case NODE_IF: return TYPE_NONE;
-		case NODE_SCOPE: return TYPE_NONE;
-		case NODE_WHILE: return TYPE_NONE;
+		case NODE_TABLE: return Type_t( TYPE_TABLE );
+		case NODE_ARRAY: return Type_t( TYPE_ARRAY );
+		case NODE_DO: return Type_t( TYPE_NONE );
+		case NODE_FOR: return Type_t( TYPE_NONE );
+		case NODE_FUNC: return Type_t( TYPE_FUNCTION );
+		case NODE_IF: return Type_t( TYPE_NONE );
+		case NODE_SCOPE: return Type_t( TYPE_NONE );
+		case NODE_WHILE: return Type_t( TYPE_NONE );
 		case NODE_INLINE_IF:
 		{
 			return m_NodeList[ 1 ]->ExprType( assembler ) | m_NodeList[ 2 ]->ExprType( assembler );
@@ -320,10 +381,10 @@ namespace Compiler
 			auto assignedType = ( uint32_t ) AS_NUMBER( varTypeValue );
 
 			if ( assignedType != TYPE_UNKNOWN && !( assignedType & TYPE_AUTO ) )
-				return assignedType;
+				return Type_t( assignedType );
 
 			if ( !m_NodeList[ 1 ] )
-				return TYPE_UNKNOWN;
+				return Type_t( TYPE_UNKNOWN );
 
 			return m_NodeList[ 1 ]->ExprType( assembler );
 		}
@@ -335,7 +396,7 @@ namespace Compiler
 			if ( ( type & TYPE_AUTO ) && m_NodeList[ 1 ] )
 				return m_NodeList[ 1 ]->ExprType( assembler );
 
-			return type;
+			return Type_t( type );
 		}
 		default:
 			throw CompilerException( "cp_invalid_list_node", "Unknown list node: " + std::to_string( m_NodeId ), m_LineNr, m_ColNr, m_Token );

@@ -3,6 +3,7 @@
 
 #include "Compiler.h"
 #include "Instructions.h"
+#include "Typing.h"
 #include "IR.h"
 
 namespace Compiler
@@ -17,9 +18,9 @@ namespace Compiler
 		return IS_STRING( static_cast< ValueNode* >( node )->GetValue() );
 	}
 
-	CompileTypeInfo ResolveTypeDef( ParserState& parserState )
+	CompileTypeBits ResolveTypeDef( ParserState& parserState )
 	{
-		std::map< Token, CompileTypeInfo > typeMap = {
+		std::map< Token, CompileTypeBits > typeMap = {
 			{ TOK_AUTO, TYPE_AUTO },
 			{ TOK_STRING, TYPE_STRING },
 			{ TOK_BOOL, TYPE_BOOL },
@@ -85,7 +86,7 @@ namespace Compiler
 						argName->LineNr(), argName->ColNr(), argName->Token() );
 				}
 
-				std::vector< CompileTypeInfo > validTypes ={
+				std::vector< CompileTypeBits > validTypes ={
 					TYPE_BOOL,
 					TYPE_STRING,
 					TYPE_NUMBER

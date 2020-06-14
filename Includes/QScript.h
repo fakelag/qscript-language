@@ -10,6 +10,8 @@
 #endif
 #endif
 
+#include "Typing.h"
+
 struct VM_t;
 
 namespace Compiler
@@ -17,8 +19,8 @@ namespace Compiler
 	class BaseNode;
 	struct Variable_t;
 
-	std::string TypeToString( uint32_t type );
-	bool TypeCheck( uint32_t targetType, uint32_t exprType, bool strict = true );
+	std::string TypeToString( Type_t type );
+	bool TypeCheck( Type_t targetType, Type_t exprType );
 }
 
 namespace QScript

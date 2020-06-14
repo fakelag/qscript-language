@@ -1,5 +1,6 @@
 #include "QLibPCH.h"
 #include "Instructions.h"
+#include "Typing.h"
 
 #include "../../Common/Chunk.h"
 #include "../../STL/NativeModule.h"
@@ -198,7 +199,7 @@ namespace Compiler
 		return argsList;
 	}
 
-	QScript::FunctionObject* CompileFunction( bool isAnonymous, bool isConst, bool isMember, const std::string& name, ListNode* funcNode, Assembler& assembler, uint32_t* outReturnType = NULL )
+	QScript::FunctionObject* CompileFunction( bool isAnonymous, bool isConst, bool isMember, const std::string& name, ListNode* funcNode, Assembler& assembler, Type_t* outReturnType = NULL )
 	{
 		auto chunk = assembler.CurrentChunk();
 		auto& nodeList = funcNode->GetList();
@@ -220,8 +221,8 @@ namespace Compiler
 		// Create args in scope
 		auto argsList = ParseArgsList( argNode );
 		std::for_each( argsList.begin(), argsList.end(), [ &assembler, &function ]( const Argument_t& item ) {
-			function->AddArgument( item.m_Name, item.m_Type, TYPE_UNKNOWN ); // TODO: Return type support
-			assembler.AddLocal( item.m_Name, true, item.m_LineNr, item.m_ColNr, item.m_Type, TYPE_UNKNOWN );
+			function->AddArgument( item.m_Name, item.m_Type );
+			assembler.AddLocal( item.m_Name, true, item.m_LineNr, item.m_ColNr, item.m_Type );
 		} );
 
 		// Compile function body
@@ -277,12 +278,13 @@ namespace Compiler
 		case NODE_RETURN:
 		{
 			// Check that the function can return null
-			uint32_t retnType = assembler.CurrentContext()->m_ReturnType;
+			auto& type = assembler.CurrentContext()->m_Type;
+			auto retnType = type.m_ReturnType ? *type.m_ReturnType : Type_t( TYPE_UNKNOWN );
 
-			if ( retnType != TYPE_UNKNOWN && !( retnType & TYPE_NULL ) )
+			if ( !retnType.IsUnknown() && !( retnType & TYPE_NULL ) )
 			{
 				throw CompilerException( "cp_invalid_expression_type", "Expected expression of type " +
-					TypeToString( retnType ) + ", got: " + TypeToString( TYPE_NULL ),
+					TypeToString( retnType.m_Bits ) + ", got: " + TypeToString( TYPE_NULL ),
 					LineNr(), ColNr(), Token() );
 			}
 
@@ -569,7 +571,8 @@ namespace Compiler
 
 			auto leftType = m_Left->ExprType( assembler );
 			auto rightType = m_Right->ExprType( assembler );
-			if ( !TypeCheck( leftType, rightType, false ) )
+
+			if ( !( leftType & TYPE_NULL ) && !TypeCheck( leftType, rightType ) )
 			{
 				throw CompilerException( "cp_invalid_expression_type", "Can not assign expression of type " +
 					TypeToString( rightType ) + " to variable of type " + TypeToString( leftType ),
@@ -602,26 +605,26 @@ namespace Compiler
 				auto leftString = !!( leftType & TYPE_STRING );
 				auto rightString = !!( rightType & TYPE_STRING );
 
-				if ( !TypeCheck( leftType, TYPE_NUMBER ) && !leftString )
+				if ( !TypeCheck( leftType, Type_t( TYPE_NUMBER ) ) && !leftString )
 				{
 					throw CompilerException( "cp_invalid_expression_type", "Expected variable of type " +
-						TypeToString( TYPE_NUMBER | TYPE_STRING ) + ", got: " + TypeToString( leftType ),
+						TypeToString( Type_t( TYPE_NUMBER | TYPE_STRING ) ) + ", got: " + TypeToString( leftType ),
 						m_Left->LineNr(), m_Left->ColNr(), m_Left->Token() );
 				}
 
-				if ( !TypeCheck( rightType, TYPE_NUMBER ) && !rightString )
+				if ( !TypeCheck( rightType, Type_t( TYPE_NUMBER ) ) && !rightString )
 				{
 					throw CompilerException( "cp_invalid_expression_type", "Expected expression of type " +
-						TypeToString( TYPE_NUMBER | TYPE_STRING ) + ", got: " + TypeToString( rightType ),
+						TypeToString( Type_t( TYPE_NUMBER | TYPE_STRING ) ) + ", got: " + TypeToString( rightType ),
 						m_Right->LineNr(), m_Right->ColNr(), m_Right->Token() );
 				}
 
 				// If the variable is a num, but right hand operand is a string, this would
 				// lead to an unexpected type conversion on runtime.
-				if ( ( leftType & TYPE_NUMBER ) && rightString )
+				if ( ( leftType & Type_t( TYPE_NUMBER ) ) && rightString )
 				{
 					throw CompilerException( "cp_invalid_expression_type", "Expected variable of type " +
-						TypeToString( TYPE_STRING ) + ", got: " + TypeToString( leftType ),
+						TypeToString( Type_t( TYPE_STRING ) ) + ", got: " + TypeToString( leftType ),
 						m_Left->LineNr(), m_Left->ColNr(), m_Left->Token() );
 				}
 
@@ -633,17 +636,17 @@ namespace Compiler
 				auto leftType = m_Left->ExprType( assembler );
 				auto rightType = m_Right->ExprType( assembler );
 
-				if ( !TypeCheck( leftType, TYPE_NUMBER ) )
+				if ( !TypeCheck( leftType, Type_t( TYPE_NUMBER ) ) )
 				{
 					throw CompilerException( "cp_invalid_expression_type", "Can not assign expression of type " +
-						TypeToString( TYPE_NUMBER ) + " to variable of type " + TypeToString( leftType ),
+						TypeToString( Type_t( TYPE_NUMBER ) ) + " to variable of type " + TypeToString( leftType ),
 						m_Left->LineNr(), m_Left->ColNr(), m_Left->Token() );
 				}
 
-				if ( !TypeCheck( rightType, TYPE_NUMBER ) )
+				if ( !TypeCheck( rightType, Type_t( TYPE_NUMBER ) ) )
 				{
 					throw CompilerException( "cp_invalid_expression_type", "Expected expression of type " +
-						TypeToString( TYPE_NUMBER ) + ", got: " + TypeToString( rightType ),
+						TypeToString( Type_t( TYPE_NUMBER ) ) + ", got: " + TypeToString( rightType ),
 						m_Right->LineNr(), m_Right->ColNr(), m_Right->Token() );
 				}
 			}
@@ -713,7 +716,7 @@ namespace Compiler
 						if ( !varInfo.m_IsConst )
 							return NULL;
 
-						if ( varInfo.m_Type != TYPE_FUNCTION )
+						if ( varInfo.m_Type.m_Bits != TYPE_FUNCTION )
 							return NULL;
 
 						return varInfo.m_Function;
@@ -796,10 +799,10 @@ namespace Compiler
 
 			// Perform type checking
 			auto targetType = node->ExprType( assembler );
-			if ( !TypeCheck( targetType, TYPE_NUMBER ) )
+			if ( !TypeCheck( targetType, Type_t( TYPE_NUMBER ) ) )
 			{
 				throw CompilerException( "cp_invalid_expression_type", "Can not assign expression of type " +
-					TypeToString( TYPE_NUMBER ) + " to variable of type " + TypeToString( targetType ),
+					TypeToString( Type_t( TYPE_NUMBER ) ) + " to variable of type " + TypeToString( targetType ),
 					m_LineNr, m_ColNr, m_Token );
 			}
 
@@ -859,17 +862,17 @@ namespace Compiler
 			if ( opCode != numberOps.end() )
 			{
 				// Type check: Number
-				if ( !TypeCheck( leftType, TYPE_NUMBER ) )
+				if ( !TypeCheck( leftType, Type_t( TYPE_NUMBER ) ) )
 				{
 					throw CompilerException( "cp_invalid_expression_type", "Expected expression of type " +
-						TypeToString( TYPE_NUMBER ) + ", got: " + TypeToString( leftType ),
+						TypeToString( Type_t( TYPE_NUMBER ) ) + ", got: " + TypeToString( leftType ),
 						m_Left->LineNr(), m_Left->ColNr(), m_Left->Token() );
 				}
 
-				if ( !TypeCheck( rightType, TYPE_NUMBER ) )
+				if ( !TypeCheck( rightType, Type_t( TYPE_NUMBER ) ) )
 				{
 					throw CompilerException( "cp_invalid_expression_type", "Expected expression of type " +
-						TypeToString( TYPE_NUMBER ) + ", got: " + TypeToString( rightType ),
+						TypeToString( Type_t( TYPE_NUMBER ) ) + ", got: " + TypeToString( rightType ),
 						m_Right->LineNr(), m_Right->ColNr(), m_Right->Token() );
 				}
 
@@ -886,17 +889,17 @@ namespace Compiler
 					auto leftString = !!( leftType & TYPE_STRING );
 					auto rightString = !!( rightType & TYPE_STRING );
 					// left = NULL + number
-					if ( !TypeCheck( leftType, TYPE_NUMBER ) && !leftString )
+					if ( !TypeCheck( leftType, Type_t( TYPE_NUMBER ) ) && !leftString )
 					{
 						throw CompilerException( "cp_invalid_expression_type", "Expected expression of type " +
-							TypeToString( TYPE_NUMBER | TYPE_STRING ) + ", got: " + TypeToString( leftType ),
+							TypeToString( Type_t( TYPE_NUMBER | TYPE_STRING ) ) + ", got: " + TypeToString( leftType ),
 							m_Left->LineNr(), m_Left->ColNr(), m_Left->Token() );
 					}
 
-					if ( !TypeCheck( rightType, TYPE_NUMBER ) && !rightString )
+					if ( !TypeCheck( rightType, Type_t( TYPE_NUMBER ) ) && !rightString )
 					{
 						throw CompilerException( "cp_invalid_expression_type", "Expected expression of type " +
-							TypeToString( TYPE_NUMBER | TYPE_STRING ) + ", got: " + TypeToString( rightType ),
+							TypeToString( Type_t( TYPE_NUMBER | TYPE_STRING ) ) + ", got: " + TypeToString( rightType ),
 							m_Right->LineNr(), m_Right->ColNr(), m_Right->Token() );
 					}
 
@@ -985,10 +988,11 @@ namespace Compiler
 			if ( m_NodeId == NODE_RETURN )
 			{
 				// Check return type match
-				uint32_t retnType = assembler.CurrentContext()->m_ReturnType;
-				uint32_t exprType = m_Node ? m_Node->ExprType( assembler ) : TYPE_NULL;
+				auto type = assembler.CurrentContext()->m_Type;
+				auto retnType = type.m_ReturnType ? *type.m_ReturnType : Type_t( TYPE_UNKNOWN );
+				auto exprType = m_Node ? m_Node->ExprType( assembler ) : Type_t( TYPE_NULL );
 
-				if ( retnType != TYPE_UNKNOWN && exprType != TYPE_UNKNOWN )
+				if ( retnType.IsUnknown() && exprType.IsUnknown() )
 				{
 					if ( !( retnType & exprType ) )
 					{
@@ -1441,7 +1445,7 @@ namespace Compiler
 			auto& varTypeValue = static_cast< ValueNode* >( m_NodeList[ 2 ] )->GetValue();
 
 			auto varString = AS_STRING( varName )->GetString();
-			uint32_t varType = ( uint32_t ) AS_NUMBER( varTypeValue );
+			auto varType = Type_t( ( uint32_t ) AS_NUMBER( varTypeValue ) );
 			uint32_t varReturnType = TYPE_UNKNOWN;
 
 			bool isLocal = ( assembler.StackDepth() > 0 );
@@ -1454,9 +1458,9 @@ namespace Compiler
 			// Assign now?
 			if ( m_NodeList[ 1 ] )
 			{
-				uint32_t exprType = m_NodeList[ 1 ]->ExprType( assembler );
+				auto exprType = m_NodeList[ 1 ]->ExprType( assembler );
 
-				if ( varType != TYPE_UNKNOWN && !( varType & TYPE_AUTO ) )
+				if ( !varType.IsUnknown() && !( varType & TYPE_AUTO ) )
 				{
 					if ( !TypeCheck( varType, exprType ) )
 					{
@@ -1475,7 +1479,7 @@ namespace Compiler
 				{
 					// Compile a named function
 					fn = CompileFunction( false, isConst, false, varString, static_cast< ListNode* >( m_NodeList[ 1 ] ), assembler, &varReturnType );
-					varType = TYPE_FUNCTION;
+					varType = Type_t( TYPE_FUNCTION );
 				}
 				else
 				{
