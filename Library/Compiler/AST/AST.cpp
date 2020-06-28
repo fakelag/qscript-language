@@ -198,7 +198,8 @@ namespace Compiler
 		return argsList;
 	}
 
-	QScript::FunctionObject* CompileFunction( bool isAnonymous, bool isConst, bool isMember, const std::string& name, ListNode* funcNode, Assembler& assembler, uint32_t* outReturnType = NULL )
+	QScript::FunctionObject* CompileFunction( bool isAnonymous, bool isConst, bool isMember, const std::string& name, ListNode* funcNode,
+		Assembler& assembler, uint32_t* outReturnType = NULL, int lineNr = -1, int colNr = -1 )
 	{
 		auto chunk = assembler.CurrentChunk();
 		auto& nodeList = funcNode->GetList();
@@ -231,7 +232,7 @@ namespace Compiler
 		std::vector< Assembler::Upvalue_t > upvalues;
 
 		// Remove body scope
-		assembler.FinishFunction( &upvalues );
+		assembler.FinishFunction( lineNr, colNr, &upvalues );
 
 		// Create a constant (function) in enclosing chunk
 		EmitConstant( chunk, MAKE_OBJECT( function ), QScript::OpCode::OP_CLOSURE_SHORT,
@@ -1131,8 +1132,11 @@ namespace Compiler
 					{
 						auto propNode = static_cast< ListNode* >( prop );
 						auto funcNode = static_cast< ListNode* >( propNode->GetList()[ 1 ] );
-						propName = static_cast< ValueNode* >( propNode->GetList()[ 0 ] )->GetValue();
-						CompileFunction( true, true, true, varNameString + "::" + AS_STRING( propName )->GetString(), funcNode, assembler );
+						auto propNameNode = propNode->GetList()[ 0 ];
+
+						propName = static_cast< ValueNode* >( propNameNode )->GetValue();
+						CompileFunction( true, true, true, varNameString + "::" + AS_STRING( propName )->GetString(), funcNode, assembler, NULL,
+							propNameNode->LineNr(), propNameNode->ColNr() );
 
 						EmitByte( QScript::OpCode::OP_LOAD_TOP_SHORT, chunk );
 						EmitByte( 1, chunk );
@@ -1474,7 +1478,7 @@ namespace Compiler
 				if ( m_NodeList[ 1 ]->Id() == NODE_FUNC )
 				{
 					// Compile a named function
-					fn = CompileFunction( false, isConst, false, varString, static_cast< ListNode* >( m_NodeList[ 1 ] ), assembler, &varReturnType );
+					fn = CompileFunction( false, isConst, false, varString, static_cast< ListNode* >( m_NodeList[ 1 ] ), assembler, &varReturnType, lineNr, colNr );
 					varType = TYPE_FUNCTION;
 				}
 				else

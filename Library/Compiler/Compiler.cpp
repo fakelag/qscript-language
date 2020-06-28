@@ -598,12 +598,12 @@ namespace Compiler
 		m_Functions.push_back( context );
 
 		if ( addLocal )
-			AddLocal( isAnonymous ? "" : name, isConst, -1, -1, TYPE_FUNCTION, retnType );
+			AddLocal( isAnonymous ? "" : name, isConst, -1, -1, TYPE_FUNCTION, retnType, function );
 
 		return function;
 	}
 
-	void Assembler::FinishFunction( std::vector< Upvalue_t >* upvalues )
+	void Assembler::FinishFunction( int lineNr, int colNr, std::vector< Upvalue_t >* upvalues )
 	{
 		auto function = &m_Functions.back();
 		*upvalues = function->m_Upvalues;
@@ -611,6 +611,14 @@ namespace Compiler
 		// Implicit return (null)
 		EmitByte( QScript::OpCode::OP_LOAD_NULL, function->m_Func->GetChunk() );
 		EmitByte( QScript::OpCode::OP_RETURN, function->m_Func->GetChunk() );
+
+		auto& locals = CurrentStack()->m_Locals;
+
+		if ( m_Config.m_IdentifierCb && locals.size() > 0 )
+		{
+			if ( locals[ 0 ].m_Var.m_Function )
+				m_Config.m_IdentifierCb( lineNr, colNr, locals[ 0 ].m_Var, "Function" );
+		}
 
 		// Finished compiling
 		m_Compiled.push_back( function->m_Func );
