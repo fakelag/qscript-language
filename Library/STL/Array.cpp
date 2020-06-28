@@ -176,7 +176,7 @@ namespace ArrayModule
 			QVM::VirtualMachine->Call( ( Frame_t* ) frame, 1, findFn, true );
 			QVM::Run( *QVM::VirtualMachine, false );
 
-			return !QVM::VirtualMachine->Pop().IsTruthy();
+			return QVM::VirtualMachine->Pop().IsTruthy();
 		} );
 
 		if ( element == arrayRef.end() )

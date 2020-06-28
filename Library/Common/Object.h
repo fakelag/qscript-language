@@ -40,7 +40,7 @@ namespace QScript
 
 		FORCEINLINE void Rename( const std::string& newName ) 		{ m_Name = newName; }
 		FORCEINLINE const std::string& GetName() 					const { return m_Name; }
-		FORCEINLINE int NumArgs() 									const { return m_Arguments.size(); }
+		FORCEINLINE int NumArgs() 									const { return ( int ) m_Arguments.size(); }
 		FORCEINLINE int NumUpvalues() 								const { return m_NumUpvalues; }
 		FORCEINLINE Chunk_t* GetChunk() 							const { return m_Chunk; }
 		FORCEINLINE const std::vector< Arg_t >& GetArgs()			const { return m_Arguments; }

@@ -104,7 +104,7 @@ namespace Compiler
 		bool										FindLocal( const std::string& name, uint32_t* out, Variable_t* varInfo );
 		bool 										FindLocalFromStack( Stack_t* stack, const std::string& name, uint32_t* out, Variable_t* varInfo );
 		bool 										FindUpvalue( const std::string name, uint32_t* out, Variable_t* varInfo );
-		void										FinishFunction( std::vector< Upvalue_t >* upvalues );
+		void										FinishFunction( int lineNr, int colNr, std::vector< Upvalue_t >* upvalues );
 		std::vector< QScript::FunctionObject* >		Finish();
 		Local_t*									GetLocal( int local );
 		bool										IsTopLevel();

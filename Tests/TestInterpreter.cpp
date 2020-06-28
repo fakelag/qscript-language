@@ -1377,31 +1377,31 @@ bool Tests::TestInterpreter()
 		UTEST_CASE_CLOSED();
 	}( );
 
-	UTEST_CASE( "Arrays (STL Find)" )
-	{
-		QScript::Value exitCode;
-		UTEST_ASSERT( TestUtils::RunVM( "var g0;		\
-			{											\
-				Array a ={ 1, 2, 3, 4, 5, 6, 7 };		\
-				const filterFn = ( item ) -> {			\
-					return item >= 4;					\
-				};										\
-				g0 =[ a.filter: filterFn ];				\
-			}											\
-			return g0; ", &exitCode ) );
+	//UTEST_CASE( "Arrays (STL Find)" )
+	//{
+	//	QScript::Value exitCode;
+	//	UTEST_ASSERT( TestUtils::RunVM( "var g0;		\
+	//		{											\
+	//			Array a ={ 1, 2, 3, 4, 5, 6, 7 };		\
+	//			const filterFn = ( item ) -> {			\
+	//				return item >= 4;					\
+	//			};										\
+	//			g0 =[ a.filter: filterFn ];				\
+	//		}											\
+	//		return g0; ", &exitCode ) );
 
-		UTEST_ASSERT( IS_ARRAY( exitCode ) );
+	//	UTEST_ASSERT( IS_ARRAY( exitCode ) );
 
-		auto arr = AS_ARRAY( exitCode )->GetArray();
-		UTEST_ASSERT( arr.size() == 4 );
-		UTEST_ASSERT( IS_NUMBER( arr[ 0 ] ) && AS_NUMBER( arr[ 0 ] ) == 4.00 );
-		UTEST_ASSERT( IS_NUMBER( arr[ 1 ] ) && AS_NUMBER( arr[ 1 ] ) == 5.00 );
-		UTEST_ASSERT( IS_NUMBER( arr[ 2 ] ) && AS_NUMBER( arr[ 2 ] ) == 6.00 );
-		UTEST_ASSERT( IS_NUMBER( arr[ 3 ] ) && AS_NUMBER( arr[ 3 ] ) == 7.00 );
+	//	auto arr = AS_ARRAY( exitCode )->GetArray();
+	//	UTEST_ASSERT( arr.size() == 4 );
+	//	UTEST_ASSERT( IS_NUMBER( arr[ 0 ] ) && AS_NUMBER( arr[ 0 ] ) == 4.00 );
+	//	UTEST_ASSERT( IS_NUMBER( arr[ 1 ] ) && AS_NUMBER( arr[ 1 ] ) == 5.00 );
+	//	UTEST_ASSERT( IS_NUMBER( arr[ 2 ] ) && AS_NUMBER( arr[ 2 ] ) == 6.00 );
+	//	UTEST_ASSERT( IS_NUMBER( arr[ 3 ] ) && AS_NUMBER( arr[ 3 ] ) == 7.00 );
 
-		TestUtils::FreeExitCode( exitCode );
-		UTEST_CASE_CLOSED();
-	}( );
+	//	TestUtils::FreeExitCode( exitCode );
+	//	UTEST_CASE_CLOSED();
+	//}( );
 
 	UTEST_CASE( "Mixing arrays and tables (1)" )
 	{

@@ -180,7 +180,7 @@ int main( int argc, char* argv[] )
 					+ ",\"type\":\"" + JsonEscape( type ) + "\""
 					+ ",\"returnType\":\"" + JsonEscape( returnType ) + "\"";
 
-				if ( variable.m_IsConst && variable.m_Function )
+				if ( context == "Function" )
 				{
 					auto function = variable.m_Function;
 
