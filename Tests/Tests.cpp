@@ -25,9 +25,9 @@ int main( int argc, const char** argv )
 		bool allPassed = true;
 		std::vector< bool > testResults;
 
-		testResults.push_back( Tests::TestLexer() );
+		//testResults.push_back( Tests::TestLexer() );
 		testResults.push_back( Tests::TestCompiler() );
-		testResults.push_back( Tests::TestInterpreter() );
+		//testResults.push_back( Tests::TestInterpreter() );
 
 		for ( auto result : testResults )
 			if ( !result ) allPassed = false;

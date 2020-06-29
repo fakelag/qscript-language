@@ -187,33 +187,32 @@ bool Tests::TestCompiler()
 		UTEST_CASE_CLOSED();
 	}( );
 
-	UTEST_CASE( "Expression type checks" )
-	{
-		UTEST_ASSERT( QScript::Typer( "auto x = 4 - 4 + 2 * 2;" )[ 0 ].first == TYPE_NUMBER );
+	//UTEST_CASE( "Expression type checks" )
+	//{
+	//	UTEST_ASSERT( QScript::Typer( "auto x = 4 - 4 + 2 * 2;" )[ 0 ].first == TYPE_NUMBER );
+	//	UTEST_ASSERT( QScript::Typer( "auto x = (4 - 4) + 2 + \"2\";" )[ 0 ].first == TYPE_STRING );
 
-		UTEST_ASSERT( QScript::Typer( "auto x = (4 - 4) + 2 + \"2\";" )[ 0 ].first == TYPE_STRING );
+	//	UTEST_THROW_EXCEPTION( QScript::Compile( "var x = 2 - \"str\";" ),
+	//		const std::vector< CompilerException >& e,
+	//		e.size() == 1 && e[ 0 ].id() == "cp_invalid_expression_type" );
 
-		UTEST_THROW_EXCEPTION( QScript::Compile( "var x = 2 - \"str\";" ),
-			const std::vector< CompilerException >& e,
-			e.size() == 1 && e[ 0 ].id() == "cp_invalid_expression_type" );
+	//	UTEST_CASE_CLOSED();
+	//}( );
 
-		UTEST_CASE_CLOSED();
-	}( );
+	//UTEST_CASE( "Function return types" )
+	//{
+	//	UTEST_ASSERT( QScript::Typer( "const auto x = (num a, string b) -> { return a + b; };" )[ 0 ].second == TYPE_UNKNOWN );
 
-	UTEST_CASE( "Function return types" )
-	{
-		UTEST_ASSERT( QScript::Typer( "const auto x = (num a, string b) -> { return a + b; };" )[ 0 ].second == TYPE_UNKNOWN );
+	//	UTEST_ASSERT( ( QScript::Typer( "const auto x = (num a, string b) -> auto { return a + b; };" )[ 0 ].second & TYPE_STRING ) == TYPE_STRING );
 
-		UTEST_ASSERT( ( QScript::Typer( "const auto x = (num a, string b) -> auto { return a + b; };" )[ 0 ].second & TYPE_STRING ) == TYPE_STRING );
+	//	UTEST_ASSERT( ( QScript::Typer( "const auto x = (num a, num b) -> auto { return a + b; };" )[ 0 ].second & TYPE_NUMBER ) == TYPE_NUMBER );
 
-		UTEST_ASSERT( ( QScript::Typer( "const auto x = (num a, num b) -> auto { return a + b; };" )[ 0 ].second & TYPE_NUMBER ) == TYPE_NUMBER );
+	//	UTEST_THROW_EXCEPTION( QScript::Compile( "const x = () -> num { return \"abcdefg\"; };" ),
+	//		const std::vector< CompilerException >& e,
+	//		e.size() == 1 && e[ 0 ].id() == "cp_invalid_expression_type" );
 
-		UTEST_THROW_EXCEPTION( QScript::Compile( "const x = () -> num { return \"abcdefg\"; };" ),
-			const std::vector< CompilerException >& e,
-			e.size() == 1 && e[ 0 ].id() == "cp_invalid_expression_type" );
-
-		UTEST_CASE_CLOSED();
-	}( );
+	//	UTEST_CASE_CLOSED();
+	//}( );
 
 	UTEST_CASE( "Function args types" )
 	{

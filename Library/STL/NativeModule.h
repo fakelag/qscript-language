@@ -1,5 +1,11 @@
 #pragma once
 
+#define NATIVE_ASSEMBLER_GLOBAL( name, _type, _returnType ) { \
+auto typeDef = QS_NEW Compiler::Type_t( _type, _returnType ); \
+assembler->AddGlobal( name, true, -1, -1, typeDef ); \
+Compiler::FreeTypes( typeDef ); \
+}
+
 struct VM_t;
 
 namespace Compiler

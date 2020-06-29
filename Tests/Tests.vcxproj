@@ -176,6 +176,7 @@
     <ClCompile Include="..\Library\Compiler\Compiler.cpp" />
     <ClCompile Include="..\Library\Compiler\IRGenerator.cpp" />
     <ClCompile Include="..\Library\Compiler\Lexer.cpp" />
+    <ClCompile Include="..\Library\Compiler\Types.cpp" />
     <ClCompile Include="..\Library\Runtime\QVM.cpp" />
     <ClCompile Include="..\Library\STL\Array.cpp" />
     <ClCompile Include="..\Library\STL\NativeModule.cpp" />

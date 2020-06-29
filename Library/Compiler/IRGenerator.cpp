@@ -3,7 +3,7 @@
 
 #include "Compiler.h"
 #include "Instructions.h"
-#include "Typing.h"
+#include "Types.h"
 #include "IR.h"
 
 namespace Compiler
@@ -18,23 +18,26 @@ namespace Compiler
 		return IS_STRING( static_cast< ValueNode* >( node )->GetValue() );
 	}
 
-	CompileTypeBits ResolveTypeDef( ParserState& parserState )
+	bool ResolveTypeDef( ParserState& parserState, Type_t* out )
 	{
 		std::map< Token, CompileTypeBits > typeMap = {
-			{ TOK_AUTO, TYPE_AUTO },
-			{ TOK_STRING, TYPE_STRING },
-			{ TOK_BOOL, TYPE_BOOL },
-			{ TOK_NUMBER, TYPE_NUMBER },
-			{ TOK_VAR, TYPE_UNKNOWN },
+			{ TOK_AUTO,			TYPE_AUTO },
+			{ TOK_STRING,		TYPE_STRING },
+			{ TOK_BOOL,			TYPE_BOOL },
+			{ TOK_NUMBER,		TYPE_NUMBER },
+			{ TOK_VAR,			TYPE_UNKNOWN }, // TODO: remove?
 		};
 
 		for ( auto type : typeMap )
 		{
 			if ( parserState.MatchCurrent( type.first ) )
-				return type.second;
+			{
+				out->m_Bits = type.second;
+				return true;
+			}
 		}
 
-		return TYPE_NONE;
+		return false;
 	}
 
 	ListNode* ParseFunction( ParserState& parserState, const IrBuilder_t& irBuilder, NextExpressionFn nextExpression )
@@ -74,11 +77,13 @@ namespace Compiler
 		if ( !parserState.MatchCurrent( TOK_PAREN_RIGHT ) )
 		{
 			do {
-				auto typeDef = ResolveTypeDef( parserState );
+				Type_t type( TYPE_NONE );
+
+				auto hasType = ResolveTypeDef( parserState, &type );
 				auto argName = nextExpression( BP_VAR );
 
-				if ( typeDef == TYPE_NONE )
-					typeDef = TYPE_UNKNOWN; // no type specified, use unknown
+				if ( !hasType )
+					type.m_Bits = TYPE_UNKNOWN; // no type specified, use unknown
 
 				if ( !IsString( argName ) )
 				{
@@ -92,10 +97,10 @@ namespace Compiler
 					TYPE_NUMBER
 				};
 
-				if ( std::find( validTypes.begin(), validTypes.end(), typeDef ) != validTypes.end() )
+				if ( std::find( validTypes.begin(), validTypes.end(), type.m_Bits ) != validTypes.end() )
 				{
-					auto varTypeNode = parserState.AllocateNode< ValueNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-						irBuilder.m_Token.m_String, NODE_CONSTANT, MAKE_NUMBER( typeDef ) );
+					auto varTypeNode = parserState.AllocateNode< TypeNode >( irBuilder.m_Token.m_LineNr,
+						irBuilder.m_Token.m_ColNr, irBuilder.m_Token.m_String, &type );
 
 					argsList.push_back( parserState.AllocateNode< ListNode >( irBuilder.m_Token.m_LineNr,
 						irBuilder.m_Token.m_ColNr, irBuilder.m_Token.m_String, NODE_VAR,
@@ -114,14 +119,14 @@ namespace Compiler
 		parserState.Expect( TOK_ARROW, "Expected \"->\" after \"var <name> = (...)\", got: \"" + parserState.CurrentBuilder()->m_Token.m_String + "\"" );
 
 		// Check for explicit return type
-		uint32_t retnType = ResolveTypeDef( parserState );
+		Type_t type( TYPE_NONE );
 
-		if ( retnType == TYPE_NONE )
-			retnType = TYPE_UNKNOWN; // use auto-deduction
+		if ( !ResolveTypeDef( parserState, &type ) )
+			type.m_Bits = TYPE_UNKNOWN; // use unknown
 
 		// Append type information as a value node
-		auto retnTypeNode = parserState.AllocateNode< ValueNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-			irBuilder.m_Token.m_String, NODE_CONSTANT, MAKE_NUMBER( retnType ) );
+		auto retnTypeNode = parserState.AllocateNode< TypeNode >( irBuilder.m_Token.m_LineNr,
+			irBuilder.m_Token.m_ColNr, irBuilder.m_Token.m_String, &type );
 
 		auto body = parserState.ToScope( nextExpression( irBuilder.m_Token.m_LBP ) );
 
@@ -167,13 +172,14 @@ namespace Compiler
 		if ( parserState.CurrentBuilder()->m_Token.m_Id == TOK_ARRAY )
 			return nextExpression( BP_NONE );
 
-		auto fieldType = ResolveTypeDef( parserState );
+		Type_t type( TYPE_NONE );
+		auto hasType = ResolveTypeDef( parserState, &type );
 
-		if ( !bMatchConst && fieldType == TYPE_NONE )
+		if ( !bMatchConst && !hasType )
 			return NULL;
 
-		auto fieldTypeNode = parserState.AllocateNode< ValueNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-			irBuilder.m_Token.m_String, NODE_CONSTANT, MAKE_NUMBER( fieldType ) );
+		auto fieldTypeNode = parserState.AllocateNode< TypeNode >( irBuilder.m_Token.m_LineNr,
+			irBuilder.m_Token.m_ColNr, irBuilder.m_Token.m_String, &type );
 
 		auto fieldNameNode = nextExpression( BP_VAR );
 
@@ -407,28 +413,25 @@ namespace Compiler
 			{
 				builder->m_Nud = [ &parserState, &nextExpression ]( const IrBuilder_t& irBuilder )
 				{
-					auto varType = TYPE_UNKNOWN;
+					Type_t type( TYPE_UNKNOWN );
 
 					switch ( irBuilder.m_Token.m_Id )
 					{
 					case TOK_AUTO:
-						varType = TYPE_AUTO;
+						type.m_Bits = TYPE_AUTO;
 						break;
 					case TOK_BOOL:
-						varType = TYPE_BOOL;
+						type.m_Bits = TYPE_BOOL;
 						break;
 					case TOK_STRING:
-						varType = TYPE_STRING;
+						type.m_Bits = TYPE_STRING;
 						break;
 					case TOK_NUMBER:
-						varType = TYPE_NUMBER;
+						type.m_Bits = TYPE_NUMBER;
 						break;
 					case TOK_CONST:
 					{
-						varType = ResolveTypeDef( parserState );
-
-						if ( varType == TYPE_NONE )
-							varType = TYPE_UNKNOWN;
+						ResolveTypeDef( parserState, &type );
 						break;
 					}
 					case TOK_VAR:
@@ -445,8 +448,8 @@ namespace Compiler
 					}
 
 					// Append type information as a value node
-					auto varTypeNode = parserState.AllocateNode< ValueNode >( irBuilder.m_Token.m_LineNr, irBuilder.m_Token.m_ColNr,
-						irBuilder.m_Token.m_String, NODE_CONSTANT, MAKE_NUMBER( varType ) );
+					auto varTypeNode = parserState.AllocateNode< TypeNode >( irBuilder.m_Token.m_LineNr,
+						irBuilder.m_Token.m_ColNr, irBuilder.m_Token.m_String, &type );
 
 					if ( parserState.MatchCurrent( TOK_EQUALS ) )
 					{

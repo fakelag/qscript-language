@@ -46,6 +46,7 @@ namespace Compiler
 		{ NODE_RETURN,				"RETURN" },
 		{ NODE_SCOPE,				"SCOPE" },
 		{ NODE_SUB,					"SUB" },
+		{ NODE_TYPE,				"TYPE" },
 		{ NODE_VAR,					"VAR (mutable)" },
 		{ NODE_WHILE,				"WHILE" },
 	};
@@ -107,6 +108,16 @@ namespace Compiler
 			+ ind2 + "\"type\": \"ListNode\",\n"
 			+ ind2 + "\"name\": \"" + nodeIdToName[ m_NodeId ] + "\",\n"
 			+ ind2 + "\"list\": [\n" + listJson + "]\n"
+			+ ind + "}";
+	}
+
+	std::string TypeNode::ToJson( const std::string& ind ) const
+	{
+		std::string ind2 = ind + " ";
+		return ind + "{\n"
+			+ ind2 + "\"type\": \"TypeNode\",\n"
+			+ ind2 + "\"name\": \"" + nodeIdToName[ m_NodeId ] + "\",\n"
+			+ ind2 + "\"typeString\": \"" + TypeToString( *GetType() ) + "\"\n"
 			+ ind + "}";
 	}
 }
