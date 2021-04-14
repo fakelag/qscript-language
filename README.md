@@ -21,4 +21,4 @@ sh ./compile_cli.sh 		# Compiles CLI project
 
 ## Basic language features
 
-![example 1](https://github.com/fakelag/property-bot/blob/master/media/01.gif)
+![example 1](https://github.com/fakelag/qscript-language/blob/master/media/01.gif)
