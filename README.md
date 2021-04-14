@@ -54,13 +54,14 @@ QScript contains optional compile-time types -- you can choose to use types or i
 You can check also types with `--typer` CLI flag
 
 ```bash
-Typer >var x = 1;
+Typer> var x = 1;
 unknown -> none
-Typer >const y = 1;
+
+Typer> const y = 1;
 num -> none
-Typer >const f = () -> auto { return "hello"; }
+
+Typer> const f = () -> auto { return "hello"; }
 function -> string
-Typer >
 ```
 
 ## Language server (& vscode extension)
