@@ -19,6 +19,42 @@ sh ./compile_cli.sh 		# Compiles CLI project
 ./Lib/CLI.o --repl 			# Start CLI in REPL mode
 ```
 
-## Basic language features
+## Language features
 
-![example 1](https://github.com/fakelag/qscript-language/blob/master/media/01.gif)
+QScript language supports basic features like variables, loops, functions, tables and much more
+
+![Example 1 - Hello world](https://github.com/fakelag/qscript-language/blob/master/media/01.gif)
+
+![Example 2 - Array sum](https://github.com/fakelag/qscript-language/blob/master/media/02.gif)
+
+## Tests
+
+Repository contains unit and ETE tests in `Tests/`. Most tests are end-to-end tests for
+
+1. modeling real-world use-cases as closely as possible
+2. testing all components of the language with a single set of tests
+3. depending as little as possible on implementation details and focus on behavior
+
+![Running tests](https://github.com/fakelag/qscript-language/blob/master/media/03.gif)
+
+## Repl
+
+CLI contains repl mode which can be used with the `--repl` flag
+
+![Repl mode](https://github.com/fakelag/qscript-language/blob/master/media/04.gif)
+
+## Typing system
+
+QScript contains optional compile-time types -- you can choose to use types or ignore them entirely
+
+![Optional types](https://github.com/fakelag/qscript-language/blob/master/media/06.gif)
+
+You can check also types with `--typer` CLI flag
+
+![Typer mode](https://github.com/fakelag/qscript-language/blob/master/media/05.gif)
+
+## Debugger
+
+Compiling the library with QVM_DEBUG preprocessor define will yield an interactive debugger for programs loaded in the VM
+
+![CLI Debugger](https://github.com/fakelag/qscript-language/blob/master/media/07.gif)
