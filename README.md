@@ -6,7 +6,7 @@ QScript is an interpreted programming language written in C++. The project can b
 
 ## Syntax & language features
 
-The syntax of QScript could be described as a mix of JavaScript/TypeScript & Objective-C. It offers optional typing similar to TypeScript and borrows some grammar features -- such as its function call syntax -- from Objective-C. Feature-wise QScript supports everything from basic variables, loops, control-flow statements, functions and arrays to more advanced features such as tables, closures, automatic garbage collection, optional types and langsrv integrations. Unlike some of my other programming language projects, this is a more or less general purpose programming language that doesn't solve for a specific use-case.
+The syntax of QScript could be described as a mix of JavaScript/TypeScript & Objective-C. It offers optional typing similar to TypeScript and borrows some grammar -- such as its function call syntax -- from Objective-C. Feature-wise QScript supports everything from basic variables, loops, control-flow statements, functions and arrays to more advanced features such as tables, closures, automatic garbage collection, optional types and langsrv integrations. Unlike some of my other programming language projects, this is a more or less general purpose programming language that doesn't solve for a specific use-case.
 
 ![Example 1 - Hello world](https://github.com/fakelag/qscript-language/blob/master/media/01.gif)
 
