@@ -66,5 +66,12 @@ namespace Compiler
 
 	//void DeepCopyType( const Type_t& source, Type_t* destination );
 	Type_t* DeepCopyType( const Type_t& other, Type_t* allocated );
-	void FreeTypes( const Type_t* types );
+	void FreeTypes( const Type_t* types, const char* file, int line );
+
+	// Type aliases
+	static const Type_t TA_NULL = Type_t( TYPE_NULL );
+	static const Type_t TA_UNKNOWN = Type_t( TYPE_UNKNOWN );
+	static const Type_t TA_TABLE = Type_t( TYPE_TABLE );
+	static const Type_t TA_ARRAY = Type_t( TYPE_ARRAY );
+	static const Type_t TA_NUMBER = Type_t( TYPE_NUMBER );
 }

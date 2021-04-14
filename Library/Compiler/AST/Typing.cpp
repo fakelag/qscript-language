@@ -34,7 +34,7 @@ namespace Compiler
 		for ( auto arg : argsList )
 		{
 			assembler.AddArgument( arg.m_Name, true, arg.m_LineNr, arg.m_ColNr, arg.m_Type );
-			FreeTypes( arg.m_Type );
+			FreeTypes( assembler.UnregisterType( arg.m_Type ), __FILE__, __LINE__ );
 		}
 
 		std::function< void( BaseNode* ) > visitNode;
@@ -317,7 +317,14 @@ namespace Compiler
 		{
 		case NODE_TABLE: EXPR_TYPE_STATIC( TYPE_TABLE ); break;
 		case NODE_ARRAY: EXPR_TYPE_STATIC( TYPE_ARRAY ); break;
-		case NODE_FUNC: EXPR_TYPE_STATIC( TYPE_FUNCTION ); break;
+		case NODE_FUNC: {
+			//EXPR_TYPE_STATIC( TYPE_FUNCTION );
+			//break;
+			m_ExprType->m_Bits = TYPE_FUNCTION;
+			m_ExprReturnType->m_Bits = TYPE_UNKNOWN;
+			m_ExprType->m_ReturnType = m_ExprReturnType;
+			break;
+		}
 		case NODE_INLINE_IF:
 		{
 			EXPR_TYPE_FROM_CHILD( m_NodeList[ 1 ] );

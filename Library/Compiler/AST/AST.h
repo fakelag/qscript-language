@@ -121,8 +121,9 @@ namespace Compiler
 		int					m_ColNr;
 		std::string 		m_Token;
 
-		// Node expression type -- Updated and returnted by ExprType()
+		// Node expression type -- Updated and returned by ExprType()
 		Type_t*				m_ExprType;
+		Type_t*				m_ExprReturnType;
 	};
 
 	class TermNode : public BaseNode

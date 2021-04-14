@@ -193,21 +193,23 @@ namespace Compiler
 		return newType;
 	}
 
-	void FreeTypes( const Type_t* types )
+	void FreeTypes( const Type_t* types, const char* file, int line )
 	{
+		// printf( "FreeTypes %X from %s line %i\n", types, file, line );
+
 		if ( !types )
 			return;
 
-		FreeTypes( types->m_ReturnType );
+		FreeTypes( types->m_ReturnType, __FILE__, __LINE__ );
 
 		for ( auto arg : types->m_ArgTypes )
-			FreeTypes( arg.second );
+			FreeTypes( arg.second, __FILE__, __LINE__ );
 
 		for ( auto prop : types->m_PropTypes )
-			FreeTypes( prop.second );
+			FreeTypes( prop.second, __FILE__, __LINE__ );
 
 		for ( auto indice : types->m_IndiceTypes )
-			FreeTypes( indice );
+			FreeTypes( indice, __FILE__, __LINE__ );
 
 		delete types;
 	}

@@ -66,7 +66,7 @@ namespace QScript
 
 	Chunk_t* AllocChunk();
 	FunctionObject* Compile( const std::string& source, const Config_t& config = Config_t( true ) );
-	// std::vector< std::pair< uint32_t, uint32_t > > Typer( const std::string& source, const Config_t& config = Config_t( false ) );
+	std::vector< Compiler::Type_t* > Typer( const std::string& source, const Config_t& config = Config_t( false ) );
 	std::vector< Compiler::BaseNode* > GenerateAST( const std::string& source );
 
 	void FreeChunk( Chunk_t* chunk );

@@ -118,7 +118,7 @@ namespace Compiler
 		bool										IsTopLevel();
 		void										PopScope();
 		void										PushScope();
-		Type_t*										RegisterType( Type_t* type );
+		Type_t*										RegisterType( Type_t* type, const char* file, int line );
 		void										Release();
 		bool 										RequestUpvalue( const std::string name, uint32_t* out, int lineNr, int colNr, Variable_t* varInfo );
 		int											StackDepth();
@@ -133,4 +133,6 @@ namespace Compiler
 		std::map< std::string, Variable_t >				m_Globals;
 		std::vector< Type_t* >							m_Types;
 	};
+
+	//void ResolveReturnType( ListNode* funcNode, Assembler& assembler, Type_t* out );
 };

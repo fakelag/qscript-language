@@ -172,7 +172,7 @@ namespace Compiler
 				case TYPE_UNKNOWN:
 				case TYPE_BOOL:
 				{
-					argsList.push_back( Argument_t( AS_STRING( varName )->GetString(), DeepCopyType( *varType, assembler.RegisterType( QS_NEW Type_t ) ),
+					argsList.push_back( Argument_t( AS_STRING( varName )->GetString(), DeepCopyType( *varType, assembler.RegisterType( QS_NEW Type_t, __FILE__, __LINE__ ) ),
 						varNameNode->LineNr(), varNameNode->ColNr() ) );
 					break;
 				}
@@ -187,7 +187,7 @@ namespace Compiler
 			case NODE_NAME:
 			{
 				argsList.push_back( Argument_t( AS_STRING( static_cast< ValueNode* >( arg )->GetValue() )->GetString(),
-					DeepCopyType( Type_t( TYPE_UNKNOWN ), assembler.RegisterType( QS_NEW Type_t ) ), arg->LineNr(), arg->ColNr() ) );
+					DeepCopyType( Type_t( TYPE_UNKNOWN ), assembler.RegisterType( QS_NEW Type_t, __FILE__, __LINE__ ) ), arg->LineNr(), arg->ColNr() ) );
 				break;
 			}
 			default:
@@ -209,7 +209,7 @@ namespace Compiler
 
 		auto argNode = static_cast< ListNode* >( nodeList[ 0 ] );
 
-		auto funcType = assembler.RegisterType( QS_NEW Type_t( TYPE_FUNCTION ) );
+		auto funcType = assembler.RegisterType( QS_NEW Type_t( TYPE_FUNCTION ), __FILE__, __LINE__ );
 		funcType->m_ReturnType = QS_NEW Type_t;
 
 		ResolveReturnType( funcNode, assembler, funcType->m_ReturnType );
@@ -218,18 +218,21 @@ namespace Compiler
 		auto function = assembler.CreateFunction( name, isConst, funcType, isAnonymous, !isMember, QScript::AllocChunk() );
 
 		if ( isMember )
-			assembler.AddLocal( "this", false, -1, -1, &Type_t( TYPE_TABLE ) );
+			assembler.AddLocal( "this", false, -1, -1, &TA_TABLE );
 
 		assembler.PushScope();
 
 		// Create args in scope
 		auto argsList = ParseArgsList( argNode, assembler );
 		std::for_each( argsList.begin(), argsList.end(), [ &assembler, &function, &funcType ]( const Argument_t& item ) {
-			funcType->m_ArgTypes.push_back( NamedType_t{ item.m_Name, item.m_Type } ); // Give type ownership to function type
+			// Give type ownership to function type
+			assembler.UnregisterType( item.m_Type );
+			funcType->m_ArgTypes.push_back( NamedType_t{ item.m_Name, item.m_Type } );
+
 			assembler.AddLocal( item.m_Name, true, item.m_LineNr, item.m_ColNr, item.m_Type );
 		} );
 
-		function->SetNumArgs( argsList.size() );
+		function->SetNumArgs( ( int ) argsList.size() );
 
 		// Compile function body
 		for ( auto node : static_cast< ListNode* >( nodeList[ 1 ] )->GetList() )
@@ -261,7 +264,7 @@ namespace Compiler
 		else
 		{
 			// Free temporary return type holder
-			FreeTypes( assembler.UnregisterType( funcType ) );
+			FreeTypes( assembler.UnregisterType( funcType ), __FILE__, __LINE__ );
 		}
 		
 
@@ -270,12 +273,13 @@ namespace Compiler
 
 	BaseNode::BaseNode( int lineNr, int colNr, const std::string token, NodeType type, NodeId id )
 	{
-		m_LineNr		= lineNr;
-		m_ColNr			= colNr;
-		m_Token			= token;
-		m_NodeType		= type;
-		m_NodeId		= id;
-		m_ExprType		= QS_NEW Type_t( TYPE_NONE );
+		m_LineNr			= lineNr;
+		m_ColNr				= colNr;
+		m_Token				= token;
+		m_NodeType			= type;
+		m_NodeId			= id;
+		m_ExprType			= QS_NEW Type_t( TYPE_NONE );
+		m_ExprReturnType	= QS_NEW Type_t( TYPE_UNKNOWN );
 	}
 
 	TermNode::TermNode( int lineNr, int colNr, const std::string token, NodeId id )
@@ -285,7 +289,10 @@ namespace Compiler
 
 	void TermNode::Release()
 	{
-		FreeTypes( m_ExprType );
+		if ( m_ExprType->m_ReturnType != m_ExprReturnType )
+			FreeTypes( m_ExprReturnType, __FILE__, __LINE__ );
+
+		FreeTypes( m_ExprType, __FILE__, __LINE__ );
 		m_ExprType = NULL;
 	}
 
@@ -306,7 +313,7 @@ namespace Compiler
 
 			if ( type->m_ReturnType )
 			{
-				if ( !type->m_ReturnType->IsAssignable( &Type_t( TYPE_NULL ) ) )
+				if ( !type->m_ReturnType->IsAssignable( &TA_NULL ) )
 				{
 					throw CompilerException( "cp_invalid_expression_type", "Expected expression of type " +
 						TypeToString( *type->m_ReturnType ) + ", got: " + TypeToString(	Type_t( TYPE_NULL ) ),
@@ -333,7 +340,7 @@ namespace Compiler
 
 	void ValueNode::Release()
 	{
-		FreeTypes( m_ExprType );
+		FreeTypes( m_ExprType, __FILE__, __LINE__ );
 		m_ExprType = NULL;
 	}
 
@@ -506,7 +513,7 @@ namespace Compiler
 			delete m_Right;
 		}
 
-		FreeTypes( m_ExprType );
+		FreeTypes( m_ExprType, __FILE__, __LINE__ );
 		m_ExprType = NULL;
 	}
 
@@ -814,7 +821,7 @@ namespace Compiler
 			// Perform type checking
 			auto targetType = node->ExprType( assembler );
 
-			if ( !targetType->IsAssignable( &Type_t( TYPE_NUMBER ) ) )
+			if ( !targetType->IsAssignable( &TA_NUMBER ) )
 			{
 				throw CompilerException( "cp_invalid_expression_type", "Can not assign expression of type " +
 					TypeToString( Type_t( TYPE_NUMBER ) ) + " to variable of type " + TypeToString( *targetType ),
@@ -877,14 +884,14 @@ namespace Compiler
 			if ( opCode != numberOps.end() )
 			{
 				// Type check: Number
-				if ( !leftType->IsAssignable( &Type_t( TYPE_NUMBER ) ) )
+				if ( !leftType->IsAssignable( &TA_NUMBER ) )
 				{
 					throw CompilerException( "cp_invalid_expression_type", "Expected expression of type " +
 						TypeToString( Type_t( TYPE_NUMBER ) ) + ", got: " + TypeToString( *leftType ),
 						m_Left->LineNr(), m_Left->ColNr(), m_Left->Token() );
 				}
 
-				if ( !rightType->IsAssignable( &Type_t( TYPE_NUMBER ) ) )
+				if ( !rightType->IsAssignable( &TA_NUMBER ) )
 				{
 					throw CompilerException( "cp_invalid_expression_type", "Expected expression of type " +
 						TypeToString( Type_t( TYPE_NUMBER ) ) + ", got: " + TypeToString( *rightType ),
@@ -950,7 +957,7 @@ namespace Compiler
 			delete m_Node;
 		}
 
-		FreeTypes( m_ExprType );
+		FreeTypes( m_ExprType, __FILE__, __LINE__ );
 		m_ExprType = NULL;
 	}
 
@@ -1005,8 +1012,8 @@ namespace Compiler
 			{
 				// Check return type match
 				auto type = assembler.CurrentContext()->m_Type;
-				auto retnType = type->m_ReturnType ? type->m_ReturnType : &Type_t( TYPE_UNKNOWN );
-				auto exprType = m_Node ? m_Node->ExprType( assembler ) : &Type_t( TYPE_NULL );
+				auto retnType = type->m_ReturnType ? type->m_ReturnType : &TA_UNKNOWN;
+				auto exprType = m_Node ? m_Node->ExprType( assembler ) : &TA_NULL;
 
 				if ( !retnType->IsAssignable( exprType ) )
 				{
@@ -1054,7 +1061,7 @@ namespace Compiler
 
 		m_NodeList.clear();
 
-		FreeTypes( m_ExprType );
+		FreeTypes( m_ExprType, __FILE__, __LINE__ );
 		m_ExprType = NULL;
 	}
 
@@ -1101,7 +1108,7 @@ namespace Compiler
 				if ( !isLocal )
 				{
 					// Global variable
-					if ( !assembler.AddGlobal( varNameString, true, lineNr, colNr, &Type_t( TYPE_TABLE ) ) )
+					if ( !assembler.AddGlobal( varNameString, true, lineNr, colNr, &TA_TABLE ) )
 					{
 						throw CompilerException( "cp_identifier_already_exists", "Identifier \"" + varNameString + "\" already exists",
 							m_LineNr, m_ColNr, m_Token );
@@ -1112,7 +1119,7 @@ namespace Compiler
 				else
 				{
 					// Local variable
-					assembler.AddLocal( varNameString, true, lineNr, colNr, &Type_t( TYPE_TABLE ) );
+					assembler.AddLocal( varNameString, true, lineNr, colNr, &TA_TABLE );
 				}
 			}
 			else
@@ -1250,7 +1257,7 @@ namespace Compiler
 
 				if ( !isLocal )
 				{
-					if ( !assembler.AddGlobal( varNameString, true, lineNr, colNr, &Type_t( TYPE_ARRAY ) ) )
+					if ( !assembler.AddGlobal( varNameString, true, lineNr, colNr, &TA_ARRAY ) )
 					{
 						throw CompilerException( "cp_identifier_already_exists", "Identifier \"" + varNameString + "\" already exists",
 							m_LineNr, m_ColNr, m_Token );
@@ -1260,7 +1267,7 @@ namespace Compiler
 				}
 				else
 				{
-					assembler.AddLocal( varNameString, true, lineNr, colNr, &Type_t( TYPE_ARRAY ) );
+					assembler.AddLocal( varNameString, true, lineNr, colNr, &TA_ARRAY );
 				}
 			}
 
@@ -1524,7 +1531,7 @@ namespace Compiler
 				if ( fn )
 				{
 					// Free temporary function type
-					FreeTypes( assembler.UnregisterType( varType ) );
+					FreeTypes( assembler.UnregisterType( varType ), __FILE__, __LINE__ );
 				}
 			}
 			else
@@ -1535,20 +1542,21 @@ namespace Compiler
 				// Empty variable
 				EmitByte( QScript::OpCode::OP_LOAD_NULL, chunk );
 
-				if ( !varType->IsAssignable( &Type_t( TYPE_NULL ) ) )
+				if ( !varType->IsAssignable( &TA_NULL ) )
 				{
 					throw CompilerException( "cp_invalid_expression_type", "Expected expression of type " +
 						TypeToString( *varType ) + ", got: " + TypeToString( Type_t( TYPE_NULL ) ),
 						lineNr, colNr, m_NodeList[ 0 ]->Token() );
 				}
 
-				auto unknownType = assembler.RegisterType( QS_NEW Type_t( TYPE_UNKNOWN, TYPE_UNKNOWN ) );
+				auto unknownType = assembler.RegisterType( QS_NEW Type_t( TYPE_UNKNOWN, TYPE_UNKNOWN ), __FILE__, __LINE__ );
 
 				if ( !isLocal )
 				{
 					// Global variable
 					if ( !assembler.AddGlobal( varString, isConst, lineNr, colNr, unknownType ) )
 					{
+						FreeTypes( assembler.UnregisterType( unknownType ), __FILE__, __LINE__ );
 						throw CompilerException( "cp_identifier_already_exists", "Identifier \"" + varString + "\" already exists",
 							m_NodeList[ 0 ]->LineNr(), m_NodeList[ 0 ]->ColNr(), m_NodeList[ 0 ]->Token() );
 					}
@@ -1562,7 +1570,7 @@ namespace Compiler
 					assembler.AddLocal( varString, isConst, lineNr, colNr, unknownType );
 				}
 
-				FreeTypes( assembler.UnregisterType( unknownType ) );
+				FreeTypes( assembler.UnregisterType( unknownType ), __FILE__, __LINE__ );
 			}
 			break;
 		}
@@ -1612,10 +1620,10 @@ namespace Compiler
 
 	void TypeNode::Release()
 	{
-		FreeTypes( m_ExprType );
+		FreeTypes( m_ExprType, __FILE__, __LINE__ );
 		m_ExprType = NULL;
 
-		FreeTypes( m_Type );
+		FreeTypes( m_Type, __FILE__, __LINE__ );
 		m_Type = NULL;
 	}
 
