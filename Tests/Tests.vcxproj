@@ -22,7 +22,7 @@
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{3EFF8713-E68B-4B19-BC4B-4EC30165A7C1}</ProjectGuid>
     <RootNamespace>Tests</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -176,6 +176,7 @@
     <ClCompile Include="..\Library\Compiler\Compiler.cpp" />
     <ClCompile Include="..\Library\Compiler\IRGenerator.cpp" />
     <ClCompile Include="..\Library\Compiler\Lexer.cpp" />
+    <ClCompile Include="..\Library\Compiler\Types.cpp" />
     <ClCompile Include="..\Library\Runtime\QVM.cpp" />
     <ClCompile Include="..\Library\STL\Array.cpp" />
     <ClCompile Include="..\Library\STL\NativeModule.cpp" />

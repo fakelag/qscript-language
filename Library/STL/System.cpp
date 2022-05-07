@@ -5,6 +5,7 @@
 
 #include "../Common/Chunk.h"
 #include "../Compiler/Compiler.h"
+#include "../Compiler/Types.h"
 #include "../Runtime/QVM.h"
 
 #include <time.h>
@@ -28,8 +29,9 @@ void SystemModule::Import( VM_t* vm ) const
 void SystemModule::Import( Compiler::Assembler* assembler, int lineNr, int colNr ) const
 {
 	auto config = assembler->Config();
-	assembler->AddGlobal( "exit", true, -1, -1, Compiler::TYPE_NATIVE, Compiler::TYPE_NONE );
-	assembler->AddGlobal( "print", true, -1, -1, Compiler::TYPE_NATIVE, Compiler::TYPE_NONE );
+
+	NATIVE_ASSEMBLER_GLOBAL( "print", Compiler::TYPE_NATIVE, Compiler::TYPE_NONE );
+	NATIVE_ASSEMBLER_GLOBAL( "exit", Compiler::TYPE_NATIVE, Compiler::TYPE_NONE );
 
 	if ( config.m_ImportCb )
 	{

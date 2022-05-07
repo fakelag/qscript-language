@@ -78,6 +78,9 @@
     <ClCompile Include="..\Library\STL\Array.cpp">
       <Filter>Code</Filter>
     </ClCompile>
+    <ClCompile Include="..\Library\Compiler\Types.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Tests.h">

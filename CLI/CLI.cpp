@@ -117,19 +117,21 @@ int main( int argc, char* argv[] )
 					std::getline( std::cin, source );
 				}
 
+				// --file F:\Projects\qscript-language\Debug\program.qss
 				auto exprTypes = QScript::Typer( source );
 
 				for ( auto type : exprTypes )
 				{
-					if ( type.second != 1024 /* TYPE_NONE */ )
-					{
-						std::cout << Compiler::TypeToString( type.first )
-							<< " -> " << Compiler::TypeToString( type.second ) << std::endl;
-					}
-					else
-					{
-						std::cout << Compiler::TypeToString( type.first ) << std::endl;
-					}
+					//if ( type.second != 1024 /* TYPE_NONE */ )
+					//{
+					//	std::cout << Compiler::TypeToString( type.first )
+					//		<< " -> " << Compiler::TypeToString( type.second ) << std::endl;
+					//}
+					//else
+					//{
+					//	std::cout << Compiler::TypeToString( type.first ) << std::endl;
+					//}
+					std::cout << Compiler::TypeToString( *type ) << std::endl;
 				}
 			}
 			EXCEPTION_HANDLING;

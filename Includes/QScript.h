@@ -10,6 +10,8 @@
 #endif
 #endif
 
+#include "../Library/Compiler/Types.h"
+
 struct VM_t;
 
 namespace Compiler
@@ -17,8 +19,8 @@ namespace Compiler
 	class BaseNode;
 	struct Variable_t;
 
-	std::string TypeToString( uint32_t type );
-	bool TypeCheck( uint32_t targetType, uint32_t exprType, bool strict = true );
+	std::string TypeToString( const Type_t& type );
+	// bool TypeCheck( Type_t targetType, Type_t exprType );
 }
 
 namespace QScript
@@ -64,7 +66,7 @@ namespace QScript
 
 	Chunk_t* AllocChunk();
 	FunctionObject* Compile( const std::string& source, const Config_t& config = Config_t( true ) );
-	std::vector< std::pair< uint32_t, uint32_t > > Typer( const std::string& source, const Config_t& config = Config_t( false ) );
+	std::vector< Compiler::Type_t* > Typer( const std::string& source, const Config_t& config = Config_t( false ) );
 	std::vector< Compiler::BaseNode* > GenerateAST( const std::string& source );
 
 	void FreeChunk( Chunk_t* chunk );

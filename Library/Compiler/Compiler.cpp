@@ -4,6 +4,7 @@
 
 #include "Instructions.h"
 #include "Compiler.h"
+#include "Types.h"
 
 #define BEGIN_COMPILER \
 Object::AllocateString = &Compiler::AllocateString; \
@@ -115,7 +116,7 @@ namespace QScript
 		}
 	}
 
-	std::vector< std::pair< uint32_t, uint32_t > > Typer( const std::string& source, const Config_t& config )
+	std::vector< Compiler::Type_t* > Typer( const std::string& source, const Config_t& config )
 	{
 		BEGIN_COMPILER;
 
@@ -130,7 +131,7 @@ namespace QScript
 		systemModule->Import( &assembler );
 
 		std::vector< Compiler::BaseNode* > astNodes;
-		std::vector< std::pair< uint32_t, uint32_t > > exprTypes;
+		std::vector< Compiler::Type_t* > exprTypes;
 
 		try
 		{
@@ -144,68 +145,65 @@ namespace QScript
 			delete astNodes.back();
 			astNodes.erase( astNodes.end() - 1 );
 
-			// Compile bytecode
 			for ( auto node : astNodes )
 			{
 				node->Compile( assembler );
 
-				uint32_t exprType = node->ExprType( assembler );
-				uint32_t retnType = Compiler::TYPE_NONE;
+				auto exprType = node->ExprType( assembler );
+				exprTypes.push_back( Compiler::DeepCopyType( *exprType, QS_NEW Compiler::Type_t ) );
 
 				// Attempt to resolve return type
-				if ( exprType == Compiler::TYPE_FUNCTION || exprType == Compiler::TYPE_NATIVE )
-				{
-					switch ( node->Id() )
-					{
-					case Compiler::NODE_NAME:
-					{
-						auto nameValue = static_cast< Compiler::ValueNode* >( node )->GetValue();
-						auto name = AS_STRING( nameValue )->GetString();
+				//if ( exprType->IsPrimitive( Compiler::TYPE_FUNCTION ) || exprType->IsPrimitive( Compiler::TYPE_NATIVE ) )
+				//{
+				//	switch ( node->Id() )
+				//	{
+				//	case Compiler::NODE_NAME:
+				//	{
+				//		auto nameValue = static_cast< Compiler::ValueNode* >( node )->GetValue();
+				//		auto name = AS_STRING( nameValue )->GetString();
 
-						Compiler::Variable_t varInfo;
+				//		Compiler::Variable_t varInfo;
 
-						if ( assembler.FindGlobal( name, &varInfo ) )
-							retnType = varInfo.m_ReturnType;
+				//		if ( assembler.FindGlobal( name, &varInfo ) )
+				//			retnType = varInfo.m_Type->m_ReturnType ? *varInfo.m_Type->m_ReturnType : Compiler::Type_t( Compiler::TYPE_NONE );
 
-						break;
-					}
-					case Compiler::NODE_FUNC:
-					{
-						auto funcNode = static_cast< Compiler::ListNode* >( node );
-						retnType = Compiler::ResolveReturnType( funcNode, assembler );
-						break;
-					}
-					case Compiler::NODE_CONSTVAR:
-					case Compiler::NODE_VAR:
-					{
-						auto varNode = static_cast< Compiler::ListNode* >( node );
-						auto valueNode = varNode->GetList()[ 1 ];
+				//		break;
+				//	}
+				//	case Compiler::NODE_FUNC:
+				//	{
+				//		auto funcNode = static_cast< Compiler::ListNode* >( node );
+				//		Compiler::ResolveReturnType( funcNode, assembler, retnType );
+				//		break;
+				//	}
+				//	case Compiler::NODE_CONSTVAR:
+				//	case Compiler::NODE_VAR:
+				//	{
+				//		auto varNode = static_cast< Compiler::ListNode* >( node );
+				//		auto valueNode = varNode->GetList()[ 1 ];
 
-						if ( valueNode && valueNode->Id() == Compiler::NODE_FUNC )
-						{
-							auto funcNode = static_cast< Compiler::ListNode* >( valueNode );
-							retnType = Compiler::ResolveReturnType( funcNode, assembler );
-						}
-						break;
-					}
-					case Compiler::NODE_ASSIGN:
-					{
-						auto assignNode = static_cast< Compiler::ComplexNode* >( node );
-						auto valueNode = assignNode->GetRight();
+				//		if ( valueNode && valueNode->Id() == Compiler::NODE_FUNC )
+				//		{
+				//			auto funcNode = static_cast< Compiler::ListNode* >( valueNode );
+				//			retnType = Compiler::ResolveReturnType( funcNode, assembler );
+				//		}
+				//		break;
+				//	}
+				//	case Compiler::NODE_ASSIGN:
+				//	{
+				//		auto assignNode = static_cast< Compiler::ComplexNode* >( node );
+				//		auto valueNode = assignNode->GetRight();
 
-						if ( valueNode && valueNode->Id() == Compiler::NODE_FUNC )
-						{
-							auto funcNode = static_cast< const Compiler::ListNode* >( valueNode );
-							retnType = Compiler::ResolveReturnType( funcNode, assembler );
-						}
-						break;
-					}
-					default:
-						break;
-					}
-				}
-
-				exprTypes.push_back( std::make_pair( exprType, retnType ) );
+				//		if ( valueNode && valueNode->Id() == Compiler::NODE_FUNC )
+				//		{
+				//			auto funcNode = static_cast< const Compiler::ListNode* >( valueNode );
+				//			retnType = Type::ResolveReturnType( funcNode, assembler );
+				//		}
+				//		break;
+				//	}
+				//	default:
+				//		break;
+				//	}
+				//}
 			}
 
 			for ( auto node : astNodes )
@@ -460,7 +458,7 @@ namespace Compiler
 	void GarbageCollect( const std::vector< Compiler::BaseNode* >& nodes )
 	{
 		std::vector< QScript::Value > values;
-		std::vector< const Compiler::BaseNode* > queue;
+		std::vector< Compiler::BaseNode* > queue;
 
 		for ( auto node : nodes )
 			queue.push_back( node );
@@ -483,12 +481,12 @@ namespace Compiler
 						break;
 					}
 					case NT_SIMPLE:
-						queue.push_back( static_cast< const SimpleNode* >( node )->GetNode() );
+						queue.push_back( static_cast< SimpleNode* >( node )->GetNode() );
 						break;
 					case NT_COMPLEX:
 					{
-						queue.push_back( static_cast< const ComplexNode* >( node )->GetLeft() );
-						queue.push_back( static_cast< const ComplexNode* >( node )->GetRight() );
+						queue.push_back( static_cast< ComplexNode* >( node )->GetLeft() );
+						queue.push_back( static_cast< ComplexNode* >( node )->GetRight() );
 						break;
 					}
 					case NT_LIST:
@@ -535,15 +533,18 @@ namespace Compiler
 	{
 		// Fill out globals for REPL
 		for ( auto identifier : config.m_Globals )
-			AddGlobal( identifier, -1, -1 );
+			AddGlobal( identifier, false, -1, -1, &TA_UNKNOWN, NULL );
 
-		CreateFunction( "<main>", true, TYPE_UNKNOWN, true, true, chunk );
+		CreateFunction( "<main>", true, &TA_UNKNOWN, true, true, chunk );
 	}
 
 	void Assembler::Release()
 	{
 		// Called when a compilation error occurred and all previously compiled
 		// materials need to be freed
+
+		for ( auto type : m_Types )
+			FreeTypes( type, __FILE__, __LINE__ );
 
 		for ( auto context : m_Functions )
 		{
@@ -559,6 +560,10 @@ namespace Compiler
 			throw Exception( "cp_unescaped_function", "Abort: Compiler was left with unfinished functions" );
 
 		delete CurrentStack();
+
+		for ( auto type : m_Types )
+			FreeTypes( type, __FILE__, __LINE__ );
+
 		m_Compiled.push_back( m_Functions[ 0 ].m_Func );
 		m_Functions.pop_back();
 
@@ -590,15 +595,15 @@ namespace Compiler
 		return m_Functions.back().m_Stack;
 	}
 
-	QScript::FunctionObject* Assembler::CreateFunction( const std::string& name, bool isConst, uint32_t retnType, bool isAnonymous, bool addLocal, QScript::Chunk_t* chunk )
+	QScript::FunctionObject* Assembler::CreateFunction( const std::string& name, bool isConst, const Type_t* type, bool isAnonymous, bool addLocal, QScript::Chunk_t* chunk )
 	{
 		auto function = QS_NEW QScript::FunctionObject( name, chunk );
-		auto context = FunctionContext_t{ function, QS_NEW Assembler::Stack_t(), retnType };
+		auto context = FunctionContext_t{ function, QS_NEW Assembler::Stack_t(), DeepCopyType( *type, RegisterType( QS_NEW Type_t, __FILE__, __LINE__ ) ) };
 
 		m_Functions.push_back( context );
 
 		if ( addLocal )
-			AddLocal( isAnonymous ? "" : name, isConst, -1, -1, TYPE_FUNCTION, retnType, function );
+			AddLocal( isAnonymous ? "" : name, isConst, -1, -1, type );
 
 		return function;
 	}
@@ -623,14 +628,16 @@ namespace Compiler
 		// Finished compiling
 		m_Compiled.push_back( function->m_Func );
 
-		// Free compile-time stack from memory
+		// Free compile-time stack & types from memory
+		// FreeTypes( CurrentContext()->m_Type );
 		delete CurrentStack();
+
 		m_Functions.pop_back();
 	}
 
-	void Assembler::AddArgument( const std::string& name, bool isConstant, int lineNr, int colNr, uint32_t type, uint32_t returnType )
+	void Assembler::AddArgument( const std::string& name, bool isConstant, int lineNr, int colNr, const Type_t* type )
 	{
-		auto variable = Variable_t{ name, isConstant, type, returnType, NULL };
+		auto variable = Variable_t( name, isConstant, DeepCopyType( *type, RegisterType( QS_NEW Type_t, __FILE__, __LINE__ ) ) );
 
 		if ( m_Config.m_IdentifierCb )
 			m_Config.m_IdentifierCb( lineNr, colNr, variable, "Argument" );
@@ -638,16 +645,11 @@ namespace Compiler
 		m_FunctionArgs.push_back( variable );
 	}
 
-	uint32_t Assembler::AddLocal( const std::string& name, int lineNr, int colNr )
-	{
-		return AddLocal( name, false, lineNr, colNr, TYPE_UNKNOWN, TYPE_UNKNOWN );
-	}
-
-	uint32_t Assembler::AddLocal( const std::string& name, bool isConstant, int lineNr, int colNr, uint32_t type, uint32_t returnType, QScript::FunctionObject* fn )
+	uint32_t Assembler::AddLocal( const std::string& name, bool isConstant, int lineNr, int colNr, const Type_t* type, QScript::FunctionObject* fn )
 	{
 		auto stack = CurrentStack();
 
-		auto variable = Variable_t{ name, isConstant, type, returnType, fn };
+		auto variable = Variable_t( name, isConstant, DeepCopyType( *type, RegisterType( QS_NEW Type_t, __FILE__, __LINE__ ) ), fn );
 
 		if ( m_Config.m_IdentifierCb )
 			m_Config.m_IdentifierCb( lineNr, colNr, variable, "Local" );
@@ -724,17 +726,12 @@ namespace Compiler
 		return false;
 	}
 
-	bool Assembler::AddGlobal( const std::string& name, int lineNr, int colNr )
-	{
-		return AddGlobal( name, false, lineNr, colNr, TYPE_UNKNOWN, TYPE_UNKNOWN, NULL );
-	}
-
-	bool Assembler::AddGlobal( const std::string& name, bool isConstant, int lineNr, int colNr, uint32_t type, uint32_t returnType, QScript::FunctionObject* fn )
+	bool Assembler::AddGlobal( const std::string& name, bool isConstant, int lineNr, int colNr, const Type_t* type, QScript::FunctionObject* fn )
 	{
 		if ( m_Globals.find( name ) != m_Globals.end() )
 			return false;
 
-		Variable_t global = Variable_t{ name, isConstant, type, returnType, fn };
+		Variable_t global = Variable_t( name, isConstant, DeepCopyType( *type, RegisterType( QS_NEW Type_t, __FILE__, __LINE__ ) ), fn );
 		m_Globals.insert( std::make_pair( name, global ) );
 
 		if ( m_Config.m_IdentifierCb )
@@ -818,10 +815,46 @@ namespace Compiler
 			else
 				EmitByte( QScript::OpCode::OP_CLOSE_UPVALUE, CurrentChunk() );
 
+			// Free types
+			// FreeTypes( local.m_Var.m_Type );
+
 			stack->m_Locals.erase( stack->m_Locals.begin() + i );
 		}
 
 		--stack->m_CurrentDepth;
+	}
+
+	Type_t* Assembler::RegisterType( Type_t* type, const char* file, int line )
+	{
+		if ( std::find( m_Types.begin(), m_Types.end(), type ) != m_Types.end() ) {
+			throw std::exception( "Type already exists in registered types. There is a programming error." );
+		}
+
+		// printf( "type %X registerted from %s line %i\n", type, file, line );
+
+		m_Types.push_back( type );
+		return type;
+	}
+
+	const Type_t* Assembler::UnregisterType( const Type_t* type )
+	{
+		if ( !type )
+			return NULL;
+
+		UnregisterType( type->m_ReturnType );
+
+		for ( auto arg : type->m_ArgTypes )
+			UnregisterType( arg.second );
+
+		for ( auto prop : type->m_PropTypes )
+			UnregisterType( prop.second );
+
+		for ( auto indice : type->m_IndiceTypes )
+			UnregisterType( indice );
+
+		m_Types.erase( std::remove( m_Types.begin(), m_Types.end(), type ), m_Types.end() );
+
+		return type;
 	}
 
 	const QScript::Config_t& Assembler::Config() const
@@ -831,6 +864,9 @@ namespace Compiler
 
 	void Assembler::ClearArguments()
 	{
+		//for ( auto arg : m_FunctionArgs )
+		//	FreeTypes( arg.m_Type );
+
 		m_FunctionArgs.clear();
 	}
 }
